@@ -33,7 +33,7 @@ export async function buildApp(svc: Services): Promise<FastifyInstance> {
   await app.register(cookie);
   await app.register(cors, { origin: svc.config.corsOrigins, credentials: true });
   // Global ceiling per client address; sensitive routes (login, MFA) set tighter limits of their own.
-  await app.register(rateLimit, { global: true, max: svc.config.env === 'test' ? 100_000 : 600, timeWindow: '1 minute', allowList: (req) => req.url === '/health' || req.url === '/ready' });
+  await app.register(rateLimit, { global: true, max: svc.config.env === 'test' ? 100_000 : Number(process.env.RATE_LIMIT_MAX ?? 600), timeWindow: '1 minute', allowList: (req) => req.url === '/health' || req.url === '/ready' });
   await app.register(swagger, {
     openapi: {
       openapi: '3.0.3',

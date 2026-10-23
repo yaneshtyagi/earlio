@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { setLang, type Lang } from '../i18n';
@@ -8,7 +9,19 @@ import { navFor } from '../shared/nav';
 import { BrandMark } from '../branding';
 import { NotificationBell } from './SettlementPages';
 
+/** Wide tables scroll sideways on a phone; a scrollable region must be reachable from the keyboard. */
+function useScrollableTables() {
+  useEffect(() => {
+    const mark = () => document.querySelectorAll('table').forEach((t) => { if (!t.hasAttribute('tabindex')) { t.setAttribute('tabindex', '0'); t.setAttribute('role', 'table'); } });
+    mark();
+    const mo = new MutationObserver(mark);
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, []);
+}
+
 export function Layout() {
+  useScrollableTables();
   const { me, signOut, refresh } = useAuth();
   const { t, i18n } = useTranslation();
   const cfg = useQuery({ queryKey: ['config'], queryFn: async () => (await api.GET('/api/v1/system/config')).data });
