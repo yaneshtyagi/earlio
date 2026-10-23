@@ -26,9 +26,9 @@ export const DEMO_ORGS: DemoOrg[] = [
   { slug: 'lakeshore', type: 'buyer', legalName: 'Lakeshore Outfitters LLC', country: 'US', ratingTier: 'BBB' },
   { slug: 'merlion', type: 'buyer', legalName: 'Merlion Electronics Pte Ltd', country: 'SG', ratingTier: 'A' },
   { slug: 'kallang', type: 'buyer', legalName: 'Kallang Home Pte Ltd', country: 'SG', ratingTier: 'BBB' },
-  { slug: 'aurelia', type: 'bank', legalName: 'Aurelia Bank', country: 'IN', isPartner: true, branding: { displayName: 'Aurelia Bank', primary: '#0b5d3b' } },
-  { slug: 'kestrel', type: 'bank', legalName: 'Kestrel Capital', country: 'IN' },
-  { slug: 'harbour', type: 'bank', legalName: 'Harbour Trust Bank', country: 'SG', dataRegion: 'SG' },
+  { slug: 'aurelia', type: 'bank', legalName: 'Aurelia Bank', country: 'IN', isPartner: true, hostname: 'bank1.localtest.me', branding: { displayName: 'Aurelia Bank', primary: '#0b5d3b', accent: '#c9a227', welcome: 'Fast, insured finance on your export invoices.' } },
+  { slug: 'kestrel', type: 'bank', legalName: 'Kestrel Capital', country: 'IN', hostname: 'bank2.localtest.me', branding: { displayName: 'Kestrel Capital', primary: '#1d4ed8', accent: '#f59e0b', welcome: 'Working capital for growing exporters.' } },
+  { slug: 'harbour', type: 'bank', legalName: 'Harbour Trust Bank', country: 'SG', dataRegion: 'SG', hostname: 'bank3.localtest.me', branding: { displayName: 'Harbour Trust Bank', primary: '#7c2d12', accent: '#0e7490', welcome: 'Trade finance from Singapore.' } },
   { slug: 'zarnitsa', type: 'buyer', legalName: 'Zarnitsa Trading Ltd', country: 'CY', ratingTier: 'BBB', kycStatus: 'approved', sanctionsStatus: 'confirmed', blocked: true },
   { slug: 'exportshield', type: 'insurer', legalName: 'ExportShield', country: 'IN' },
   { slug: 'sentinel', type: 'insurer', legalName: 'Sentinel Trade Credit', country: 'SG', dataRegion: 'SG' },
@@ -62,6 +62,10 @@ export async function seedDemo(tx: Tx, svc: Services, ctx: Ctx): Promise<DemoIds
         orgId: id, orgType: o.type, email, name: `${o.legalName} ${role}`, role,
         passwordHash: hash, mfaSecret: demoTotpSecret(email), mfaEnabled: true,
       });
+    }
+    if (o.type === 'platform') { // a second administrator, so maker-checker can be demonstrated
+      const email = `admin2@${slug}.demo`;
+      await addMember(tx, svc, ctx, { orgId: id, orgType: o.type, email, name: `${o.legalName} Administrator 2`, role: 'PlatformAdmin', passwordHash: hash, mfaSecret: demoTotpSecret(email), mfaEnabled: true });
     }
   }
   await seedRelationshipsAndLimits(tx, svc, ids);

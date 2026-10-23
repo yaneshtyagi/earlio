@@ -6,6 +6,17 @@ export const TERMS_SCHEMA_VERSION = 1;
 
 const pct = (max = 100) => z.number().min(0).max(max);
 const tier = z.enum(['AA', 'A', 'BBB']);
+/** CT-10: a bank or insurer can ask for extra information; the answers are collected on the relevant form. */
+export const customFieldShape = z.object({
+  key: z.string().regex(/^[a-z][a-zA-Z0-9_]{1,39}$/, 'a field key starts with a lowercase letter (letters, digits, underscore)'),
+  label: z.string().min(2).max(80),
+  type: z.enum(['text', 'number', 'date', 'select']),
+  required: z.boolean(),
+  options: z.array(z.string().min(1).max(60)).max(20).optional(),
+  appliesTo: z.enum(['financing_request', 'claim']),
+}).refine((f) => f.type !== 'select' || (f.options?.length ?? 0) >= 2, { message: 'A select field needs at least two options.' });
+const customFields = z.array(customFieldShape).max(12).refine((a) => new Set(a.map((f) => f.key)).size === a.length, { message: 'Field keys must be unique.' }).optional();
+export type CustomField = z.infer<typeof customFieldShape>;
 const condition = z.custom<any>((v) => validateCondition(v) === null, { message: 'Invalid eligibility rule' });
 
 export const platformTermsShape = z.object({
@@ -40,6 +51,8 @@ export const bankTermsShape = z.object({
   graceDays: z.number().int().min(0).max(30),
   platformFeePayer: z.enum(['bank', 'supplier']),
   eligibility: condition,
+  customFields,
+  requiredDocuments: z.array(z.enum(['commercial_invoice', 'delivery_proof', 'packing_list', 'shipping_bill', 'transport_document'])).optional(),
 });
 
 export const insurerTermsShape = z.object({
@@ -55,6 +68,7 @@ export const insurerTermsShape = z.object({
     ratePctByTier: z.partialRecord(tier, pct(20)).optional(), flatRatePct: pct(20).optional(), payer: z.enum(['supplier', 'bank']),
   }).refine((p) => (p.mode === 'flat' ? p.flatRatePct != null : !!p.ratePctByTier), { message: 'Premium needs flatRatePct (flat) or ratePctByTier (per period).' }),
   limits: z.object({ perBuyerUsd: z.number().gt(0), portfolioUsd: z.number().gt(0) }),
+  customFields,
 });
 
 export type PlatformTerms = z.infer<typeof platformTermsShape>;

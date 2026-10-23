@@ -1,3 +1,4 @@
+import { currentMode } from './modules/governance/settings';
 import Fastify, { type FastifyInstance } from 'fastify';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
@@ -97,7 +98,7 @@ export async function buildApp(svc: Services): Promise<FastifyInstance> {
   r.get('/api/v1/system/config', {
     schema: { tags: ['system'], summary: 'Public runtime configuration for the SPA',
       response: { 200: z.object({ env: z.string(), simulated: z.boolean(), mode: z.enum(['network', 'white-label']), apiVersion: z.string() }) } },
-  }, async () => ({ env: svc.config.env, simulated: svc.config.simulatedBanner, mode: svc.config.mode, apiVersion: '0.1.0' }));
+  }, async () => ({ env: svc.config.env, simulated: svc.config.simulatedBanner, mode: await svc.db.system((tx) => currentMode(tx, svc)), apiVersion: '0.1.0' }));
   app.get('/openapi.json', { schema: { hide: true } as any }, async () => app.swagger());
 
   await app.register(async (a) => identityRoutes(a));

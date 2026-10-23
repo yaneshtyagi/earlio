@@ -26,7 +26,7 @@ const frOut = z.object({
   id: z.string(), invoiceId: z.string(), invoiceNumber: z.string(), offerId: z.string(), status: z.string(), supplier: z.object({ id: z.string(), name: z.string() }), bank: z.object({ id: z.string(), name: z.string() }),
   buyerName: z.string(), currency: z.string(), amount: z.string(), netCash: z.string(), netCashInr: z.string(), allInPct: z.string(), consentText: z.string().nullable(), consentedAt: z.string().nullable(),
   decisionReason: z.string().nullable(), disbursementRef: z.string().nullable(), fundedAt: z.string().nullable(), createdAt: z.string(),
-  assignmentAcknowledged: z.boolean(), noticeRef: z.string().nullable(),
+  assignmentAcknowledged: z.boolean(), noticeRef: z.string().nullable(), extra: z.record(z.string(), z.any()),
 });
 const scheduleIn = z.discriminatedUnion('mode', [
   z.object({ mode: z.literal('table'), entries: z.array(z.object({ payBy: z.string(), discountPct: z.number() })).min(1).max(12) }),
@@ -154,7 +154,7 @@ export function marketplaceRoutes(app: FastifyInstance) {
   const toFr = (x: any) => ({
     id: x.id, invoiceId: x.invoice_id, invoiceNumber: x.human_id, offerId: x.offer_id, status: x.status, supplier: { id: x.supplier_org_id, name: x.sname }, bank: { id: x.bank_org_id, name: x.bname }, buyerName: x.uname,
     currency: x.currency, amount: x.accepted_amount ?? x.gross_amount, netCash: x.net_cash, netCashInr: x.net_cash_inr, allInPct: x.all_in_pct, consentText: x.consent_text, consentedAt: iso(x.consented_at),
-    decisionReason: x.decision_reason, disbursementRef: x.disbursement_ref, fundedAt: iso(x.funded_at), createdAt: iso(x.created_at)!, assignmentAcknowledged: !!x.ack, noticeRef: x.notice_ref ?? null,
+    decisionReason: x.decision_reason, disbursementRef: x.disbursement_ref, fundedAt: iso(x.funded_at), createdAt: iso(x.created_at)!, assignmentAcknowledged: !!x.ack, noticeRef: x.notice_ref ?? null, extra: x.extra ?? {},
   });
   const loadFr = async (tx: any, id: string) => { const x = await tx.maybe(`${FR_SQL} where f.id = $1`, [id]); if (!x) throw notFound('Financing request'); return toFr(x); };
 
@@ -186,8 +186,8 @@ export function marketplaceRoutes(app: FastifyInstance) {
 
   r.post('/api/v1/financing-requests/:id/consent', {
     preHandler: supplierOnly('financing:consent'),
-    schema: { tags: ['marketplace'], summary: 'Supplier consents to the assignment and terms', params: z.object({ id: z.string().uuid() }), response: { 200: frOut } },
-  }, async (req) => svc.db.tx(req.ctx, async (tx) => { await consentFinancing(tx, svc, req.ctx, req.auth!.orgId!, req.params.id); return loadFr(tx, req.params.id); }));
+    schema: { tags: ['marketplace'], summary: 'Supplier consents to the assignment and terms (with answers to the bank\'s extra questions)', params: z.object({ id: z.string().uuid() }), body: z.object({ extra: z.record(z.string(), z.union([z.string(), z.number()])).optional() }).nullish(), response: { 200: frOut } },
+  }, async (req) => svc.db.tx(req.ctx, async (tx) => { await consentFinancing(tx, svc, req.ctx, req.auth!.orgId!, req.params.id, req.body?.extra); return loadFr(tx, req.params.id); }));
 
   r.post('/api/v1/financing-requests/:id/cancel', {
     preHandler: requireOrgType('supplier'),

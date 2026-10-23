@@ -1,3 +1,4 @@
+import { RequirementsBox } from './GovernancePages';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -38,6 +39,7 @@ export function SupplierFundingPanel({ inv, onChange }: { inv: Inv; onChange: ()
   const { run, Msg } = useAction(refresh);
   const [gates, setGates] = useState<{ n: number; name: string; ok: boolean; reason?: string }[] | null>(null);
   const [rate, setRate] = useState('');
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const canManage = me?.permissions.includes('discount:manage'), canConsent = me?.permissions.includes('financing:consent');
   const live = ['OpenForFunding', 'OffersReceived', 'Funded'].includes(inv.status);
   const cmp = useQuery({ queryKey: ['offers', inv.id], enabled: live, queryFn: async () => (await api.GET('/api/v1/invoices/{id}/offers', { params: { path: { id: inv.id } } })).data });
@@ -73,7 +75,8 @@ export function SupplierFundingPanel({ inv, onChange }: { inv: Inv; onChange: ()
           <h4>Financing with {fr.bank.name} <span className={`chip ${fr.status}`}>{fr.status}</span></h4>
           {fr.status === 'ConsentPending' && <>
             <p>Net cash {money(fr.netCash, fr.currency)} (≈ {money(fr.netCashInr, 'INR')}) at {fr.allInPct}% a year. Please review and give your consent. You can cancel until the bank instructs payment.</p>
-            {canConsent ? <button onClick={() => run(() => api.POST('/api/v1/financing-requests/{id}/consent', { params: { path: { id: fr.id } } }), 'Consent recorded. The bank will now confirm.')}>Review and consent</button> : <p className="hint">An approver in your organisation must give consent.</p>}
+            <RequirementsBox frId={fr.id} invoiceId={inv.id} answers={answers} setAnswers={setAnswers} onChange={refresh} />
+            {canConsent ? <button onClick={() => run(() => api.POST('/api/v1/financing-requests/{id}/consent', { params: { path: { id: fr.id } }, body: { extra: answers } }), 'Consent recorded. The bank will now confirm.')}>Review and consent</button> : <p className="hint">An approver in your organisation must give consent.</p>}
           </>}
           {fr.consentText && <p className="hint">{fr.consentText}</p>}
           {fr.status === 'BankConfirming' && <p className="hint">Waiting for the bank to confirm{fr.assignmentAcknowledged ? '' : ' and for the buyer to acknowledge the assignment notice'}.</p>}

@@ -56,30 +56,8 @@ export function DisputesPage() {
           {q.data?.length === 0 && <tr><td colSpan={6} className="muted">No disputes.</td></tr>}
         </tbody>
       </table>
-      {isAdmin && <DisputeTimersPanel />}
+      {isAdmin && <p className="hint">Timers are set in the <Link to="/admin/guardrails">platform defaults</Link> and need a second administrator.</p>}
     </section>
-  );
-}
-
-function DisputeTimersPanel() {
-  const { act, banner } = useAct();
-  const t = useQuery({ queryKey: ['dispute-timers'], queryFn: async () => (await api.GET('/api/v1/admin/dispute-timers')).data });
-  const [v, setV] = useState<{ responseHours: string; escalateAfterHours: string; timeoutAfterHours: string } | null>(null);
-  const cur_ = v ?? (t.data ? { responseHours: String(t.data.responseHours), escalateAfterHours: String(t.data.escalateAfterHours), timeoutAfterHours: String(t.data.timeoutAfterHours) } : null);
-  if (!cur_) return null;
-  const set = (k: keyof typeof cur_) => (e: React.ChangeEvent<HTMLInputElement>) => setV({ ...cur_, [k]: e.target.value });
-  return (
-    <div className="panel">
-      <h3>Dispute timers</h3>
-      {banner}
-      <p className="filters">
-        <label>Response (h)<input value={cur_.responseHours} onChange={set('responseHours')} /></label>
-        <label>Escalate after (h)<input value={cur_.escalateAfterHours} onChange={set('escalateAfterHours')} /></label>
-        <label>Time out after (h)<input value={cur_.timeoutAfterHours} onChange={set('timeoutAfterHours')} /></label>
-        <button onClick={() => act(() => api.PUT('/api/v1/admin/dispute-timers', { body: { responseHours: Number(cur_.responseHours), escalateAfterHours: Number(cur_.escalateAfterHours), timeoutAfterHours: Number(cur_.timeoutAfterHours) } }), 'Timers saved.')}>Save</button>
-      </p>
-      <p className="hint">Silence for the response window escalates the case to Earlio; with no decision by the time-out the freeze lifts. Order must be response ≤ escalation &lt; time-out.</p>
-    </div>
   );
 }
 
@@ -222,6 +200,7 @@ export function RecoveryPage() {
   const q = useQuery({ queryKey: ['defaults'], queryFn: async () => (await api.GET('/api/v1/recovery/defaults')).data?.items ?? [] });
   const canFile = type === 'bank' && me?.permissions.includes('claim:file');
   const DOCS = ['invoice', 'acceptance', 'delivery_proof', 'statement'] as const;
+  const [extra, setExtra] = useState<Record<string, Record<string, string>>>({});
   return (
     <section>
       <h2>Overdue and defaults</h2>
@@ -237,17 +216,16 @@ export function RecoveryPage() {
               <button className="secondary" onClick={() => act(() => api.POST('/api/v1/recovery/defaults/{invoiceId}/insolvency', { params: { path: { invoiceId: d.invoiceId } }, body: { reference: ref[d.invoiceId] ?? '' } }), 'Insolvency recorded: the waiting period is waived.')}>Report buyer insolvency</button></p>
           )}
           {canFile && d.status === 'ClaimEligible' && (
-            <div>
-              <h4>File the insurance claim</h4>
+            <ClaimForm invoiceId={d.invoiceId} extra={extra[d.invoiceId] ?? {}} setExtra={(v) => setExtra({ ...extra, [d.invoiceId]: v })}>
               <p className="filters">{DOCS.map((t) => (
                 <label key={t}>{label(t)}<input type="file" onChange={async (e) => {
                   const f = e.target.files?.[0]; if (!f) return;
                   try { const fileId = await upload(f); setDocs({ ...docs, [d.invoiceId]: { ...(docs[d.invoiceId] ?? {}), [t]: fileId } }); } catch (err) { setMsg({ kind: 'err', text: (err as Error).message }); }
                 }} />{docs[d.invoiceId]?.[t] && <span className="chip Credited">attached</span>}</label>
               ))}</p>
-              <button onClick={() => act(() => api.POST('/api/v1/invoices/{id}/claims', { params: { path: { id: d.invoiceId } }, body: { documents: Object.entries(docs[d.invoiceId] ?? {}).map(([docType, fileId]) => ({ docType: docType as typeof DOCS[number], fileId })) } }), 'Claim filed with the insurer.')}>File claim for {cur(d.principal, d.currency)}</button>
+              <button onClick={() => act(() => api.POST('/api/v1/invoices/{id}/claims', { params: { path: { id: d.invoiceId } }, body: { documents: Object.entries(docs[d.invoiceId] ?? {}).map(([docType, fileId]) => ({ docType: docType as typeof DOCS[number], fileId })), extra: extra[d.invoiceId] } }), 'Claim filed with the insurer.')}>File claim for {cur(d.principal, d.currency)}</button>
               <p className="hint">Missing documents do not stop you filing, but the insurer treats them as a documentation defect.</p>
-            </div>
+            </ClaimForm>
           )}
         </div>
       ))}
@@ -391,5 +369,23 @@ export function ExportProceedsPage() {
         </tbody>
       </table>
     </section>
+  );
+}
+
+/** The insurer decides which papers and extra information a claim needs (CT-10); the form shows exactly that. */
+function ClaimForm({ invoiceId, extra, setExtra, children }: { invoiceId: string; extra: Record<string, string>; setExtra: (v: Record<string, string>) => void; children: React.ReactNode }) {
+  const q = useQuery({ queryKey: ['claim-req', invoiceId], queryFn: async () => (await api.GET('/api/v1/requirements/claim/{invoiceId}', { params: { path: { invoiceId } } })).data });
+  return (
+    <div>
+      <h4>File the insurance claim</h4>
+      {q.data && <p className="hint">This insurer requires: {q.data.documents.map(label).join(', ')}.</p>}
+      {q.data?.customFields.map((f) => (
+        <label key={f.key}>{f.label}{f.required && ' *'}
+          {f.type === 'select' ? <select value={extra[f.key] ?? ''} onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}><option value="">—</option>{f.options?.map((o) => <option key={o}>{o}</option>)}</select>
+            : <input type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} step="any" value={extra[f.key] ?? ''} onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })} />}
+        </label>
+      ))}
+      {children}
+    </div>
   );
 }

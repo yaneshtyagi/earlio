@@ -2,11 +2,13 @@ import { useState } from 'react';
 import QRCode from 'qrcode';
 import { api, problemOf, setCsrfToken } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import { useBrand } from '../branding';
 
 type Step = 'password' | 'mfa' | 'enroll' | 'recovery';
 
 export function LoginPage() {
   const { refresh } = useAuth();
+  const brand = useBrand();
   const [step, setStep] = useState<Step>('password');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,8 +48,9 @@ export function LoginPage() {
 
   return (
     <div className="login">
-      <h1>Earlio</h1>
-      <p className="muted">Tri-party receivables financing. Sign in to continue.</p>
+      <h1>{brand.logo && <img src={brand.logo} alt="" height={32} style={{ verticalAlign: 'middle', marginRight: 8 }} />}{brand.displayName}</h1>
+      <p className="muted">{brand.welcome ?? 'Tri-party receivables financing. Sign in to continue.'}</p>
+      {brand.whiteLabel && <p className="hint">Powered by Earlio</p>}
       {error && <div className="alert" role="alert">{error}</div>}
       {step === 'password' && (
         <form onSubmit={submitPassword}>

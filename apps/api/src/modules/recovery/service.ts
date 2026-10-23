@@ -1,3 +1,4 @@
+import { validateAnswers } from '../governance/requirements';
 import type { Ctx, Tx } from '../../db/pool';
 import type { Services } from '../../services';
 import { DomainError, conflict, forbidden, invalid, notFound } from '../../kernel/errors';
@@ -153,7 +154,7 @@ export async function evaluateExclusions(tx: Tx, invoiceId: string, documents: {
   });
 }
 
-export async function fileClaim(tx: Tx, svc: Services, ctx: Ctx, bankOrgId: string, invoiceId: string, documents: { docType: string; fileId: string }[]) {
+export async function fileClaim(tx: Tx, svc: Services, ctx: Ctx, bankOrgId: string, invoiceId: string, documents: { docType: string; fileId: string }[], extra?: Record<string, unknown>) {
   // Locking a row needs update visibility, which only the platform has on defaults; the bank's right to act is checked by the bank_org_id filter.
   const d = await tx.elevated(() => tx.maybe<any>('select * from recovery.defaults where invoice_id = $1 and bank_org_id = $2 for update', [invoiceId, bankOrgId]));
   if (!d) throw notFound('Default');
@@ -166,14 +167,15 @@ export async function fileClaim(tx: Tx, svc: Services, ctx: Ctx, bankOrgId: stri
   const cover = await tx.elevated(() => tx.one<any>('select * from insurance.cover_records where invoice_id = $1', [invoiceId]));
   const inv = await tx.elevated(() => tx.one<any>('select accepted_amount, gross_amount from invoicing.invoices where id = $1', [invoiceId]));
   const terms = (await resolveTerms(tx, svc.clock.now(), 'insurer', d.insurer_org_id, {})).terms;
+  const answers = validateAnswers((terms.customFields ?? []) as any, extra, 'claim');
   for (const x of documents) await shareFile(tx, x.fileId, [d.insurer_org_id]);
   const exclusions = await evaluateExclusions(tx, invoiceId, documents, terms.claimDocuments);
   const now = svc.clock.now();
   const face = inv.accepted_amount ?? inv.gross_amount;
   const claim = await tx.one<any>(
-    `insert into recovery.claims (invoice_id, invoice_number, bank_org_id, insurer_org_id, supplier_org_id, buyer_org_id, currency, face_amount, advance_amount, cover_pct, claimed_amount, status, documents, exclusions, filed_by, filed_at)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$9,'Filed',$11,$12,$13,$14) returning *`,
-    [invoiceId, d.invoice_number, bankOrgId, d.insurer_org_id, d.supplier_org_id, d.buyer_org_id, d.currency, face, d.principal, cover.cover_pct, JSON.stringify(documents), JSON.stringify(exclusions), ctx.userId ?? null, now]);
+    `insert into recovery.claims (invoice_id, invoice_number, bank_org_id, insurer_org_id, supplier_org_id, buyer_org_id, currency, face_amount, advance_amount, cover_pct, claimed_amount, status, documents, exclusions, filed_by, filed_at, extra)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$9,'Filed',$11,$12,$13,$14,$15) returning *`,
+    [invoiceId, d.invoice_number, bankOrgId, d.insurer_org_id, d.supplier_org_id, d.buyer_org_id, d.currency, face, d.principal, cover.cover_pct, JSON.stringify(documents), JSON.stringify(exclusions), ctx.userId ?? null, now, JSON.stringify(answers)]);
   await tx.elevated(async () => {
     await tx.query("update recovery.defaults set status = 'ClaimFiled', updated_at = $2 where id = $1", [d.id, now]);
     await tx.query("update insurance.cover_records set claim_status = 'filed' where invoice_id = $1", [invoiceId]);

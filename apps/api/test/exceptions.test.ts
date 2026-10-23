@@ -1,14 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createTestEnv, login, type TestEnv, type Session } from './helpers';
+import { createTestEnv, login, loginAs, type TestEnv, type Session } from './helpers';
 import { lateInterest } from '../src/modules/recovery/waterfall';
 
-let env: TestEnv;
+let env: TestEnv; let admin2: Session;
 let shree: Session; let shreeApprover: Session; let nw: Session; let nwFinance: Session; let uw: Session; let aurelia: Session; let aureliaOps: Session; let admin: Session; let claims: Session; let esUnderwriter: Session;
 const T0 = new Date('2026-11-02T04:00:00.000Z');
 async function logins() {
   shree = await login(env, 'shree', 'FinanceUser'); shreeApprover = await login(env, 'shree', 'Approver'); nw = await login(env, 'northwind', 'Approver'); nwFinance = await login(env, 'northwind', 'FinanceUser');
   uw = await login(env, 'exportshield', 'Underwriter'); esUnderwriter = uw; claims = await login(env, 'exportshield', 'ClaimsHandler');
-  aurelia = await login(env, 'aurelia', 'CreditOfficer'); aureliaOps = await login(env, 'aurelia', 'Operations'); admin = await login(env, 'earlio', 'PlatformAdmin');
+  aurelia = await login(env, 'aurelia', 'CreditOfficer'); aureliaOps = await login(env, 'aurelia', 'Operations'); admin = await login(env, 'earlio', 'PlatformAdmin'); admin2 = await loginAs(env, 'admin2@earlio.demo');
 }
 beforeAll(async () => { env = await createTestEnv(); await logins(); });
 afterAll(async () => { await env.close(); });
@@ -20,6 +20,12 @@ async function upload(s: Session, name: string) {
 }
 const q = <T = any>(sql: string, p: unknown[] = []) => env.svc.db.system((tx) => tx.query<T>(sql, p));
 const invStatus = async (id: string) => (await shree.req('GET', `/api/v1/invoices/${id}`)).json;
+// Platform settings are maker-checker: one administrator proposes, the other approves.
+const setTimers = async (v: { responseHours: number; escalateAfterHours: number; timeoutAfterHours: number }) => {
+  const p = await admin.req('PUT', '/api/v1/admin/settings/dispute_timers', { value: v });
+  expect(p.status, JSON.stringify(p.json)).toBe(202);
+  expect((await admin2.req('POST', `/api/v1/approvals/settings/${p.json.changeId}/decision`, { approve: true })).status).toBe(204);
+};
 const reset = async () => { env.clock.setTo(T0); await logins(); };
 const at = async (iso: string) => { env.clock.setTo(new Date(iso)); await logins(); await env.work(); };
 
@@ -81,10 +87,10 @@ describe('disputes (J-S3, J-B3, ADM-04)', () => {
 
   it('timers: silence escalates to the platform queue, then the dispute times out and the freeze lifts; admin can change the timers', async () => {
     try {
-      expect((await shree.req('PUT', '/api/v1/admin/dispute-timers', { responseHours: 1, escalateAfterHours: 2, timeoutAfterHours: 3 })).status).toBe(403);
-      expect((await admin.req('PUT', '/api/v1/admin/dispute-timers', { responseHours: 10, escalateAfterHours: 5, timeoutAfterHours: 20 })).status).toBe(400); // must be ordered
-      const set = await admin.req('PUT', '/api/v1/admin/dispute-timers', { responseHours: 12, escalateAfterHours: 24, timeoutAfterHours: 72 });
-      expect(set.json).toMatchObject({ escalateAfterHours: 24, timeoutAfterHours: 72 });
+      expect((await shree.req('PUT', '/api/v1/admin/settings/dispute_timers', { value: { responseHours: 1, escalateAfterHours: 2, timeoutAfterHours: 3 } })).status).toBe(403);
+      expect((await admin.req('PUT', '/api/v1/admin/settings/dispute_timers', { value: { responseHours: 10, escalateAfterHours: 5, timeoutAfterHours: 20 } })).status).toBe(422); // must be ordered
+      await setTimers({ responseHours: 12, escalateAfterHours: 24, timeoutAfterHours: 72 });
+      expect((await admin.req('GET', '/api/v1/admin/dispute-timers')).json).toMatchObject({ escalateAfterHours: 24, timeoutAfterHours: 72 });
       const inv = await accepted();
       const d = await nw.req('POST', `/api/v1/invoices/${inv.id}/disputes`, { reason: 'Wrong price on the invoice' });
       env.clock.advanceHours(25); await logins(); await env.work();
@@ -93,7 +99,7 @@ describe('disputes (J-S3, J-B3, ADM-04)', () => {
       env.clock.advanceHours(60); await logins(); await env.work();
       expect((await nw.req('GET', `/api/v1/disputes/${d.json.id}`)).json.dispute.status).toBe('TimedOut');
       expect((await invStatus(inv.id)).status).toBe('Accepted');
-    } finally { await admin.req('PUT', '/api/v1/admin/dispute-timers', { responseHours: 48, escalateAfterHours: 72, timeoutAfterHours: 240 }); await reset(); }
+    } finally { await setTimers({ responseHours: 48, escalateAfterHours: 72, timeoutAfterHours: 240 }); await reset(); }
   });
 
   it('the party that raised a dispute can withdraw it', async () => {
@@ -246,7 +252,7 @@ describe('overdue, default, claim, payout, recovery (J-I3, BR-10 case A)', () =>
 
   it('case C: a supplier-caused dispute upheld by the platform blocks the claim; the insurer rejects; nothing is paid and recourse (not duplicated) is triggered', async () => {
     try {
-      await admin.req('PUT', '/api/v1/admin/dispute-timers', { responseHours: 1000, escalateAfterHours: 2000, timeoutAfterHours: 5000 });
+      await setTimers({ responseHours: 1000, escalateAfterHours: 2000, timeoutAfterHours: 5000 });
       const inv = await funded();
       await at('2027-01-05T06:00:00.000Z');
       const d = await nw.req('POST', `/api/v1/invoices/${inv.id}/disputes`, { reason: 'The goods never arrived' });
@@ -275,12 +281,12 @@ describe('overdue, default, claim, payout, recovery (J-I3, BR-10 case A)', () =>
       expect((await aurelia.req('GET', '/api/v1/recovery/recourse')).json.items.filter((x: any) => x.invoiceId === inv.id)).toHaveLength(1);
       expect((await claims.req('POST', `/api/v1/claims/${c.id}/pay`)).status).toBe(409);
       expect((await invStatus(inv.id)).status).toBe('Closed');
-    } finally { await admin.req('PUT', '/api/v1/admin/dispute-timers', { responseHours: 48, escalateAfterHours: 72, timeoutAfterHours: 240 }); await reset(); }
+    } finally { await setTimers({ responseHours: 48, escalateAfterHours: 72, timeoutAfterHours: 240 }); await reset(); }
   });
 
   it('a dispute freezes late interest and the waiting period; resolving it starts them again', async () => {
     try {
-      await admin.req('PUT', '/api/v1/admin/dispute-timers', { responseHours: 1000, escalateAfterHours: 2000, timeoutAfterHours: 5000 });
+      await setTimers({ responseHours: 1000, escalateAfterHours: 2000, timeoutAfterHours: 5000 });
       const inv = await funded();
       await at('2027-01-11T06:00:00.000Z'); // 10 days late
       const before = await defaults(inv.id);
@@ -297,7 +303,7 @@ describe('overdue, default, claim, payout, recovery (J-I3, BR-10 case A)', () =>
       await at('2027-02-10T06:00:00.000Z');
       const resumed = await defaults(inv.id);
       expect(resumed.frozenDays).toBe(20); expect(resumed.lateInterest).toBe(lateInterest(before.principal, before.financingRatePct, 20)); // 40 days late − 20 frozen
-    } finally { await admin.req('PUT', '/api/v1/admin/dispute-timers', { responseHours: 48, escalateAfterHours: 72, timeoutAfterHours: 240 }); await reset(); }
+    } finally { await setTimers({ responseHours: 48, escalateAfterHours: 72, timeoutAfterHours: 240 }); await reset(); }
   });
 
   it('A-14: a reported insolvency waives the waiting period and the claim window starts at once', async () => {

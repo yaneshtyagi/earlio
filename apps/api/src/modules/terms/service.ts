@@ -80,6 +80,7 @@ export async function approveVersion(tx: Tx, svc: Services, ctx: Ctx, versionId:
   if (v.created_by === ctx.userId || v.submitted_by === ctx.userId) throw forbidden('You prepared these terms, so a different approver must publish them.');
   const set = await tx.one<SetRow>('select * from terms.terms_sets where id = $1', [v.set_id]);
   assertOwns(set, ctx);
+  if (ctx.platform && set.owner_org_id) throw forbidden('Banks and insurers publish their own terms.');
   const now = svc.clock.now();
   const from = v.effective_from ?? now;
   const prev = await tx.maybe<VersionRow>("select * from terms.terms_versions where set_id = $1 and status = 'active' and effective_to is null order by version desc limit 1 for update", [v.set_id]);
@@ -88,7 +89,7 @@ export async function approveVersion(tx: Tx, svc: Services, ctx: Ctx, versionId:
     await tx.query("update terms.terms_versions set effective_to = $2::timestamptz, status = case when $2::timestamptz <= $3::timestamptz then 'retired' else status end where id = $1", [prev.id, from, now]);
   }
   await tx.query("update terms.terms_versions set status = 'active', approved_by = $2, approved_at = $3 where id = $1", [versionId, ctx.userId ?? null, now]);
-  await audit(tx, ctx, now, { action: 'terms.version_published', entityType: 'terms_version', entityId: versionId, orgId: set.owner_org_id, after: { version: v.version, effectiveFrom: from } });
+  await audit(tx, ctx, now, { action: 'terms.version_published', entityType: 'terms_version', entityId: versionId, orgId: set.owner_org_id, before: prev ? { version: prev.version, body: prev.body } : null, after: { version: v.version, effectiveFrom: from, body: v.body } });
   await emit(tx, now, 'terms.version_published', { versionId, setId: set.id, effectiveFrom: from }, set.owner_org_id ? [set.owner_org_id] : []);
 }
 
@@ -132,7 +133,6 @@ export async function seedTerms(tx: Tx, svc: Services, ids: Record<string, strin
   for (const [slug, body] of Object.entries(INSURER_TERMS)) if (ids[slug]) await put('insurer', ids[slug]!, `${slug[0]!.toUpperCase()}${slug.slice(1)} default terms`, body);
 }
 
-void validateBody;
 
 import { evaluateOffer, type OfferEvaluation } from './evaluate';
 import { SAMPLE_INVOICES } from './samples';
@@ -156,6 +156,25 @@ export async function simulateBankTerms(tx: Tx, svc: Services, bankOrgId: string
     const mk = (bank: Record<string, any>) => evaluateOffer({
       now, invoice: { amount: s.amount, currency: s.currency, tenorDays: s.tenorDays, goods: s.goods }, buyer: { country: s.buyerCountry, tier: s.buyerTier },
       supplier: { country: 'IN', small: s.supplierSmall }, bank, insurer, platform: platform.terms, mids, termsVersionIds: active.versionIds,
+    });
+    const before = brief(mk(active.terms)), after = brief(mk(draft));
+    return { sampleId: s.id, label: s.label, before, after, changed: JSON.stringify(before) !== JSON.stringify(after) };
+  });
+}
+
+/** Run a draft insurer terms body against the 20 samples, funded through the partner bank's terms, and compare with what is in force (CT-9, INS-04). */
+export async function simulateInsurerTerms(tx: Tx, svc: Services, insurerOrgId: string, draftBody: Record<string, unknown>): Promise<SimulationRow[]> {
+  const now = svc.clock.now();
+  const platform = await resolveTerms(tx, now, 'platform', null, {});
+  const partner = await tx.elevated(() => tx.maybe<{ id: string }>("select id from identity.organisations where type = 'bank' order by is_partner desc, created_at limit 1"));
+  const bank = partner ? await resolveTerms(tx, now, 'bank', partner.id, {}) : { terms: {} as Record<string, any>, versionIds: [] as string[] };
+  const active = await resolveTerms(tx, now, 'insurer', insurerOrgId, {});
+  const mids = { USDINR: await svc.adapters.fx.mid('USDINR', now), SGDINR: await svc.adapters.fx.mid('SGDINR', now) };
+  const draft = { ...active.terms, ...draftBody };
+  return SAMPLE_INVOICES.map((s) => {
+    const mk = (insurer: Record<string, any>) => evaluateOffer({
+      now, invoice: { amount: s.amount, currency: s.currency, tenorDays: s.tenorDays, goods: s.goods }, buyer: { country: s.buyerCountry, tier: s.buyerTier },
+      supplier: { country: 'IN', small: s.supplierSmall }, bank: bank.terms, insurer, platform: platform.terms, mids, termsVersionIds: active.versionIds,
     });
     const before = brief(mk(active.terms)), after = brief(mk(draft));
     return { sampleId: s.id, label: s.label, before, after, changed: JSON.stringify(before) !== JSON.stringify(after) };

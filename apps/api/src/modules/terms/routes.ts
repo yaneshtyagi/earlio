@@ -11,7 +11,7 @@ import { priceFinancing, premiumFor } from '../pricing/financing';
 import { daysBetween } from '../pricing/calendar';
 import { checkTermsGuardrails } from './guardrails';
 import { jsonSchemaFor, validateBody } from './schema';
-import { approveVersion, corridorOf, createSet, createVersion, resolveTerms, simulateBankTerms, submitVersion, retireExpired } from './service';
+import { approveVersion, corridorOf, createSet, createVersion, resolveTerms, simulateBankTerms, simulateInsurerTerms, submitVersion, retireExpired } from './service';
 import { evaluateOffer } from './evaluate';
 import { quoteForBank } from './quote';
 
@@ -118,13 +118,14 @@ export function termsRoutes(app: FastifyInstance) {
 
   r.post('/api/v1/terms/simulate', {
     preHandler: requirePerm('terms:edit'),
-    schema: { tags: ['terms'], summary: 'Simulate a draft bank terms body against 20 sample invoices (CT-9)', body: z.object({ body: z.record(z.string(), z.any()) }),
+    schema: { tags: ['terms'], summary: 'Simulate a draft bank or insurer terms body against 20 sample invoices (CT-9)', body: z.object({ body: z.record(z.string(), z.any()) }),
       response: { 200: z.object({ rows: z.array(z.object({ sampleId: z.string(), label: z.string(), changed: z.boolean(), before: z.record(z.string(), z.any()), after: z.record(z.string(), z.any()) })) }) } },
   }, async (req) => {
-    if (req.auth!.orgType !== 'bank') throw forbidden('The simulator is for bank terms.');
-    const v = validateBody('bank', req.body.body, true);
+    const type = req.auth!.orgType;
+    if (type !== 'bank' && type !== 'insurer') throw forbidden('The simulator is for bank and insurer terms.');
+    const v = validateBody(type, req.body.body, true);
     if (!v.ok) throw new DomainError('invalid_terms', `These terms are not valid: ${v.error}`, 422);
-    return { rows: await svc.db.tx(req.ctx, (tx) => simulateBankTerms(tx, svc, req.auth!.orgId!, v.body)) };
+    return { rows: await svc.db.tx(req.ctx, (tx) => (type === 'bank' ? simulateBankTerms : simulateInsurerTerms)(tx, svc, req.auth!.orgId!, v.body)) };
   });
 
   // ---- Calculators ----

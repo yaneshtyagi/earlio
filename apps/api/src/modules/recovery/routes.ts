@@ -20,7 +20,7 @@ const waterfallOut = z.object({ bankClaim: z.string(), payout: z.string(), toBan
 const claimOut = z.object({
   id: z.string(), invoiceId: z.string(), invoiceNumber: z.string(), status: z.string(), currency: z.string(), faceAmount: z.string(), advanceAmount: z.string(), coverPct: z.string(), claimedAmount: z.string(), approvedAmount: z.string().nullable(),
   decisionReason: z.string().nullable(), exclusions: z.array(z.object({ code: z.string(), detail: z.string() })), documents: z.array(z.object({ docType: z.string(), fileId: z.string() })), waterfall: waterfallOut,
-  filedAt: z.string(), decidedAt: z.string().nullable(), paidAt: z.string().nullable(), bankName: z.string(), insurerName: z.string(), supplierName: z.string(),
+  extra: z.record(z.string(), z.any()), filedAt: z.string(), decidedAt: z.string().nullable(), paidAt: z.string().nullable(), bankName: z.string(), insurerName: z.string(), supplierName: z.string(),
   recoveries: z.array(z.object({ id: z.string(), gross: z.string(), costs: z.string(), net: z.string(), shares: z.record(z.string(), z.string()), note: z.string().nullable(), at: z.string() })),
 });
 const recourseOut = z.object({
@@ -73,7 +73,7 @@ export function recoveryRoutes(app: FastifyInstance) {
   const CL_SQL = `select c.*, ${names}c.bank_org_id) as bank_name, ${names}c.insurer_org_id) as insurer_name, ${names}c.supplier_org_id) as supplier_name from recovery.claims c`;
   const toClaim = (c: any, recs: any[]) => ({
     id: c.id, invoiceId: c.invoice_id, invoiceNumber: c.invoice_number, status: c.status, currency: c.currency, faceAmount: c.face_amount, advanceAmount: c.advance_amount, coverPct: String(Number(c.cover_pct)), claimedAmount: c.claimed_amount,
-    approvedAmount: c.approved_amount, decisionReason: c.decision_reason, exclusions: c.exclusions, documents: c.documents, waterfall: c.waterfall ?? null, filedAt: iso(c.filed_at)!, decidedAt: iso(c.decided_at), paidAt: iso(c.paid_at),
+    approvedAmount: c.approved_amount, decisionReason: c.decision_reason, exclusions: c.exclusions, documents: c.documents, waterfall: c.waterfall ?? null, extra: c.extra ?? {}, filedAt: iso(c.filed_at)!, decidedAt: iso(c.decided_at), paidAt: iso(c.paid_at),
     bankName: c.bank_name, insurerName: c.insurer_name, supplierName: c.supplier_name,
     recoveries: recs.map((x) => ({ id: x.id, gross: x.gross, costs: x.costs, net: x.net, shares: x.shares, note: x.note, at: iso(x.at)! })),
   });
@@ -87,9 +87,9 @@ export function recoveryRoutes(app: FastifyInstance) {
   r.post('/api/v1/invoices/:id/claims', {
     preHandler: async (req, reply) => { await requireOrgType('bank')(req, reply); await requirePerm('claim:file')(req, reply); },
     schema: { tags: ['recovery'], summary: 'Bank files an insurance claim once the waiting period has ended (or the buyer is insolvent)', params: z.object({ id: z.string().uuid() }),
-      body: z.object({ documents: z.array(z.object({ docType: z.enum(CLAIM_DOC_TYPES), fileId: z.string().uuid() })).max(20) }), response: { 201: claimOut } },
+      body: z.object({ documents: z.array(z.object({ docType: z.enum(CLAIM_DOC_TYPES), fileId: z.string().uuid() })).max(20), extra: z.record(z.string(), z.union([z.string(), z.number()])).optional() }), response: { 201: claimOut } },
   }, async (req, reply) => {
-    const id = await svc.db.tx(req.ctx, async (tx) => (await fileClaim(tx, svc, req.ctx, req.auth!.orgId!, req.params.id, req.body.documents)).id);
+    const id = await svc.db.tx(req.ctx, async (tx) => (await fileClaim(tx, svc, req.ctx, req.auth!.orgId!, req.params.id, req.body.documents, req.body.extra)).id);
     const [c] = await svc.db.tx(req.ctx, (tx) => claimWith(tx, 'where c.id = $1', [id]));
     return reply.code(201).send(c!);
   });

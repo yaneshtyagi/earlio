@@ -106,9 +106,5 @@ export function disputeRoutes(app: FastifyInstance) {
     preHandler: requirePerm('platform:admin'),
     schema: { tags: ['admin'], summary: 'Dispute timers', response: { 200: timers } },
   }, async (req) => svc.db.tx(platformCtx(req), (tx) => disputeTimers(tx)));
-  r.put('/api/v1/admin/dispute-timers', {
-    preHandler: requirePerm('platform:admin'),
-    schema: { tags: ['admin'], summary: 'Set dispute timers (response ≤ escalation < timeout)', body: timers, response: { 200: timers } },
-  }, async (req) => svc.db.tx(platformCtx(req), (tx) => saveTimers(tx, svc, platformCtx(req), req.body)));
   void audit;
 }

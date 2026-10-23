@@ -4400,7 +4400,7 @@
     },
     "/api/v1/terms/simulate": {
       "post": {
-        "summary": "Simulate a draft bank terms body against 20 sample invoices (CT-9)",
+        "summary": "Simulate a draft bank or insurer terms body against 20 sample invoices (CT-9)",
         "tags": [
           "terms"
         ],
@@ -6397,6 +6397,10 @@
                     "noticeRef": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "extra": {
+                      "type": "object",
+                      "additionalProperties": {}
                     }
                   },
                   "required": [
@@ -6420,7 +6424,8 @@
                     "fundedAt",
                     "createdAt",
                     "assignmentAcknowledged",
-                    "noticeRef"
+                    "noticeRef",
+                    "extra"
                   ],
                   "additionalProperties": false
                 }
@@ -6543,6 +6548,10 @@
                           "noticeRef": {
                             "nullable": true,
                             "type": "string"
+                          },
+                          "extra": {
+                            "type": "object",
+                            "additionalProperties": {}
                           }
                         },
                         "required": [
@@ -6566,7 +6575,8 @@
                           "fundedAt",
                           "createdAt",
                           "assignmentAcknowledged",
-                          "noticeRef"
+                          "noticeRef",
+                          "extra"
                         ],
                         "additionalProperties": false
                       }
@@ -6703,6 +6713,10 @@
                     "noticeRef": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "extra": {
+                      "type": "object",
+                      "additionalProperties": {}
                     }
                   },
                   "required": [
@@ -6726,7 +6740,8 @@
                     "fundedAt",
                     "createdAt",
                     "assignmentAcknowledged",
-                    "noticeRef"
+                    "noticeRef",
+                    "extra"
                   ],
                   "additionalProperties": false
                 }
@@ -6738,10 +6753,36 @@
     },
     "/api/v1/financing-requests/{id}/consent": {
       "post": {
-        "summary": "Supplier consents to the assignment and terms",
+        "summary": "Supplier consents to the assignment and terms (with answers to the bank's extra questions)",
         "tags": [
           "marketplace"
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "nullable": true,
+                "type": "object",
+                "properties": {
+                  "extra": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
         "parameters": [
           {
             "schema": {
@@ -6856,6 +6897,10 @@
                     "noticeRef": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "extra": {
+                      "type": "object",
+                      "additionalProperties": {}
                     }
                   },
                   "required": [
@@ -6879,7 +6924,8 @@
                     "fundedAt",
                     "createdAt",
                     "assignmentAcknowledged",
-                    "noticeRef"
+                    "noticeRef",
+                    "extra"
                   ],
                   "additionalProperties": false
                 }
@@ -7025,6 +7071,10 @@
                     "noticeRef": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "extra": {
+                      "type": "object",
+                      "additionalProperties": {}
                     }
                   },
                   "required": [
@@ -7048,7 +7098,8 @@
                     "fundedAt",
                     "createdAt",
                     "assignmentAcknowledged",
-                    "noticeRef"
+                    "noticeRef",
+                    "extra"
                   ],
                   "additionalProperties": false
                 }
@@ -7178,6 +7229,10 @@
                     "noticeRef": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "extra": {
+                      "type": "object",
+                      "additionalProperties": {}
                     }
                   },
                   "required": [
@@ -7201,7 +7256,8 @@
                     "fundedAt",
                     "createdAt",
                     "assignmentAcknowledged",
-                    "noticeRef"
+                    "noticeRef",
+                    "extra"
                   ],
                   "additionalProperties": false
                 }
@@ -7351,6 +7407,10 @@
                     "noticeRef": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "extra": {
+                      "type": "object",
+                      "additionalProperties": {}
                     }
                   },
                   "required": [
@@ -7374,7 +7434,8 @@
                     "fundedAt",
                     "createdAt",
                     "assignmentAcknowledged",
-                    "noticeRef"
+                    "noticeRef",
+                    "extra"
                   ],
                   "additionalProperties": false
                 }
@@ -10021,85 +10082,6 @@
             }
           }
         }
-      },
-      "put": {
-        "summary": "Set dispute timers (response ≤ escalation < timeout)",
-        "tags": [
-          "admin"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "responseHours": {
-                    "type": "number",
-                    "minimum": 0,
-                    "exclusiveMinimum": true,
-                    "maximum": 1440
-                  },
-                  "escalateAfterHours": {
-                    "type": "number",
-                    "minimum": 0,
-                    "exclusiveMinimum": true,
-                    "maximum": 2160
-                  },
-                  "timeoutAfterHours": {
-                    "type": "number",
-                    "minimum": 0,
-                    "exclusiveMinimum": true,
-                    "maximum": 8760
-                  }
-                },
-                "required": [
-                  "responseHours",
-                  "escalateAfterHours",
-                  "timeoutAfterHours"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Default Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "responseHours": {
-                      "type": "number",
-                      "minimum": 0,
-                      "exclusiveMinimum": true,
-                      "maximum": 1440
-                    },
-                    "escalateAfterHours": {
-                      "type": "number",
-                      "minimum": 0,
-                      "exclusiveMinimum": true,
-                      "maximum": 2160
-                    },
-                    "timeoutAfterHours": {
-                      "type": "number",
-                      "minimum": 0,
-                      "exclusiveMinimum": true,
-                      "maximum": 8760
-                    }
-                  },
-                  "required": [
-                    "responseHours",
-                    "escalateAfterHours",
-                    "timeoutAfterHours"
-                  ],
-                  "additionalProperties": false
-                }
-              }
-            }
-          }
-        }
       }
     },
     "/api/v1/recovery/defaults": {
@@ -10414,6 +10396,19 @@
                         "fileId"
                       ]
                     }
+                  },
+                  "extra": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    }
                   }
                 },
                 "required": [
@@ -10553,6 +10548,10 @@
                       ],
                       "additionalProperties": false
                     },
+                    "extra": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
                     "filedAt": {
                       "type": "string"
                     },
@@ -10632,6 +10631,7 @@
                     "exclusions",
                     "documents",
                     "waterfall",
+                    "extra",
                     "filedAt",
                     "decidedAt",
                     "paidAt",
@@ -10777,6 +10777,10 @@
                             ],
                             "additionalProperties": false
                           },
+                          "extra": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
                           "filedAt": {
                             "type": "string"
                           },
@@ -10856,6 +10860,7 @@
                           "exclusions",
                           "documents",
                           "waterfall",
+                          "extra",
                           "filedAt",
                           "decidedAt",
                           "paidAt",
@@ -11015,6 +11020,10 @@
                       ],
                       "additionalProperties": false
                     },
+                    "extra": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
                     "filedAt": {
                       "type": "string"
                     },
@@ -11094,6 +11103,7 @@
                     "exclusions",
                     "documents",
                     "waterfall",
+                    "extra",
                     "filedAt",
                     "decidedAt",
                     "paidAt",
@@ -11874,6 +11884,1392 @@
         "responses": {
           "204": {
             "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals": {
+      "get": {
+        "summary": "Changes waiting for a second pair of eyes (maker-checker), with a diff against what is in force",
+        "tags": [
+          "governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "terms",
+                              "setting"
+                            ]
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "ownerName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "ownerType": {
+                            "type": "string",
+                            "enum": [
+                              "platform",
+                              "bank",
+                              "insurer"
+                            ]
+                          },
+                          "maker": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "submittedAt": {
+                            "type": "string"
+                          },
+                          "effectiveFrom": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "note": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "changes": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "path": {
+                                  "type": "string"
+                                },
+                                "before": {},
+                                "after": {},
+                                "kind": {
+                                  "type": "string",
+                                  "enum": [
+                                    "added",
+                                    "removed",
+                                    "changed"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "path",
+                                "kind"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "against": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "version": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "canApprove": {
+                            "type": "boolean"
+                          },
+                          "reason": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "id",
+                          "title",
+                          "ownerName",
+                          "ownerType",
+                          "maker",
+                          "submittedAt",
+                          "effectiveFrom",
+                          "note",
+                          "changes",
+                          "against",
+                          "version",
+                          "canApprove",
+                          "reason"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/settings/{id}/decision": {
+      "post": {
+        "summary": "Approve or reject a proposed platform setting (a different administrator from the proposer)",
+        "tags": [
+          "governance"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "approve": {
+                    "type": "boolean"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "approve"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/terms/versions/{id}/reject": {
+      "post": {
+        "summary": "Send a pending version back to draft (checker declines, or maker withdraws)",
+        "tags": [
+          "terms"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/terms/versions/{id}/diff": {
+      "get": {
+        "summary": "What changed in a version compared with the previous in-force one (or a chosen version)",
+        "tags": [
+          "terms"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "query",
+            "name": "against",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "type": "number"
+                    },
+                    "against": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "changes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "before": {},
+                          "after": {},
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "added",
+                              "removed",
+                              "changed"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "path",
+                          "kind"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "version",
+                    "against",
+                    "changes"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/terms/templates/{owner}": {
+      "get": {
+        "summary": "Starting templates",
+        "tags": [
+          "terms"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "platform",
+                "bank",
+                "insurer"
+              ]
+            },
+            "in": "path",
+            "name": "owner",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "body": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "description",
+                          "body"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/terms/preview": {
+      "post": {
+        "summary": "Plain-language preview of what suppliers and buyers will see (CT-8)",
+        "tags": [
+          "terms"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ownerType": {
+                    "type": "string",
+                    "enum": [
+                      "platform",
+                      "bank",
+                      "insurer"
+                    ]
+                  },
+                  "body": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "required": [
+                  "ownerType",
+                  "body"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "supplier": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "buyer": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "notes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "supplier",
+                    "buyer",
+                    "notes"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/terms/sets/{id}/export": {
+      "get": {
+        "summary": "Export a terms version as a portable JSON document (CT-11)",
+        "tags": [
+          "terms"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "query",
+            "name": "version",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "format": {
+                      "type": "string"
+                    },
+                    "schemaVersion": {
+                      "type": "number"
+                    },
+                    "ownerType": {
+                      "type": "string",
+                      "enum": [
+                        "platform",
+                        "bank",
+                        "insurer"
+                      ]
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "scope": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "version": {
+                      "type": "number"
+                    },
+                    "exportedAt": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "format",
+                    "schemaVersion",
+                    "ownerType",
+                    "name",
+                    "scope",
+                    "version",
+                    "exportedAt",
+                    "body"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/terms/sets/{id}/import": {
+      "post": {
+        "summary": "Import an exported document as a new draft version (validated like any other draft)",
+        "tags": [
+          "terms"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "format": {
+                    "type": "string"
+                  },
+                  "schemaVersion": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  "ownerType": {
+                    "type": "string"
+                  },
+                  "body": {
+                    "type": "object",
+                    "additionalProperties": {}
+                  }
+                },
+                "required": [
+                  "format",
+                  "schemaVersion",
+                  "ownerType",
+                  "body"
+                ],
+                "additionalProperties": {}
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "number"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "version",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/settings": {
+      "get": {
+        "summary": "Governed platform settings with any pending change and recent history",
+        "tags": [
+          "governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "help": {
+                            "type": "string"
+                          },
+                          "value": {},
+                          "pending": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "value": {},
+                              "proposer": {
+                                "nullable": true,
+                                "type": "string"
+                              },
+                              "at": {
+                                "type": "string"
+                              },
+                              "note": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "value",
+                              "proposer",
+                              "at",
+                              "note"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "history": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "status": {
+                                  "type": "string"
+                                },
+                                "before": {},
+                                "after": {},
+                                "proposer": {
+                                  "nullable": true,
+                                  "type": "string"
+                                },
+                                "decider": {
+                                  "nullable": true,
+                                  "type": "string"
+                                },
+                                "at": {
+                                  "type": "string"
+                                },
+                                "decidedAt": {
+                                  "nullable": true,
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "status",
+                                "before",
+                                "after",
+                                "proposer",
+                                "decider",
+                                "at",
+                                "decidedAt"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "help",
+                          "value",
+                          "pending",
+                          "history"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/settings/{key}": {
+      "put": {
+        "summary": "Propose a new value; it takes effect when a different administrator approves it",
+        "tags": [
+          "governance"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "value": {},
+                  "note": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "value"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "key",
+            "required": true
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "changeId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "changeId",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/guardrails": {
+      "get": {
+        "summary": "Hard platform guardrails (code, not data) and the platform terms set that carries fees and defaults",
+        "tags": [
+          "governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "guardrails": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string"
+                          },
+                          "editable": {
+                            "type": "boolean",
+                            "enum": [
+                              false
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "value",
+                          "editable"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "platformSetId": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "guardrails",
+                    "platformSetId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/branding": {
+      "get": {
+        "summary": "Branding for the hostname the SPA is served from (public)",
+        "tags": [
+          "system"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "in": "query",
+            "name": "host",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "primary": {
+                      "type": "string"
+                    },
+                    "accent": {
+                      "type": "string"
+                    },
+                    "logo": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "welcome": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "network",
+                        "white-label"
+                      ]
+                    },
+                    "matched": {
+                      "type": "boolean"
+                    },
+                    "orgId": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "hostname": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "whiteLabel": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "displayName",
+                    "primary",
+                    "accent",
+                    "logo",
+                    "welcome",
+                    "mode",
+                    "matched",
+                    "orgId",
+                    "hostname",
+                    "whiteLabel"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/bank/branding": {
+      "get": {
+        "summary": "My bank's branding and hostname",
+        "tags": [
+          "governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "primary": {
+                      "type": "string"
+                    },
+                    "accent": {
+                      "type": "string"
+                    },
+                    "logo": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "welcome": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "hostname": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "displayName",
+                    "primary",
+                    "accent",
+                    "logo",
+                    "welcome",
+                    "hostname"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update my bank's branding (display name, colours, logo, welcome text)",
+        "tags": [
+          "governance"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayName": {
+                    "type": "string"
+                  },
+                  "primary": {
+                    "type": "string"
+                  },
+                  "accent": {
+                    "type": "string"
+                  },
+                  "logo": {
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "welcome": {
+                    "nullable": true,
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "displayName": {
+                      "type": "string"
+                    },
+                    "primary": {
+                      "type": "string"
+                    },
+                    "accent": {
+                      "type": "string"
+                    },
+                    "logo": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "welcome": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "displayName",
+                    "primary",
+                    "accent",
+                    "logo",
+                    "welcome"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/banks": {
+      "get": {
+        "summary": "Banks with their hostname and branding",
+        "tags": [
+          "governance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "isPartner": {
+                            "type": "boolean"
+                          },
+                          "hostname": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "displayName": {
+                            "type": "string"
+                          },
+                          "primary": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "isPartner",
+                          "hostname",
+                          "displayName",
+                          "primary"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/banks/{id}/hostname": {
+      "put": {
+        "summary": "Point a hostname at a bank (platform only: a hostname decides whose branding a visitor sees)",
+        "tags": [
+          "governance"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hostname": {
+                    "nullable": true,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "hostname"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/financing-requests/{id}/requirements": {
+      "get": {
+        "summary": "Extra information and documents the bank asks for before consent",
+        "tags": [
+          "governance"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bankOrgId": {
+                      "type": "string"
+                    },
+                    "customFields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "text",
+                              "number",
+                              "date",
+                              "select"
+                            ]
+                          },
+                          "required": {
+                            "type": "boolean"
+                          },
+                          "options": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "appliesTo": {
+                            "type": "string",
+                            "enum": [
+                              "financing_request",
+                              "claim"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "type",
+                          "required",
+                          "appliesTo"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "requiredDocuments": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "missingDocuments": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "answers": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "bankOrgId",
+                    "customFields",
+                    "requiredDocuments",
+                    "missingDocuments",
+                    "answers"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/requirements/claim/{invoiceId}": {
+      "get": {
+        "summary": "Documents and extra information the insurer requires for a claim on this invoice",
+        "tags": [
+          "governance"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "invoiceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "customFields": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "text",
+                              "number",
+                              "date",
+                              "select"
+                            ]
+                          },
+                          "required": {
+                            "type": "boolean"
+                          },
+                          "options": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "appliesTo": {
+                            "type": "string",
+                            "enum": [
+                              "financing_request",
+                              "claim"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "label",
+                          "type",
+                          "required",
+                          "appliesTo"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "documents",
+                    "customFields"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
           }
         }
       }

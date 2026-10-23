@@ -12,6 +12,9 @@ import { transactBlockReason } from '../compliance/sanctions';
 import { consumeCover, coverForInvoice, coverGate } from '../insurance/service';
 import { quoteForBank, type OfferOverrides } from '../terms/quote';
 import { resolveTerms } from '../terms/service';
+import { currentMode } from '../governance/settings';
+import { financingRequirements } from '../governance/service';
+import { validateAnswers } from '../governance/requirements';
 import { usdEquivalent } from '../pricing/fx';
 import { daysBetween } from '../pricing/calendar';
 import { annualisedDiscountCostPct, discountPctFromAnnualRate, priceEarlyPayment } from '../pricing/early-payment';
@@ -67,12 +70,13 @@ export async function openForFunding(tx: Tx, svc: Services, ctx: Ctx, invoiceId:
   }
   const now = svc.clock.now();
   const banks = await invitedBanks(tx, inv.supplier_org_id, inv.buyer_org_id);
+  const mode = await currentMode(tx, svc);
   const info = await tx.elevated(() => tx.query<any>(
     `select b.id, b.is_partner, exists(select 1 from identity.org_preferred_banks p where p.org_id = $2 and p.bank_org_id = b.id) as sup_pref
        from identity.organisations b where b.id = any($1)`, [banks, inv.supplier_org_id]));
   let invited = 0;
   for (const b of info) {
-    if (svc.config.mode === 'white-label' && !b.is_partner) continue;
+    if (mode === 'white-label' && !b.is_partner) continue;
     const source = b.is_partner ? 'partner' : b.sup_pref ? 'supplier_preferred' : 'buyer_preferred';
     await tx.query(
       `insert into marketplace.invitations (invoice_id, bank_org_id, supplier_org_id, buyer_org_id, source, created_at) values ($1,$2,$3,$4,$5,$6) on conflict do nothing`,
@@ -353,10 +357,13 @@ export const CONSENT_TEXT = (a: { supplier: string; bank: string; invoice: strin
   `${a.supplier} will receive net cash of ${formatMoney(a.netCash, a.currency as 'USD')} (${formatMoney(a.netCashInr, 'INR')}) at an all-in cost of ${a.allIn}% a year. ` +
   `The financing is insured and without recourse except for disputes caused by ${a.supplier}. Governed by ${a.law}. Notice reference ${a.ref}. You can cancel until the bank instructs the payment.`;
 
-export async function consentFinancing(tx: Tx, svc: Services, ctx: Ctx, supplierOrgId: string, frId: string) {
+export async function consentFinancing(tx: Tx, svc: Services, ctx: Ctx, supplierOrgId: string, frId: string, extra?: Record<string, unknown>) {
   const fr = await tx.maybe<any>('select * from marketplace.financing_requests where id = $1 for update', [frId]);
   if (!fr || fr.supplier_org_id !== supplierOrgId) throw notFound('Financing request');
   if (fr.status !== 'ConsentPending') throw conflict('wrong_state', `This request is ${fr.status}.`);
+  const req = await financingRequirements(tx, svc, frId);
+  if (req.missingDocuments.length) throw new DomainError('missing_documents', `${req.missingDocuments.map((d) => d.replace(/_/g, ' ')).join(', ')} must be attached to the invoice before you consent: the bank requires ${req.missingDocuments.length === 1 ? 'it' : 'them'}.`, 422, { missingDocuments: req.missingDocuments });
+  const answers = validateAnswers(req.customFields as any, extra, 'financing_request');
   const inv = await loadInvoice(tx, fr.invoice_id);
   const o = await tx.one<any>('select * from marketplace.offers where id = $1', [fr.offer_id]);
   const now = svc.clock.now();
@@ -374,7 +381,7 @@ export async function consentFinancing(tx: Tx, svc: Services, ctx: Ctx, supplier
     [inv.id, fr.id, fr.bank_org_id, inv.supplier_org_id, inv.buyer_org_id, ref, law, text,
      buyerCountry === 'US' ? JSON.stringify({ state: 'DE', filingReference: `UCC-SIM-${inv.human_id}`, status: 'simulated_pending' }) : null, buyerCountry === 'SG' ? true : null, now]);
   await tx.elevated(() => tx.query("update marketplace.liens set assignment_ref = $2 where financing_request_id = $1", [fr.id, ref]));
-  await tx.query("update marketplace.financing_requests set status = 'BankConfirming', consent_text = $2, consented_by = $3, consented_at = $4, updated_at = $4 where id = $1", [fr.id, text, ctx.userId ?? null, now]);
+  await tx.query("update marketplace.financing_requests set status = 'BankConfirming', consent_text = $2, consented_by = $3, consented_at = $4, updated_at = $4, extra = $5 where id = $1", [fr.id, text, ctx.userId ?? null, now, JSON.stringify(answers)]);
   await audit(tx, ctx, now, { action: 'financing.consented', entityType: 'financing_request', entityId: fr.id, orgId: inv.supplier_org_id, after: { noticeRef: ref } });
   await audit(tx, ctx, now, { action: 'financing.consented', entityType: 'financing_request', entityId: fr.id, orgId: inv.buyer_org_id });
   await emit(tx, now, 'financing.consented', { financingRequestId: fr.id, invoiceId: inv.id, humanId: inv.human_id, noticeRef: ref }, [inv.supplier_org_id, inv.buyer_org_id, fr.bank_org_id]);

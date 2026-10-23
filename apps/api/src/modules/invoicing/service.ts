@@ -100,7 +100,9 @@ export async function loadInvoice(tx: Tx, id: string, lock = false): Promise<Inv
 
 export async function attachInvoiceDocument(tx: Tx, svc: Services, ctx: Ctx, inv: InvoiceRow, docType: string, fileId: string) {
   if (!(DOC_TYPES as readonly string[]).includes(docType)) throw invalid(`Unknown document type ${docType}.`);
-  if (!['Draft', 'Submitted'].includes(inv.status)) throw conflict('locked', 'Documents can only be added while the invoice is a draft or awaiting acceptance.');
+  // Once accepted, the invoice and delivery proof the buyer accepted are fixed; a bank may still ask for supporting papers before funding (CT-10).
+  const supplementary = ['packing_list', 'shipping_bill', 'transport_document'].includes(docType) && ['Accepted', 'OpenForFunding', 'OffersReceived'].includes(inv.status);
+  if (!['Draft', 'Submitted'].includes(inv.status) && !supplementary) throw conflict('locked', 'Documents can only be added while the invoice is a draft or awaiting acceptance (supporting papers can be added until it is funded).');
   const file = await tx.maybe<any>('select id, filename, sha256, org_id from platform.files where id = $1', [fileId]);
   if (!file || file.org_id !== inv.supplier_org_id) throw notFound('File');
   const now = svc.clock.now();
@@ -109,7 +111,10 @@ export async function attachInvoiceDocument(tx: Tx, svc: Services, ctx: Ctx, inv
     `insert into invoicing.invoice_documents (invoice_id, supplier_org_id, buyer_org_id, doc_type, version, file_id, filename, sha256, uploaded_by, created_at)
      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id`,
     [inv.id, inv.supplier_org_id, inv.buyer_org_id, docType, v.v, fileId, file.filename, file.sha256, ctx.userId ?? null, now]);
-  if (inv.status === 'Submitted') await shareFile(tx, fileId, [inv.buyer_org_id]);
+  if (inv.status !== 'Draft') {
+    const banks = supplementary ? (await tx.elevated(() => tx.query<{ bank_org_id: string }>("select bank_org_id from marketplace.invitations where invoice_id = $1", [inv.id]))).map((b) => b.bank_org_id) : [];
+    await shareFile(tx, fileId, [inv.buyer_org_id, ...banks]);
+  }
   await audit(tx, ctx, now, { action: 'invoice.document_added', entityType: 'invoice', entityId: inv.id, orgId: inv.supplier_org_id, after: { docType, version: v.v, sha256: file.sha256 } });
   return { id: row.id, version: v.v };
 }

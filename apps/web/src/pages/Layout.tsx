@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { navFor } from '../shared/nav';
+import { BrandMark } from '../branding';
 import { NotificationBell } from './SettlementPages';
 
 export function Layout() {
@@ -21,7 +22,7 @@ export function Layout() {
     <div className="shell">
       {cfg.data?.simulated && <div className="ribbon">Simulated environment — all names, rates and FX rates are fictional or illustrative</div>}
       <header>
-        <strong>Earlio</strong>
+        <BrandMark />
         <span className="org">{me.activeOrg.legalName} <small>({me.activeOrg.type}, {me.role})</small></span>
         <span className="spacer" />
         <NotificationBell />
