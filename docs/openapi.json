@@ -9397,6 +9397,92 @@
         }
       }
     },
+    "/api/v1/org/language": {
+      "get": {
+        "summary": "Language my organisation receives notifications in",
+        "tags": [
+          "notify"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "language": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "hi"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "language"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Choose the notification language (English or Hindi) for my organisation",
+        "tags": [
+          "notify"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "language": {
+                    "type": "string",
+                    "enum": [
+                      "en",
+                      "hi"
+                    ]
+                  }
+                },
+                "required": [
+                  "language"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "language": {
+                      "type": "string",
+                      "enum": [
+                        "en",
+                        "hi"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "language"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/disputes": {
       "get": {
         "summary": "Disputes my organisation is party to (platform staff see the whole queue)",
@@ -12354,6 +12440,14 @@
                   "body": {
                     "type": "object",
                     "additionalProperties": {}
+                  },
+                  "lang": {
+                    "default": "en",
+                    "type": "string",
+                    "enum": [
+                      "en",
+                      "hi"
+                    ]
                   }
                 },
                 "required": [
@@ -14116,6 +14210,59 @@
         "responses": {
           "200": {
             "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/admin/demo/scenarios": {
+      "get": {
+        "summary": "Pilot scenario invoices from the seed (development / demo only)",
+        "tags": [
+          "sim"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "humanId": {
+                            "type": "string"
+                          },
+                          "state": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "label",
+                          "id",
+                          "humanId",
+                          "state"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
           }
         }
       }

@@ -1,6 +1,7 @@
 import type { Tx } from '../../db/pool';
 import type { Services } from '../../services';
 import type { OutboxHandler } from '../../platform/outbox';
+import { HI } from './hindi';
 
 type Tpl = { subject: (p: any) => string; body: (p: any) => string; sms?: boolean };
 const h = (p: any) => p.humanId ?? 'an invoice';
@@ -62,14 +63,16 @@ export const notifySubscriber = (svc: Services): OutboxHandler => async (tx, e) 
   const tpl = TEMPLATES[e.topic];
   if (!tpl || !e.orgIds?.length) return;
   const now = svc.clock.now();
-  const orgs = await tx.query<any>('select id, type from identity.organisations where id = any($1::uuid[])', [e.orgIds]);
+  const orgs = await tx.query<any>('select id, type, language from identity.organisations where id = any($1::uuid[])', [e.orgIds]);
   for (const o of orgs) {
     const channels = ['in_app', 'email', ...(tpl.sms && SMS_ORG.has(o.type) ? ['sms', 'whatsapp'] : [])];
+    const hi = o.language === 'hi' ? HI[e.topic] : undefined; // Hindi where a translation exists, else English
+    const useTpl = hi ?? tpl;
     for (const channel of channels) {
       await tx.query(
         `insert into notify.notifications (recipient_org_id, topic, channel, status, lang, subject, body, payload, outbox_id, created_at)
-         values ($1,$2,$3,$4,'en',$5,$6,$7,$8,$9) on conflict (outbox_id, recipient_org_id, channel) do nothing`,
-        [o.id, e.topic, channel, channel === 'in_app' ? 'delivered' : 'queued', tpl.subject(e.payload), tpl.body(e.payload), JSON.stringify(e.payload), e.id, now]);
+         values ($1,$2,$3,$4,$10,$5,$6,$7,$8,$9) on conflict (outbox_id, recipient_org_id, channel) do nothing`,
+        [o.id, e.topic, channel, channel === 'in_app' ? 'delivered' : 'queued', useTpl.subject(e.payload), useTpl.body(e.payload), JSON.stringify(e.payload), e.id, now, hi ? 'hi' : 'en']);
     }
   }
 };

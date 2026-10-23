@@ -8,6 +8,7 @@ import { GUARDRAILS, checkTermsGuardrails } from '../terms/guardrails';
 import { validateBody } from '../terms/schema';
 import { resolveTerms } from '../terms/service';
 import { describeTerms, templatesFor } from './diff';
+import { describeTermsHi } from './hindi';
 import { SETTINGS, SETTING_KEYS, currentSetting, decideSetting, proposeSetting, settingChanges } from './settings';
 import { approvalsInbox, brandingForHost, exportSet, financingRequirements, importIntoSet, rejectVersion, saveBranding, setHostname, versionDiff } from './service';
 
@@ -60,11 +61,11 @@ export function governanceRoutes(app: FastifyInstance) {
 
   r.post('/api/v1/terms/preview', {
     preHandler: requirePerm('read'),
-    schema: { tags: ['terms'], summary: 'Plain-language preview of what suppliers and buyers will see (CT-8)', body: z.object({ ownerType: ownerEnum, body: z.record(z.string(), z.any()) }),
+    schema: { tags: ['terms'], summary: 'Plain-language preview of what suppliers and buyers will see (CT-8)', body: z.object({ ownerType: ownerEnum, body: z.record(z.string(), z.any()), lang: z.enum(['en', 'hi']).default('en') }),
       response: { 200: z.object({ supplier: z.array(z.string()), buyer: z.array(z.string()), notes: z.array(z.string()) }) } },
   }, async (req) => {
     const bench = await svc.db.tx(ctxFor(req), async (tx) => Number((await resolveTerms(tx, svc.clock.now(), 'platform', null, {})).terms.benchmarkRatePct ?? 4.1));
-    return describeTerms(req.body.ownerType, req.body.body, bench);
+    return req.body.lang === 'hi' ? describeTermsHi(req.body.ownerType, req.body.body, bench) : describeTerms(req.body.ownerType, req.body.body, bench);
   });
 
   r.get('/api/v1/terms/sets/:id/export', {

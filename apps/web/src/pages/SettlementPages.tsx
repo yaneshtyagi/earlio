@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, ensureOk } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -146,6 +147,7 @@ export function NotificationBell() {
 }
 
 export function NotificationsPage() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['notifications'], queryFn: async () => (await api.GET('/api/v1/notifications', { params: { query: {} } })).data });
   const mark = useMutation({
@@ -154,16 +156,16 @@ export function NotificationsPage() {
   });
   return (
     <section>
-      <h2>Notifications</h2>
-      <p className="filters"><span className="hint">{q.data?.unread ?? 0} unread</span><button className="secondary" onClick={() => mark.mutate(undefined)}>Mark all read</button></p>
+      <h2>{t('Notifications')}</h2>
+      <p className="filters"><span className="hint">{q.data?.unread ?? 0} {t('unread')}</span><button className="secondary" onClick={() => mark.mutate(undefined)}>{t('Mark all read')}</button></p>
       {(q.data?.items ?? []).map((n) => (
         <div className="panel" key={n.id} style={{ opacity: n.read ? 0.65 : 1 }}>
           <strong>{n.subject}</strong> <span className="hint">{when(n.createdAt)}</span>
           <div>{n.body}</div>
-          {!n.read && <button className="link" onClick={() => mark.mutate(n.id)}>Mark read</button>}
+          {!n.read && <button className="link" onClick={() => mark.mutate(n.id)}>{t('Mark read')}</button>}
         </div>
       ))}
-      {q.data?.items.length === 0 && <p className="muted">Nothing yet.</p>}
+      {q.data?.items.length === 0 && <p className="muted">{t('No notifications yet.')}</p>}
     </section>
   );
 }

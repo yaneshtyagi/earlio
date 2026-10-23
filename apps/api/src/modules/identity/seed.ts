@@ -76,6 +76,8 @@ export async function seedDemo(tx: Tx, svc: Services, ctx: Ctx): Promise<DemoIds
 const DEMO_RELATIONSHIPS: [string, string][] = [
   ['shree', 'northwind'], ['shree', 'lakeshore'], ['kumar', 'northwind'], ['kumar', 'merlion'],
   ['anand', 'kallang'], ['deccan', 'merlion'], ['deccan', 'northwind'],
+  // added for the pilot scenarios (Appendix A)
+  ['kumar', 'lakeshore'], ['anand', 'merlion'], ['kumar', 'zarnitsa'],
 ];
 const DEMO_PREFERRED: Record<string, string[]> = {
   shree: ['kestrel'], kumar: ['kestrel'], anand: ['kestrel'], deccan: ['kestrel', 'harbour'],

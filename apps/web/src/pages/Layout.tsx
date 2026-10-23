@@ -1,4 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { setLang, type Lang } from '../i18n';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -8,6 +10,7 @@ import { NotificationBell } from './SettlementPages';
 
 export function Layout() {
   const { me, signOut, refresh } = useAuth();
+  const { t, i18n } = useTranslation();
   const cfg = useQuery({ queryKey: ['config'], queryFn: async () => (await api.GET('/api/v1/system/config')).data });
   if (!me?.activeOrg) return null;
   const items = navFor(me.activeOrg.type, me.permissions);
@@ -31,11 +34,12 @@ export function Layout() {
             {me.memberships.map((m) => <option key={m.orgId} value={m.orgId}>{m.orgName} — {m.role}</option>)}
           </select>
         )}
-        <button className="link" onClick={signOut}>Sign out</button>
+        <label className="lang"><span className="sr-only">{t('Language')}</span><select aria-label={t('Language')} value={i18n.language} onChange={(e) => setLang(e.target.value as Lang)}><option value="en">English</option><option value="hi">हिन्दी</option></select></label>
+        <button className="link" onClick={signOut}>{t('Sign out')}</button>
       </header>
       <div className="body">
         <nav aria-label="Main">
-          {items.map((i) => <NavLink key={i.to} to={i.to} end={i.to === '/'}>{i.label}</NavLink>)}
+          {items.map((i) => <NavLink key={i.to} to={i.to} end={i.to === '/'}>{t(i.label)}</NavLink>)}
         </nav>
         <main><Outlet /></main>
       </div>

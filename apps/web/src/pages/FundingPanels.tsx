@@ -2,6 +2,7 @@ import { RequirementsBox } from './GovernancePages';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { api, ensureOk } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { formatMoney, type Currency } from '../shared/money';
@@ -20,13 +21,14 @@ function useAction(onDone: () => void) {
 
 /** Plain-language cost breakdown that backs the "Explain this cost" panel. */
 function Breakdown({ b, ccy }: { b: Record<string, any>; ccy: string }) {
-  const rows: [string, string][] = [['Advance', b.advance], ['Bank discount (interest)', b.discount], ['Processing fee', b.processingFee], ['Platform fee (if passed on)', b.platformFeeSupplier ?? b.platformFee], ['Insurance premium (if passed on)', b.premiumSupplier ?? b.premium]];
+  const { t } = useTranslation();
+  const rows: [string, string][] = [[t('Advance'), b.advance], [t('Bank discount (interest)'), b.discount], [t('Processing fee'), b.processingFee], [t('Platform fee (if passed on)'), b.platformFeeSupplier ?? b.platformFee], [t('Insurance premium (if passed on)'), b.premiumSupplier ?? b.premium]];
   return (
     <table><tbody>
       {rows.filter(([, v]) => v !== undefined).map(([k, v]) => <tr key={k}><td>{k}</td><td className="num">{money(v, ccy)}</td></tr>)}
-      <tr><td><strong>Total charges</strong></td><td className="num">{money(b.totalCharges, ccy)}</td></tr>
-      <tr><td><strong>Net cash</strong></td><td className="num">{money(b.netCash, ccy)}</td></tr>
-      <tr><td>Retention (released at maturity)</td><td className="num">{money(b.retention, ccy)}</td></tr>
+      <tr><td><strong>{t('Total charges')}</strong></td><td className="num">{money(b.totalCharges, ccy)}</td></tr>
+      <tr><td><strong>{t('Net cash')}</strong></td><td className="num">{money(b.netCash, ccy)}</td></tr>
+      <tr><td>{t('Retention (released at maturity)')}</td><td className="num">{money(b.retention, ccy)}</td></tr>
     </tbody></table>
   );
 }
@@ -34,6 +36,7 @@ function Breakdown({ b, ccy }: { b: Record<string, any>; ccy: string }) {
 /** Supplier: request funding, compare offers with early payment, choose, consent (SUP-05 to SUP-07). */
 export function SupplierFundingPanel({ inv, onChange }: { inv: Inv; onChange: () => void }) {
   const { me } = useAuth();
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const refresh = () => { qc.invalidateQueries({ queryKey: ['offers', inv.id] }); qc.invalidateQueries({ queryKey: ['frs'] }); onChange(); };
   const { run, Msg } = useAction(refresh);
@@ -58,7 +61,7 @@ export function SupplierFundingPanel({ inv, onChange }: { inv: Inv; onChange: ()
         <p>Open this invoice for funding to invite banks and let the buyer pay early.</p>
         {inv.status === 'NotEligible' && <p className="alert">Not eligible yet. Fix the items below and check again.</p>}
         {gates && <ul>{gates.map((g) => <li key={g.n}>{g.ok ? '✓' : '✗'} {g.name}{g.reason ? ` — ${g.reason}` : ''}</li>)}</ul>}
-        {canManage && <button onClick={open}>{inv.status === 'NotEligible' ? 'Check again' : 'Request funding'}</button>}
+        {canManage && <button onClick={open}>{inv.status === 'NotEligible' ? t('Check again') : t('Request funding')}</button>}
         <Msg />
       </div>
     );
@@ -69,39 +72,39 @@ export function SupplierFundingPanel({ inv, onChange }: { inv: Inv; onChange: ()
   return (
     <div className="panel">{header}
       <Msg />
-      {inv.route === 'early_payment' && <p className="ok">Paid early by the buyer. Nothing more to do.</p>}
+      {inv.route === 'early_payment' && <p className="ok">{t('Paid early by the buyer. Nothing more to do.')}</p>}
       {fr && (
         <div className="panel">
           <h4>Financing with {fr.bank.name} <span className={`chip ${fr.status}`}>{fr.status}</span></h4>
           {fr.status === 'ConsentPending' && <>
-            <p>Net cash {money(fr.netCash, fr.currency)} (≈ {money(fr.netCashInr, 'INR')}) at {fr.allInPct}% a year. Please review and give your consent. You can cancel until the bank instructs payment.</p>
+            <p>{t('Net cash {{net}} (≈ {{inr}}) at {{pct}}% a year. Please review and give your consent. You can cancel until the bank instructs payment.', { net: money(fr.netCash, fr.currency), inr: money(fr.netCashInr, 'INR'), pct: fr.allInPct })}</p>
             <RequirementsBox frId={fr.id} invoiceId={inv.id} answers={answers} setAnswers={setAnswers} onChange={refresh} />
-            {canConsent ? <button onClick={() => run(() => api.POST('/api/v1/financing-requests/{id}/consent', { params: { path: { id: fr.id } }, body: { extra: answers } }), 'Consent recorded. The bank will now confirm.')}>Review and consent</button> : <p className="hint">An approver in your organisation must give consent.</p>}
+            {canConsent ? <button onClick={() => run(() => api.POST('/api/v1/financing-requests/{id}/consent', { params: { path: { id: fr.id } }, body: { extra: answers } }), t('Consent recorded. The bank will now confirm.'))}>{t('Review and consent')}</button> : <p className="hint">{t('An approver in your organisation must give consent.')}</p>}
           </>}
           {fr.consentText && <p className="hint">{fr.consentText}</p>}
           {fr.status === 'BankConfirming' && <p className="hint">Waiting for the bank to confirm{fr.assignmentAcknowledged ? '' : ' and for the buyer to acknowledge the assignment notice'}.</p>}
-          {fr.status === 'Funded' && <p className="ok">Funded. Disbursement reference {fr.disbursementRef}.</p>}
+          {fr.status === 'Funded' && <p className="ok">{t('Funded. Disbursement reference {{ref}}.', { ref: fr.disbursementRef })}</p>}
           {['ConsentPending', 'BankConfirming', 'Approved'].includes(fr.status) && canManage &&
-            <button className="secondary" onClick={() => run(() => api.POST('/api/v1/financing-requests/{id}/cancel', { params: { path: { id: fr.id } }, body: {} }), 'Financing cancelled.')}>Cancel</button>}
+            <button className="secondary" onClick={() => run(() => api.POST('/api/v1/financing-requests/{id}/cancel', { params: { path: { id: fr.id } }, body: {} }), t('Financing cancelled.'))}>{t('Cancel')}</button>}
         </div>
       )}
       {inv.route !== 'early_payment' && !fr && d && (
         <>
           <table>
-            <thead><tr><th>Option</th><th className="num">All-in cost</th><th className="num">Net cash</th><th className="num">In INR</th><th>FX</th><th>Valid until</th><th /></tr></thead>
+            <thead><tr><th>{t('Option')}</th><th className="num">{t('All-in cost')}</th><th className="num">{t('Net cash')}</th><th className="num">{t('In INR')}</th><th>{t('FX')}</th><th>{t('Valid until')}</th><th /></tr></thead>
             <tbody>
               {d.offers.filter((o) => o.status === 'Submitted').map((o) => (
                 <tr key={o.id}>
-                  <td>{o.bank.name} <span className="chip">insured · non-recourse</span><div className="hint">Advance {o.advancePct}% · cover {o.coverPct}%</div></td>
+                  <td>{o.bank.name} <span className="chip">{t('insured · non-recourse')}</span><div className="hint">Advance {o.advancePct}% · cover {o.coverPct}%</div></td>
                   <td className="num">{o.allInPct}%{o.savingVsBorrowingPct && <div className="hint">{o.savingVsBorrowingPct} pts below your borrowing rate</div>}</td>
                   <td className="num">{money(o.netCash, o.currency)}</td><td className="num">{money(o.netCashInr, 'INR')}</td><td>{o.fxRate}</td>
                   <td>{new Date(o.validUntil).toLocaleString()}</td>
-                  <td>{canManage && <button onClick={() => run(() => api.POST('/api/v1/offers/{id}/select', { params: { path: { id: o.id } } }), 'Offer chosen. Please review and consent.')}>Choose</button>}</td>
+                  <td>{canManage && <button onClick={() => run(() => api.POST('/api/v1/offers/{id}/select', { params: { path: { id: o.id } } }), t('Offer chosen. Please review and consent.'))}>{t('Choose')}</button>}</td>
                 </tr>
               ))}
               {ep?.today && (
                 <tr>
-                  <td><strong>Early payment by the buyer</strong><div className="hint">Paid by the buyer on {String(ep.today.payDate)}; no bank, no insurance needed</div></td>
+                  <td><strong>{t('Early payment by the buyer')}</strong><div className="hint">Paid by the buyer on {String(ep.today.payDate)}; no bank, no insurance needed</div></td>
                   <td className="num">{String(ep.today.annualisedCostPct)}%</td><td className="num">{money(ep.today.buyerPays, inv.currency)}</td><td className="num">—</td><td>—</td><td>when the buyer confirms</td><td />
                 </tr>
               )}

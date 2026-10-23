@@ -304,8 +304,9 @@ export function TermsSetPage() {
   async function withdraw(versionId: string) {
     try { await ensureOk(await api.POST('/api/v1/terms/versions/{id}/reject', { params: { path: { id: versionId } }, body: { reason: 'Withdrawn by the maker' } })); flash('ok', 'Withdrawn back to draft.'); await reload(); } catch (e) { flash('err', (e as Error).message); }
   }
-  async function runPreview() {
-    const r = await api.POST('/api/v1/terms/preview', { body: { ownerType: s!.ownerType, body: cur } });
+  const [previewLang, setPreviewLang] = useState<'en' | 'hi'>('en');
+  async function runPreview(lang: 'en' | 'hi' = previewLang) {
+    const r = await api.POST('/api/v1/terms/preview', { body: { ownerType: s!.ownerType, body: cur, lang } });
     if (r.data) setPreview(r.data); else flash('err', problemOf(r.error).message);
   }
   async function runSim() {
@@ -365,7 +366,7 @@ export function TermsSetPage() {
       )}
       {tab === 'preview' && (
         <div>
-          <button className="secondary" onClick={runPreview}>Refresh preview</button>
+          <button className="secondary" onClick={() => runPreview()}>Refresh preview</button> <button className="secondary" onClick={() => { const l = previewLang === 'en' ? 'hi' : 'en'; setPreviewLang(l); void runPreview(l); }}>{previewLang === 'en' ? 'Summary in Hindi' : 'Summary in English'}</button>
           {preview && <div className="row">
             <div className="preview-card"><h4>A supplier will see</h4><ul>{preview.supplier.map((x, i) => <li key={i}>{x}</li>)}</ul></div>
             <div className="preview-card"><h4>A buyer will see</h4><ul>{preview.buyer.map((x, i) => <li key={i}>{x}</li>)}</ul>{preview.notes.length > 0 && <><h4>Also</h4><ul>{preview.notes.map((x, i) => <li key={i}>{x}</li>)}</ul></>}</div>

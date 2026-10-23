@@ -10,6 +10,7 @@ import { disputeRoutes } from './invoicing/dispute-routes';
 import { notifyRoutes } from './notify/routes';
 import { governanceRoutes } from './governance/routes';
 import { integrationRoutes } from './integration/routes';
+import { demoRoutes } from '../demo/routes';
 import { analyticsRoutes } from './analytics/routes';
 import { relationshipRoutes } from './identity/relationship-routes';
 
@@ -28,5 +29,6 @@ export async function registerModules(app: FastifyInstance): Promise<void> {
   governanceRoutes(app);
   analyticsRoutes(app);
   integrationRoutes(app);
+  demoRoutes(app);
   // invoicing, terms, insurance, marketplace, settlement ... (added per milestone)
 }

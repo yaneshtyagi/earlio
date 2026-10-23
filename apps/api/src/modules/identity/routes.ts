@@ -38,7 +38,7 @@ const meSchema = z.object({
 export function identityRoutes(app: FastifyInstance) {
   const r = app.withTypeProvider<ZodTypeProvider>();
   const svc = app.svc;
-  const loginLimit = svc.config.env === 'test' ? 10_000 : 10;
+  const loginLimit = svc.config.env === 'test' ? 10_000 : Number(process.env.LOGIN_RATE_LIMIT ?? 10);
 
   async function loadMe(userId: string, auth: AuthInfo) {
     return svc.db.tx({ userId, correlationId: 'me' }, async (tx) => {

@@ -22,10 +22,12 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.104.5",
+    "i18next": "^25.10.10",
     "openapi-fetch": "^0.17.0",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-i18next": "^16.6.6",
     "react-router-dom": "^7.18.4"
   }
 }

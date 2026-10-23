@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "workspaces": ["apps/*"],
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev:api": "npm run dev -w @earlio/api",
     "dev:web": "npm run dev -w @earlio/web",
@@ -11,7 +13,11 @@
     "typecheck": "npm run typecheck -w @earlio/api && npm run typecheck -w @earlio/web",
     "openapi": "npm run openapi -w @earlio/api",
     "gen:client": "npm run gen:client -w @earlio/web",
-    "build": "npm run build -w @earlio/api && npm run build -w @earlio/web"
+    "build": "npm run build -w @earlio/api && npm run build -w @earlio/web",
+    "e2e:stack": "bash scripts/e2e-stack.sh",
+    "e2e": "npm test --prefix e2e"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  }
 }

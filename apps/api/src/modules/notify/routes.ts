@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { requireUser } from '../../http/context';
+import { requirePerm, requireUser } from '../../http/context';
+import { audit } from '../../platform/audit';
 import { notFound } from '../../kernel/errors';
 
 const out = z.object({ id: z.string(), topic: z.string(), subject: z.string(), body: z.string(), createdAt: z.string(), read: z.boolean(), payload: z.record(z.string(), z.any()) });
@@ -35,5 +36,19 @@ export function notifyRoutes(app: FastifyInstance) {
   }, async (req) => svc.db.tx(req.ctx, async (tx) => {
     await tx.query("update notify.notifications set read_at = $1 where recipient_org_id = app.org_id() and channel = 'in_app' and read_at is null", [svc.clock.now()]);
     return { ok: true as const };
+  }));
+
+  r.get('/api/v1/org/language', {
+    preHandler: requireUser,
+    schema: { tags: ['notify'], summary: 'Language my organisation receives notifications in', response: { 200: z.object({ language: z.enum(['en', 'hi']) }) } },
+  }, async (req) => svc.db.tx(req.ctx, async (tx) => ({ language: (await tx.one<any>('select language from identity.organisations where id = app.org_id()')).language })));
+  r.put('/api/v1/org/language', {
+    preHandler: requirePerm('org:manage_users'),
+    schema: { tags: ['notify'], summary: 'Choose the notification language (English or Hindi) for my organisation', body: z.object({ language: z.enum(['en', 'hi']) }), response: { 200: z.object({ language: z.enum(['en', 'hi']) }) } },
+  }, async (req) => svc.db.tx(req.ctx, async (tx) => {
+    const before = (await tx.one<any>('select language from identity.organisations where id = $1', [req.auth!.orgId])).language;
+    await tx.query('update identity.organisations set language = $2 where id = $1', [req.auth!.orgId, req.body.language]);
+    await audit(tx, req.ctx, svc.clock.now(), { action: 'org.language_changed', entityType: 'organisation', entityId: req.auth!.orgId!, orgId: req.auth!.orgId!, before: { language: before }, after: { language: req.body.language } });
+    return { language: req.body.language };
   }));
 }
