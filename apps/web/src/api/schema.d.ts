@@ -2958,6 +2958,351 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/insurance/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cover requests addressed to me (INS-02) */
+        get: {
+            parameters: {
+                query?: {
+                    status?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                invoiceId: string;
+                                invoiceNumber: string;
+                                /** @enum {string} */
+                                status: "requested" | "approved" | "partial" | "declined" | "expired" | "uninsured";
+                                gateway: string;
+                                currency: string;
+                                invoiceAmount: string;
+                                buyer: {
+                                    id: string;
+                                    name: string;
+                                    tier: string | null;
+                                };
+                                supplierName: string;
+                                insurerName: string | null;
+                                requestedCoverPct: number | null;
+                                coverPct: number | null;
+                                insuredAmount: string | null;
+                                reason: string | null;
+                                requestedAt: string;
+                                slaDueAt: string | null;
+                                slaBreached: boolean;
+                                decidedAt: string | null;
+                                validUntil: string | null;
+                                policyNumber: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insurance/requests/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve (optionally with lower cover) or decline a cover request */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        decision: "approve" | "decline";
+                        coverPct?: number;
+                        reason?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            status: string;
+                            coverPct: number | null;
+                            insuredAmount: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/cover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cover record for an invoice (404 until the invoice is accepted, or if you are not a party) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            invoiceId: string;
+                            invoiceNumber: string;
+                            /** @enum {string} */
+                            status: "requested" | "approved" | "partial" | "declined" | "expired" | "uninsured";
+                            gateway: string;
+                            currency: string;
+                            invoiceAmount: string;
+                            buyer: {
+                                id: string;
+                                name: string;
+                                tier: string | null;
+                            };
+                            supplierName: string;
+                            insurerName: string | null;
+                            requestedCoverPct: number | null;
+                            coverPct: number | null;
+                            insuredAmount: string | null;
+                            reason: string | null;
+                            requestedAt: string;
+                            slaDueAt: string | null;
+                            slaBreached: boolean;
+                            decidedAt: string | null;
+                            validUntil: string | null;
+                            policyNumber: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insurance/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My per-buyer insured limits */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                buyer: {
+                                    id: string;
+                                    name: string;
+                                    tier: string | null;
+                                };
+                                policyNumber: string;
+                                limitUsd: string;
+                                reservedUsd: string;
+                                usedUsd: string;
+                                availableUsd: string;
+                                expiresAt: string;
+                                expired: boolean;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        /** Set or change a buyer limit (cannot go below current exposure or above my policy caps) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        buyerOrgId: string;
+                        limitUsd: string;
+                        /** Format: date-time */
+                        expiresAt: string;
+                        policyNumber: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insurance/requests.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export open cover requests as CSV */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/insurance/decisions/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import decisions from CSV (requestId,decision,coverPct,reason) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        csv: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            applied: number;
+                            errors: {
+                                row: number;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

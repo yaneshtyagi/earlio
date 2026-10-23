@@ -99,6 +99,23 @@ async function seedRelationshipsAndLimits(tx: Tx, svc: Services, ids: DemoIds) {
       await tx.query('insert into identity.org_preferred_banks (org_id, bank_org_id, created_at) values ($1,$2,$3) on conflict do nothing', [ids[org], ids[b], now]);
     }
   }
+  // Insurers: ExportShield covers the US corridor (manual underwriting), Sentinel the Singapore buyers (API gateway).
+  const INSURER_FOR: Record<string, string> = { northwind: 'exportshield', lakeshore: 'exportshield', merlion: 'sentinel', kallang: 'sentinel' };
+  for (const [buyer, ins] of Object.entries(INSURER_FOR)) {
+    await tx.query('update identity.relationships set insurer_org_id = $1 where buyer_org_id = $2', [ids[ins], ids[buyer]]);
+  }
+  const expiry = new Date(now.getTime() + 365 * 86_400_000);
+  const INS_LIMITS: [string, string, string, string][] = [
+    ['exportshield', 'northwind', 'ES-POL-NW-001', '3000000'], ['exportshield', 'lakeshore', 'ES-POL-LS-002', '1000000'],
+    ['sentinel', 'merlion', 'SN-POL-ML-101', '5000000'], ['sentinel', 'kallang', 'SN-POL-KH-102', '2000000'],
+  ];
+  for (const [ins, buyer, policy, lim] of INS_LIMITS) {
+    await tx.query(`insert into insurance.buyer_limits (insurer_org_id, buyer_org_id, policy_number, limit_usd, expires_at, updated_at) values ($1,$2,$3,$4,$5,$6) on conflict do nothing`,
+      [ids[ins], ids[buyer], policy, lim, expiry, now]);
+  }
+  for (const [ins, gw] of [['exportshield', 'manual'], ['sentinel', 'api']]) {
+    await tx.query(`insert into platform.settings (key, value, updated_at) values ($1,$2,$3) on conflict do nothing`, [`insurer_gateway:${ids[ins!]}`, JSON.stringify(gw), now]);
+  }
   for (const bank of ['aurelia', 'kestrel', 'harbour']) {
     for (const [slug, kind] of [['northwind', 'buyer'], ['lakeshore', 'buyer'], ['merlion', 'buyer'], ['kallang', 'buyer'],
                                 ['shree', 'supplier'], ['kumar', 'supplier'], ['anand', 'supplier'], ['deccan', 'supplier']] as const) {

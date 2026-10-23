@@ -1,3 +1,4 @@
+import { CoverPanel } from './InsurancePages';
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
@@ -69,6 +70,8 @@ export function InvoiceDetailPage() {
           <ul className="timeline">{inv.history.map((h, i) => <li key={i}><strong>{h.to}</strong> · {new Date(h.at).toLocaleString()}{h.note && <div className="hint">{h.note}</div>}</li>)}</ul>
         </div>
       </div>
+
+      {inv.acceptedAt && <CoverPanel invoiceId={inv.id} />}
 
       <div className="panel">
         <h3>Documents</h3>

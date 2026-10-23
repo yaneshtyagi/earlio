@@ -4746,6 +4746,625 @@
           }
         }
       }
+    },
+    "/api/v1/insurance/requests": {
+      "get": {
+        "summary": "Cover requests addressed to me (INS-02)",
+        "tags": [
+          "insurance"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "status",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "invoiceId": {
+                            "type": "string"
+                          },
+                          "invoiceNumber": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "requested",
+                              "approved",
+                              "partial",
+                              "declined",
+                              "expired",
+                              "uninsured"
+                            ]
+                          },
+                          "gateway": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "invoiceAmount": {
+                            "type": "string"
+                          },
+                          "buyer": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "tier": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "tier"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "supplierName": {
+                            "type": "string"
+                          },
+                          "insurerName": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "requestedCoverPct": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "coverPct": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "insuredAmount": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "reason": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "requestedAt": {
+                            "type": "string"
+                          },
+                          "slaDueAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "slaBreached": {
+                            "type": "boolean"
+                          },
+                          "decidedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "validUntil": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "policyNumber": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "invoiceId",
+                          "invoiceNumber",
+                          "status",
+                          "gateway",
+                          "currency",
+                          "invoiceAmount",
+                          "buyer",
+                          "supplierName",
+                          "insurerName",
+                          "requestedCoverPct",
+                          "coverPct",
+                          "insuredAmount",
+                          "reason",
+                          "requestedAt",
+                          "slaDueAt",
+                          "slaBreached",
+                          "decidedAt",
+                          "validUntil",
+                          "policyNumber"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/insurance/requests/{id}/decision": {
+      "post": {
+        "summary": "Approve (optionally with lower cover) or decline a cover request",
+        "tags": [
+          "insurance"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "approve",
+                      "decline"
+                    ]
+                  },
+                  "coverPct": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "maximum": 100
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "decision"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "coverPct": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "insuredAmount": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "coverPct",
+                    "insuredAmount"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/cover": {
+      "get": {
+        "summary": "Cover record for an invoice (404 until the invoice is accepted, or if you are not a party)",
+        "tags": [
+          "insurance"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "requested",
+                        "approved",
+                        "partial",
+                        "declined",
+                        "expired",
+                        "uninsured"
+                      ]
+                    },
+                    "gateway": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "invoiceAmount": {
+                      "type": "string"
+                    },
+                    "buyer": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "tier": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "tier"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "supplierName": {
+                      "type": "string"
+                    },
+                    "insurerName": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "requestedCoverPct": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "coverPct": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "insuredAmount": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "reason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "requestedAt": {
+                      "type": "string"
+                    },
+                    "slaDueAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "slaBreached": {
+                      "type": "boolean"
+                    },
+                    "decidedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "validUntil": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "policyNumber": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "invoiceId",
+                    "invoiceNumber",
+                    "status",
+                    "gateway",
+                    "currency",
+                    "invoiceAmount",
+                    "buyer",
+                    "supplierName",
+                    "insurerName",
+                    "requestedCoverPct",
+                    "coverPct",
+                    "insuredAmount",
+                    "reason",
+                    "requestedAt",
+                    "slaDueAt",
+                    "slaBreached",
+                    "decidedAt",
+                    "validUntil",
+                    "policyNumber"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/insurance/limits": {
+      "get": {
+        "summary": "My per-buyer insured limits",
+        "tags": [
+          "insurance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "buyer": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "tier": {
+                                "nullable": true,
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "tier"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "policyNumber": {
+                            "type": "string"
+                          },
+                          "limitUsd": {
+                            "type": "string"
+                          },
+                          "reservedUsd": {
+                            "type": "string"
+                          },
+                          "usedUsd": {
+                            "type": "string"
+                          },
+                          "availableUsd": {
+                            "type": "string"
+                          },
+                          "expiresAt": {
+                            "type": "string"
+                          },
+                          "expired": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "buyer",
+                          "policyNumber",
+                          "limitUsd",
+                          "reservedUsd",
+                          "usedUsd",
+                          "availableUsd",
+                          "expiresAt",
+                          "expired"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Set or change a buyer limit (cannot go below current exposure or above my policy caps)",
+        "tags": [
+          "insurance"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "buyerOrgId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "limitUsd": {
+                    "type": "string",
+                    "pattern": "^\\d+(\\.\\d{1,2})?$"
+                  },
+                  "expiresAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                  },
+                  "policyNumber": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 60
+                  }
+                },
+                "required": [
+                  "buyerOrgId",
+                  "limitUsd",
+                  "expiresAt",
+                  "policyNumber"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/insurance/requests.csv": {
+      "get": {
+        "summary": "Export open cover requests as CSV",
+        "tags": [
+          "insurance"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/insurance/decisions/import": {
+      "post": {
+        "summary": "Import decisions from CSV (requestId,decision,coverPct,reason)",
+        "tags": [
+          "insurance"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "csv": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500000
+                  }
+                },
+                "required": [
+                  "csv"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "applied": {
+                      "type": "number"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "row": {
+                            "type": "number"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "row",
+                          "message"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "applied",
+                    "errors"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "security": [

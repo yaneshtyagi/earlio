@@ -13,6 +13,7 @@ import { checkTermsGuardrails } from './guardrails';
 import { jsonSchemaFor, validateBody } from './schema';
 import { approveVersion, corridorOf, createSet, createVersion, resolveTerms, simulateBankTerms, submitVersion, retireExpired } from './service';
 import { evaluateOffer } from './evaluate';
+import { coverForInvoice, coverGate } from '../insurance/service';
 
 const ownerEnum = z.enum(['platform', 'bank', 'insurer']);
 const scopeSchema = z.object({ buyerOrgId: z.string().uuid().optional(), supplierOrgId: z.string().uuid().optional(), corridor: z.string().optional() });
@@ -172,7 +173,13 @@ export function termsRoutes(app: FastifyInstance) {
     const ctx = { buyerOrgId: buyer.id, supplierOrgId: supplier.id, corridor: corridorOf(supplier.country, buyer.country) };
     const bankTerms = await resolveTerms(tx, now, 'bank', bank.id, ctx);
     const platform = await resolveTerms(tx, now, 'platform', null, ctx);
-    const insurerTerms = req.body.insurerOrgId ? await resolveTerms(tx, now, 'insurer', req.body.insurerOrgId, ctx) : null;
+    const real = await coverForInvoice(tx, inv.id);
+    const insurerId = req.body.insurerOrgId ?? real?.insurerOrgId ?? undefined;
+    const insurerTerms = insurerId ? await resolveTerms(tx, now, 'insurer', insurerId, ctx) : null;
+    if (real && req.body.coverPct == null && !['approved', 'partial'].includes(real.status)) {
+      const g = coverGate(real, 0);
+      return { eligible: false, reasons: [g.reason!], gate: 'cover', quote: null, explanation: {} };
+    }
     const today = now.toISOString().slice(0, 10);
     const tenor = daysBetween(today, String(inv.due_date).slice(0, 10)) + Number(bankTerms.terms.graceDays ?? 0);
     if (tenor <= 0) throw invalid('The invoice is already due.');
@@ -181,7 +188,7 @@ export function termsRoutes(app: FastifyInstance) {
     const amount = inv.accepted_amount ?? inv.gross_amount;
     const ev = evaluateOffer({
       now, invoice: { amount, currency: inv.currency as 'USD', tenorDays: tenor }, buyer: { country: buyer.country, tier: buyer.rating_tier }, supplier: { country: supplier.country, small: supplier.small, borrowingRatePct: supplier.borrowing_rate ? Number(supplier.borrowing_rate) : null },
-      bank: bankTerms.terms, insurer: insurerTerms?.terms ?? null, platform: platform.terms, cover: req.body.coverPct != null ? { coverPct: req.body.coverPct } : null,
+      bank: bankTerms.terms, insurer: insurerTerms?.terms ?? null, platform: platform.terms, cover: req.body.coverPct != null ? { coverPct: req.body.coverPct } : real?.coverPct != null ? { coverPct: real.coverPct } : null,
       headroom: { bankBuyerUsd: avail(buyer.id), bankSupplierUsd: avail(supplier.id) },
       mids: { USDINR: await svc.adapters.fx.mid('USDINR', now), SGDINR: await svc.adapters.fx.mid('SGDINR', now) },
       termsVersionIds: [...new Set([...bankTerms.versionIds, ...platform.versionIds, ...(insurerTerms?.versionIds ?? [])])],

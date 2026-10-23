@@ -51,6 +51,8 @@ export class Db {
   readonly pool: pg.Pool;
   constructor(url: string, max = 10) {
     this.pool = new pg.Pool({ connectionString: url, max });
+    // An idle client can be terminated by the server (restart, forced drop); the pool replaces it, so this must not crash the process.
+    this.pool.on('error', () => {});
   }
 
   /** Run `fn` in a transaction with the tenancy context applied (RLS). */

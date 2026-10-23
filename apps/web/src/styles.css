@@ -42,3 +42,7 @@ textarea { width: 100%; min-height: 90px; padding: 8px; border: 1px solid var(--
 button.secondary { background: #fff; color: var(--fg); border: 1px solid var(--line); }
 button.danger { background: var(--danger); }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
+.chip.approved, .chip.partial { background: #e7f4ee; color: var(--brand); }
+.chip.requested { background: #eff8ff; color: #175cd3; }
+.chip.declined, .chip.expired { background: #fef3f2; color: var(--danger); }
+.chip.uninsured { background: #f2f4f7; color: #667085; }

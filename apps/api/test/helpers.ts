@@ -9,6 +9,7 @@ import { defaultAdapters } from '../src/adapters';
 import type { Services } from '../src/services';
 import { demoTotpSecret, seedDemo, demoEmail, DEMO_PASSWORD, type DemoIds } from '../src/modules/identity/seed';
 import { totpAt } from '../src/kernel/totp';
+import { runWorkOnce } from '../src/worker';
 import type { Role } from '../src/modules/identity/permissions';
 
 const port = () => Number(process.env.EARLIO_TEST_PG_PORT);
@@ -22,6 +23,8 @@ export interface TestEnv {
   adminUrl: string;
   /** Application-role connection string (RLS applies). */
   appUrl: string;
+  /** Run one pass of every background job (outbox, reminders, insurer API, expiry). */
+  work: () => Promise<Record<string, number>>;
   close: () => Promise<void>;
 }
 
@@ -43,6 +46,7 @@ export async function createTestEnv(opts: { seed?: boolean } = {}): Promise<Test
   await app.ready();
   return {
     app, svc, clock, ids, adminUrl, appUrl,
+    work: () => runWorkOnce(svc),
     close: async () => {
       await app.close();
       await db.close();
