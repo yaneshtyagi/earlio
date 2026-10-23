@@ -55,6 +55,7 @@ export function LoginPage() {
           <label>Password<input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
           <button disabled={busy}>Continue</button>
           <p className="hint">Demo users: <code>admin@shree.demo</code>, <code>approver@northwind.demo</code>, <code>credit@aurelia.demo</code> … password <code>Earlio!Demo1</code></p>
+          <p className="hint">New to Earlio? <a href="/register">Register your organisation</a></p>
         </form>
       )}
       {(step === 'mfa' || step === 'enroll') && (

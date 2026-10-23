@@ -50,7 +50,7 @@ describe('row-level security (direct SQL under the application role)', () => {
 
   it('platform context sees all tenants', async () => {
     const rows = await asApp('', true, async (c) => (await c.query('select distinct org_id from identity.memberships')).rows);
-    expect(rows.length).toBe(14);
+    expect(rows.length).toBe(15);
   });
 });
 

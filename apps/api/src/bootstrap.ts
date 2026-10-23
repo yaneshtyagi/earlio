@@ -2,6 +2,7 @@ import { Db } from './db/pool';
 import { migrate } from './db/migrate';
 import { loadConfig, isDevLike, type Config } from './kernel/config';
 import { SystemClock, VirtualClock, type Clock } from './kernel/clock';
+import { defaultAdapters } from './adapters';
 import type { Services } from './services';
 import { seedDemo } from './modules/identity/seed';
 
@@ -24,7 +25,7 @@ export async function bootstrap(overrides: Partial<Config> = {}): Promise<Bootst
   await migrate(config.migrateDatabaseUrl || config.databaseUrl);
   const clock = isDevLike(config) ? new VirtualClock() : new SystemClock();
   const db = new Db(config.databaseUrl);
-  const svc: Services = { config, db, clock, adapters: {} };
+  const svc: Services = { config, db, clock, adapters: defaultAdapters(config) };
   if (isDevLike(config) && config.env !== 'test') {
     await db.system((tx) => seedDemo(tx, svc, { platform: true, correlationId: 'seed' }));
   }

@@ -29,6 +29,21 @@ export class Tx {
     const rows = await this.query<T>(text, params);
     return rows[0];
   }
+
+  /**
+   * Run `fn` with cross-tenant visibility, then restore the previous scope. Service-layer only:
+   * used where a workflow legitimately touches another party's rows (limits, liens, settlement).
+   * Routes never call this directly.
+   */
+  async elevated<T>(fn: () => Promise<T>): Promise<T> {
+    const prev = (await this.query<{ v: string }>("select coalesce(current_setting('app.is_platform', true), '') as v"))[0]!.v;
+    await this.query("select set_config('app.is_platform', 'on', true)");
+    try {
+      return await fn();
+    } finally {
+      await this.query("select set_config('app.is_platform', $1, true)", [prev]);
+    }
+  }
 }
 
 export class Db {

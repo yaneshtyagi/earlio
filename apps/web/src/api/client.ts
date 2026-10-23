@@ -16,3 +16,10 @@ api.use({
 export interface ApiProblem { code: string; message: string; details?: unknown }
 export const problemOf = (e: unknown): ApiProblem =>
   e && typeof e === 'object' && 'message' in e ? (e as ApiProblem) : { code: 'unknown', message: 'Something went wrong.' };
+
+/** For endpoints whose OpenAPI declares only success responses: throw the server's problem message on a non-2xx result. */
+export async function ensureOk(r: { response: Response }): Promise<void> {
+  if (r.response.ok) return;
+  const body = await r.response.clone().json().catch(() => null);
+  throw new Error(problemOf(body).message);
+}

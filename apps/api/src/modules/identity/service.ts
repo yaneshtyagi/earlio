@@ -20,6 +20,7 @@ export interface OrgInput {
   branding?: Record<string, unknown>;
   kycStatus?: string;
   sanctionsStatus?: string;
+  blocked?: boolean;
 }
 
 /** Threshold below which a supplier is "small" (BR-11). Configurable; verify real thresholds with counsel. */
@@ -33,11 +34,11 @@ export async function createOrganisation(tx: Tx, svc: Services, ctx: Ctx, input:
       : false;
   const row = await tx.one<{ id: string }>(
     `insert into identity.organisations
-      (type, legal_name, country, small, msme, turnover_inr, rating_tier, data_region, borrowing_rate, is_partner, hostname, branding, kyc_status, sanctions_status, created_at)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) returning id`,
+      (type, legal_name, country, small, msme, turnover_inr, rating_tier, data_region, borrowing_rate, is_partner, hostname, branding, kyc_status, sanctions_status, blocked, created_at)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) returning id`,
     [input.type, input.legalName, input.country, small, input.msme ?? false, input.turnoverInr ?? null, input.ratingTier ?? null,
      input.dataRegion ?? (input.country === 'IN' ? 'IN' : input.country), input.borrowingRate ?? null, input.isPartner ?? false,
-     input.hostname ?? null, JSON.stringify(input.branding ?? {}), input.kycStatus ?? 'not_started', input.sanctionsStatus ?? 'not_screened', now],
+     input.hostname ?? null, JSON.stringify(input.branding ?? {}), input.kycStatus ?? 'not_started', input.sanctionsStatus ?? 'not_screened', input.blocked ?? false, now],
   );
   await audit(tx, ctx, now, { action: 'organisation.created', entityType: 'organisation', entityId: row.id, orgId: row.id, after: { type: input.type, legalName: input.legalName } });
   return row.id;

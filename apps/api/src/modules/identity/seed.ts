@@ -28,6 +28,7 @@ export const DEMO_ORGS: DemoOrg[] = [
   { slug: 'aurelia', type: 'bank', legalName: 'Aurelia Bank', country: 'IN', isPartner: true, branding: { displayName: 'Aurelia Bank', primary: '#0b5d3b' } },
   { slug: 'kestrel', type: 'bank', legalName: 'Kestrel Capital', country: 'IN' },
   { slug: 'harbour', type: 'bank', legalName: 'Harbour Trust Bank', country: 'SG', dataRegion: 'SG' },
+  { slug: 'zarnitsa', type: 'buyer', legalName: 'Zarnitsa Trading Ltd', country: 'CY', ratingTier: 'BBB', kycStatus: 'approved', sanctionsStatus: 'confirmed', blocked: true },
   { slug: 'exportshield', type: 'insurer', legalName: 'ExportShield', country: 'IN' },
   { slug: 'sentinel', type: 'insurer', legalName: 'Sentinel Trade Credit', country: 'SG', dataRegion: 'SG' },
   { slug: 'earlio', type: 'platform', legalName: 'Earlio Operations', country: 'IN' },
@@ -50,7 +51,7 @@ export async function seedDemo(tx: Tx, svc: Services, ctx: Ctx): Promise<DemoIds
     const existing = await tx.maybe<{ id: string }>('select id from identity.organisations where legal_name = $1 and type = $2', [o.legalName, o.type]);
     if (existing) { ids[o.slug] = existing.id; continue; }
     const { slug, ...input } = o;
-    const id = await createOrganisation(tx, svc, ctx, { ...input, kycStatus: 'approved', sanctionsStatus: 'clear' });
+    const id = await createOrganisation(tx, svc, ctx, { kycStatus: 'approved', sanctionsStatus: 'clear', ...input });
     ids[slug] = id;
     for (const role of ROLES_BY_ORG_TYPE[o.type]) {
       const email = demoEmail(slug, role);
@@ -62,5 +63,37 @@ export async function seedDemo(tx: Tx, svc: Services, ctx: Ctx): Promise<DemoIds
       });
     }
   }
+  await seedRelationshipsAndLimits(tx, svc, ids);
   return ids;
+}
+
+const DEMO_RELATIONSHIPS: [string, string][] = [
+  ['shree', 'northwind'], ['shree', 'lakeshore'], ['kumar', 'northwind'], ['kumar', 'merlion'],
+  ['anand', 'kallang'], ['deccan', 'merlion'], ['deccan', 'northwind'],
+];
+const DEMO_PREFERRED: Record<string, string[]> = {
+  shree: ['kestrel'], kumar: ['kestrel'], anand: ['kestrel'], deccan: ['kestrel', 'harbour'],
+  northwind: ['kestrel'], lakeshore: ['kestrel'], merlion: ['harbour'], kallang: ['harbour'],
+};
+
+async function seedRelationshipsAndLimits(tx: Tx, svc: Services, ids: DemoIds) {
+  const now = svc.clock.now();
+  for (const [sup, buy] of DEMO_RELATIONSHIPS) {
+    await tx.query(
+      `insert into identity.relationships (supplier_org_id, buyer_org_id, status, proposed_by_org_id, supplier_approved_at, buyer_approved_at, created_at)
+       values ($1,$2,'active',$1,$3,$3,$3) on conflict do nothing`, [ids[sup], ids[buy], now]);
+  }
+  for (const [org, banks] of Object.entries(DEMO_PREFERRED)) {
+    for (const b of banks) {
+      await tx.query('insert into identity.org_preferred_banks (org_id, bank_org_id, created_at) values ($1,$2,$3) on conflict do nothing', [ids[org], ids[b], now]);
+    }
+  }
+  for (const bank of ['aurelia', 'kestrel', 'harbour']) {
+    for (const [slug, kind] of [['northwind', 'buyer'], ['lakeshore', 'buyer'], ['merlion', 'buyer'], ['kallang', 'buyer'],
+                                ['shree', 'supplier'], ['kumar', 'supplier'], ['anand', 'supplier'], ['deccan', 'supplier']] as const) {
+      await tx.query(
+        `insert into identity.bank_limits (bank_org_id, subject_org_id, kind, limit_usd, updated_at) values ($1,$2,$3,$4,$5) on conflict do nothing`,
+        [ids[bank], ids[slug], kind, kind === 'buyer' ? '5000000' : '2000000', now]);
+    }
+  }
 }

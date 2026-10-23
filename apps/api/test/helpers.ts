@@ -5,6 +5,7 @@ import { buildApp } from '../src/app';
 import { Db } from '../src/db/pool';
 import { loadConfig } from '../src/kernel/config';
 import { VirtualClock } from '../src/kernel/clock';
+import { defaultAdapters } from '../src/adapters';
 import type { Services } from '../src/services';
 import { demoTotpSecret, seedDemo, demoEmail, DEMO_PASSWORD, type DemoIds } from '../src/modules/identity/seed';
 import { totpAt } from '../src/kernel/totp';
@@ -36,7 +37,7 @@ export async function createTestEnv(opts: { seed?: boolean } = {}): Promise<Test
   clock.setTo(new Date('2026-11-02T04:00:00.000Z')); // fixed: deterministic runs
   const config = loadConfig({ env: 'test', databaseUrl: appUrl, migrateDatabaseUrl: adminUrl });
   const db = new Db(appUrl, 20);
-  const svc: Services = { config, db, clock, adapters: {} };
+  const svc: Services = { config, db, clock, adapters: defaultAdapters(config) };
   const ids = opts.seed === false ? {} : await db.system((tx) => seedDemo(tx, svc, { platform: true, correlationId: 'seed' }));
   const app = await buildApp(svc);
   await app.ready();

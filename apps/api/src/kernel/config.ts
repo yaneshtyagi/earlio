@@ -13,6 +13,8 @@ export interface Config {
   /** Platform-wide default: 'network' (multi-bank) or 'white-label' (one partner bank). */
   mode: 'network' | 'white-label';
   simulatedBanner: boolean;
+  /** Directory for the local-disk object store (development/test). */
+  objectStoreDir: string;
 }
 
 export function loadConfig(overrides: Partial<Config> = {}): Config {
@@ -28,6 +30,7 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
     corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:5173').split(','),
     mode: (process.env.EARLIO_MODE as Config['mode']) ?? 'network',
     simulatedBanner: env !== 'production',
+    objectStoreDir: process.env.OBJECT_STORE_DIR ?? '.data/objects',
     ...overrides,
   };
 }
