@@ -2218,6 +2218,746 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/terms/schema/{owner}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** JSON Schema for a terms body (for editors and import/export) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    owner: "platform" | "bank" | "insurer";
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/terms/sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Terms sets I own (platform staff see all); includes the active version */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                /** @enum {string} */
+                                ownerType: "platform" | "bank" | "insurer";
+                                ownerOrgId: string | null;
+                                ownerName: string | null;
+                                name: string;
+                                layer: string;
+                                scope: {
+                                    /** Format: uuid */
+                                    buyerOrgId?: string;
+                                    /** Format: uuid */
+                                    supplierOrgId?: string;
+                                    corridor?: string;
+                                };
+                                priority: number;
+                                activeVersion: {
+                                    id: string;
+                                    version: number;
+                                    /** @enum {string} */
+                                    status: "draft" | "pending" | "active" | "retired";
+                                    effectiveFrom: string | null;
+                                    effectiveTo: string | null;
+                                    body: {
+                                        [key: string]: unknown;
+                                    };
+                                    createdBy: string | null;
+                                    approvedBy: string | null;
+                                    note: string | null;
+                                } | null;
+                                latestVersion: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a terms set (default or a scoped override) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        name: string;
+                        scope?: {
+                            /** Format: uuid */
+                            buyerOrgId?: string;
+                            /** Format: uuid */
+                            supplierOrgId?: string;
+                            corridor?: string;
+                        };
+                        priority?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            /** @enum {string} */
+                            ownerType: "platform" | "bank" | "insurer";
+                            ownerOrgId: string | null;
+                            ownerName: string | null;
+                            name: string;
+                            layer: string;
+                            scope: {
+                                /** Format: uuid */
+                                buyerOrgId?: string;
+                                /** Format: uuid */
+                                supplierOrgId?: string;
+                                corridor?: string;
+                            };
+                            priority: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/terms/sets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A terms set with all visible versions */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            /** @enum {string} */
+                            ownerType: "platform" | "bank" | "insurer";
+                            ownerOrgId: string | null;
+                            ownerName: string | null;
+                            name: string;
+                            layer: string;
+                            scope: {
+                                /** Format: uuid */
+                                buyerOrgId?: string;
+                                /** Format: uuid */
+                                supplierOrgId?: string;
+                                corridor?: string;
+                            };
+                            priority: number;
+                            versions: {
+                                id: string;
+                                version: number;
+                                /** @enum {string} */
+                                status: "draft" | "pending" | "active" | "retired";
+                                effectiveFrom: string | null;
+                                effectiveTo: string | null;
+                                body: {
+                                    [key: string]: unknown;
+                                };
+                                createdBy: string | null;
+                                approvedBy: string | null;
+                                note: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/terms/sets/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Draft a new version (validated against the schema and the platform guardrails) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        body: {
+                            [key: string]: unknown;
+                        };
+                        /** Format: date-time */
+                        effectiveFrom?: string;
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            version: number;
+                            /** @enum {string} */
+                            status: "draft" | "pending" | "active" | "retired";
+                            effectiveFrom: string | null;
+                            effectiveTo: string | null;
+                            body: {
+                                [key: string]: unknown;
+                            };
+                            createdBy: string | null;
+                            approvedBy: string | null;
+                            note: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/terms/versions/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a draft for approval (maker) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        effectiveFrom?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/terms/versions/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve and publish a pending version (checker, must differ from the maker) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/terms/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate a terms body without saving */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        ownerType: "platform" | "bank" | "insurer";
+                        body: {
+                            [key: string]: unknown;
+                        };
+                        /** @default false */
+                        scoped?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            valid: boolean;
+                            error: string | null;
+                            guardrailBreaches: {
+                                guardrail: string;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/terms/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Terms in force (and which layer supplied each parameter) */
+        get: {
+            parameters: {
+                query?: {
+                    ownerOrgId?: string;
+                    buyerOrgId?: string;
+                    supplierOrgId?: string;
+                    corridor?: string;
+                    at?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            terms: {
+                                [key: string]: unknown;
+                            };
+                            explanation: {
+                                [key: string]: unknown;
+                            };
+                            versionIds: string[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/terms/simulate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Simulate a draft bank terms body against 20 sample invoices (CT-9) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        body: {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            rows: {
+                                sampleId: string;
+                                label: string;
+                                changed: boolean;
+                                before: {
+                                    [key: string]: unknown;
+                                };
+                                after: {
+                                    [key: string]: unknown;
+                                };
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/early-payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Early-payment discount maths (BR-2) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        faceAmount: string;
+                        discountPct: string;
+                        daysEarly: number;
+                        supplierBorrowingRatePct?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pricing/financing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Financing maths (BR-3) for explicit inputs */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        faceAmount: string;
+                        advancePct: string;
+                        ratePct: string;
+                        tenorDays: number;
+                        /** @default 0 */
+                        processingPct?: string;
+                        /** @default 0 */
+                        processingMin?: string;
+                        /** @default 0 */
+                        platformFeeBps?: string;
+                        /**
+                         * @default bank
+                         * @enum {string}
+                         */
+                        platformFeePayer?: "bank" | "supplier";
+                        insuredAmount?: string;
+                        premiumRatePct?: string;
+                        /**
+                         * @default supplier
+                         * @enum {string}
+                         */
+                        premiumPayer?: "bank" | "supplier";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fx/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Simulated FX quote with validity window */
+        get: {
+            parameters: {
+                query: {
+                    pair: "USDINR" | "SGDINR";
+                    spreadPct?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/eligibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Would this bank fund this invoice, and at what cost? (gates 5 to 7 and the quote) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        bankOrgId: string;
+                        /** Format: uuid */
+                        insurerOrgId?: string;
+                        coverPct?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            eligible: boolean;
+                            reasons: string[];
+                            gate: string | null;
+                            quote: {
+                                [key: string]: unknown;
+                            } | null;
+                            explanation: {
+                                [key: string]: unknown;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

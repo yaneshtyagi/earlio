@@ -5,6 +5,7 @@ Decimal.set({ precision: 40, rounding: Decimal.ROUND_HALF_UP });
 
 export { Decimal };
 export type Dec = Decimal;
+export type DecValue = Decimal.Value;
 export type Currency = 'USD' | 'SGD' | 'INR';
 
 export const D = (v: Decimal.Value): Decimal => new Decimal(v);

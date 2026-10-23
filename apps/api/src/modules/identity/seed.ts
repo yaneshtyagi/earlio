@@ -4,6 +4,7 @@ import type { Tx, Ctx } from '../../db/pool';
 import { hashPassword } from '../../kernel/password';
 import { base32Encode } from '../../kernel/totp';
 import { addMember, createOrganisation, type OrgInput } from './service';
+import { seedTerms } from '../terms/service';
 import { ROLES_BY_ORG_TYPE, type OrgType, type Role } from './permissions';
 
 export const DEMO_PASSWORD = 'Earlio!Demo1';
@@ -64,6 +65,7 @@ export async function seedDemo(tx: Tx, svc: Services, ctx: Ctx): Promise<DemoIds
     }
   }
   await seedRelationshipsAndLimits(tx, svc, ids);
+  await seedTerms(tx, svc, ids);
   return ids;
 }
 

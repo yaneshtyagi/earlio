@@ -5,6 +5,7 @@ import { LocalDiskObjectStore, SimFileScanner, type FileScanner, type ObjectStor
 import { SimSanctionsProvider, type SanctionsProvider } from './sanctions';
 import { SimKycProvider, type KycProvider } from './kyc';
 import { SimEInvoiceService, SimErpInvoiceSource, type EInvoiceService, type ErpInvoiceSource } from './erp';
+import { SimFxRateProvider, type FxRateProvider } from './fx';
 import { SimTimestampAuthority, type TimestampAuthority } from '../platform/audit';
 
 /** Every external dependency behind an interface (ADR-004). Later milestones add fx, payments, insurer, erp, notifications. */
@@ -16,6 +17,7 @@ export interface Adapters {
   tsa: TimestampAuthority;
   einvoice: EInvoiceService;
   erp: ErpInvoiceSource;
+  fx: FxRateProvider;
 }
 
 export function defaultAdapters(config: Config, overrides: Partial<Adapters> = {}): Adapters {
@@ -27,6 +29,7 @@ export function defaultAdapters(config: Config, overrides: Partial<Adapters> = {
     tsa: new SimTimestampAuthority(),
     einvoice: new SimEInvoiceService(),
     erp: new SimErpInvoiceSource(),
+    fx: new SimFxRateProvider(),
     ...overrides,
   };
 }
