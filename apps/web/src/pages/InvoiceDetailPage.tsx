@@ -1,9 +1,10 @@
+import { InvoiceExceptionsPanel } from './ExceptionPages';
 import { SettlementPanel } from './SettlementPages';
 import { CoverPanel } from './InsurancePages';
 import { BankFundingPanel, BuyerFundingPanel, SupplierFundingPanel } from './FundingPanels';
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { api, ensureOk, problemOf } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { formatMoney } from '../shared/money';
@@ -134,12 +135,10 @@ export function InvoiceDetailPage() {
 
       {inv.disputes.length > 0 && (
         <div className="panel"><h3>Disputes</h3>
-          {inv.disputes.map((d) => <p key={d.id}><span className="chip Disputed">{d.status}</span> {d.kind === 'partial_remainder' ? `Remainder of ${d.amount} not accepted: ` : ''}{d.reason}</p>)}
+          {inv.disputes.map((d) => <p key={d.id}><Link to={`/disputes/${d.id}`}><span className="chip Disputed">{d.status}</span></Link> {d.kind === 'partial_remainder' ? `Remainder of ${d.amount} not accepted: ` : ''}{d.reason}</p>)}
         </div>
       )}
-      {windowOpen && me?.permissions.includes('dispute:raise') && (isSupplier || isBuyer) && (
-        <p><button className="secondary" onClick={() => { const r = window.prompt('Describe the dispute'); if (r) void run(() => api.POST('/api/v1/invoices/{id}/disputes', { ...path, body: { reason: r } }), 'Dispute raised. The invoice is frozen.'); }}>Raise a dispute</button></p>
-      )}
+      <InvoiceExceptionsPanel invoiceId={inv.id} status={inv.status} currency={inv.currency} supplierId={inv.supplier.id} buyerId={inv.buyer.id} windowOpen={!!windowOpen} />
     </section>
   );
 }

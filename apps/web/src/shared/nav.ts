@@ -6,13 +6,14 @@ const USERS = { to: '/users', label: 'Users', perm: 'org:manage_users' };
 const ONBOARD = { to: '/onboarding', label: 'KYC application' };
 const RELS = { to: '/relationships', label: 'Relationships' };
 const INVOICES = { to: '/invoices', label: 'Invoices' };
+const DISPUTES = { to: '/disputes', label: 'Disputes' };
 export const NAV: Record<OrgType, NavItem[]> = {
-  supplier: [{ to: '/', label: 'Home' }, INVOICES, ONBOARD, RELS, USERS],
-  buyer: [{ to: '/', label: 'Home' }, { to: '/invoices?status=Submitted', label: 'Acceptance inbox' }, INVOICES, { to: '/payments', label: 'Payments due' }, ONBOARD, RELS, USERS],
-  bank: [{ to: '/', label: 'Home' }, { to: '/bank/invitations', label: 'Invitations' }, { to: '/settlement', label: 'Settlement', perm: 'settlement:operate' }, ONBOARD, { to: '/limits', label: 'Exposure limits' }, USERS],
-  insurer: [{ to: '/', label: 'Home' }, { to: '/insurance/requests', label: 'Cover requests' }, { to: '/insurance/limits', label: 'Buyer limits' }, ONBOARD, USERS],
+  supplier: [{ to: '/', label: 'Home' }, INVOICES, DISPUTES, { to: '/recourse', label: 'What I owe' }, { to: '/export-proceeds', label: 'Export proceeds' }, ONBOARD, RELS, USERS],
+  buyer: [{ to: '/', label: 'Home' }, { to: '/invoices?status=Submitted', label: 'Acceptance inbox' }, INVOICES, { to: '/payments', label: 'Payments due' }, DISPUTES, ONBOARD, RELS, USERS],
+  bank: [{ to: '/', label: 'Home' }, { to: '/bank/invitations', label: 'Invitations' }, { to: '/settlement', label: 'Settlement', perm: 'settlement:operate' }, DISPUTES, { to: '/recovery', label: 'Overdue and defaults' }, { to: '/claims', label: 'Claims' }, { to: '/recourse', label: 'Recourse' }, { to: '/export-proceeds', label: 'Export proceeds' }, ONBOARD, { to: '/limits', label: 'Exposure limits' }, USERS],
+  insurer: [{ to: '/', label: 'Home' }, { to: '/insurance/requests', label: 'Cover requests' }, { to: '/insurance/limits', label: 'Buyer limits' }, { to: '/claims', label: 'Claims desk', perm: 'claim:decide' }, ONBOARD, USERS],
   platform: [{ to: '/', label: 'Home' }, { to: '/admin/kyc', label: 'KYC queue', perm: 'kyc:review' }, { to: '/admin/sanctions', label: 'Sanctions review', perm: 'sanctions:review' },
-    { to: '/admin/liens', label: 'Lien registry', perm: 'audit:read' }, { to: '/settlement', label: 'Settlement', perm: 'settlement:operate' }, { to: '/admin/control-room', label: 'Control room', perm: 'platform:admin' },
+    { to: '/admin/liens', label: 'Lien registry', perm: 'audit:read' }, { to: '/disputes', label: 'Dispute queue', perm: 'dispute:decide' }, { to: '/settlement', label: 'Settlement', perm: 'settlement:operate' }, { to: '/admin/control-room', label: 'Control room', perm: 'platform:admin' },
     { to: '/admin/integrations', label: 'Integration inspector', perm: 'audit:read' }, { to: '/audit', label: 'Audit log', perm: 'audit:read' }, USERS],
 };
 

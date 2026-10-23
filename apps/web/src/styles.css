@@ -50,3 +50,5 @@ button.danger { background: var(--danger); }
 .chip.Credited, .chip.Matched, .chip.Distributed, .chip.Reconciled { background: #ecfdf3; color: #067647; }
 .chip.Reversed, .chip.Failed, .chip.Returned { background: #fef3f2; color: var(--danger); }
 .chip.QueuedForValueDate, .chip.PartiallyReceived, .chip.Retry { background: #fff4e5; color: var(--warn); }
+.chip.Open, .chip.UnderReview, .chip.Escalated, .chip.Filed, .chip.open, .chip.ClaimEligible { background: #fff4e5; color: var(--warn); }
+.chip.Paid, .chip.Approved, .chip.PartiallyApproved, .chip.Recovered, .chip.Resolved, .chip.Withdrawn { background: #ecfdf3; color: #067647; }
