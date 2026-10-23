@@ -4,6 +4,7 @@ import type { Role } from '../modules/identity/permissions';
 // numeric -> string (never float); int8 -> string.
 pg.types.setTypeParser(1700, (v) => v);
 pg.types.setTypeParser(20, (v) => v);
+pg.types.setTypeParser(1082, (v) => v); // date -> 'YYYY-MM-DD'
 
 export interface Ctx {
   userId?: string;

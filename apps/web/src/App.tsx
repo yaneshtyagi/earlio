@@ -9,6 +9,9 @@ import { RegisterPage } from './pages/RegisterPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { RelationshipsPage } from './pages/RelationshipsPage';
 import { AdminKycPage, AdminSanctionsPage } from './pages/AdminPages';
+import { InvoicesPage } from './pages/InvoicesPage';
+import { InvoiceNewPage } from './pages/InvoiceNewPage';
+import { InvoiceDetailPage } from './pages/InvoiceDetailPage';
 import { BankLimitsPage } from './pages/BankLimitsPage';
 
 export function App() {
@@ -23,6 +26,9 @@ export function App() {
         <Route path="audit" element={<AuditPage />} />
         <Route path="onboarding" element={<OnboardingPage />} />
         <Route path="relationships" element={<RelationshipsPage />} />
+        <Route path="invoices" element={<InvoicesPage />} />
+        <Route path="invoices/new" element={<InvoiceNewPage />} />
+        <Route path="invoices/:id" element={<InvoiceDetailPage />} />
         <Route path="limits" element={<BankLimitsPage />} />
         <Route path="admin/kyc" element={<AdminKycPage />} />
         <Route path="admin/sanctions" element={<AdminSanctionsPage />} />

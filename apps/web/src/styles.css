@@ -25,3 +25,20 @@ label { display: block; margin: 10px 0; font-size: 14px; }
 .center { text-align: center; margin-top: 20vh; }
 code { background: #f2f4f7; padding: 1px 5px; border-radius: 4px; }
 @media (max-width: 720px) { .body { flex-direction: column; } nav { width: auto; flex-direction: row; overflow-x: auto; } main { padding: 14px; } }
+.chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; background: #eef2f6; color: #344054; white-space: nowrap; }
+.chip.Draft, .chip.Cancelled, .chip.Closed { background: #f2f4f7; color: #667085; }
+.chip.Submitted { background: #eff8ff; color: #175cd3; }
+.chip.Accepted, .chip.OpenForFunding, .chip.OffersReceived { background: #e7f4ee; color: var(--brand); }
+.chip.Funded, .chip.Settled { background: #ecfdf3; color: #067647; }
+.chip.Rejected, .chip.NotEligible, .chip.Defaulted { background: #fef3f2; color: var(--danger); }
+.chip.Disputed, .chip.Overdue { background: #fff4e5; color: var(--warn); }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; align-items: center; }
+.filters button.on { background: var(--brand); color: #fff; }
+.filters button { background: #fff; color: var(--fg); border: 1px solid var(--line); }
+.row { display: flex; gap: 20px; flex-wrap: wrap; } .row > * { flex: 1; min-width: 280px; }
+.panel { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 12px 0; }
+.timeline { list-style: none; padding: 0; margin: 0; } .timeline li { padding: 6px 0; border-left: 2px solid var(--line); padding-left: 12px; margin-left: 4px; font-size: 14px; }
+textarea { width: 100%; min-height: 90px; padding: 8px; border: 1px solid var(--line); border-radius: 6px; font-family: inherit; }
+button.secondary { background: #fff; color: var(--fg); border: 1px solid var(--line); }
+button.danger { background: var(--danger); }
+.num { text-align: right; font-variant-numeric: tabular-nums; }

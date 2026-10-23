@@ -1572,6 +1572,652 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invoices visible to my organisation (supplier: own; buyer: addressed to me) */
+        get: {
+            parameters: {
+                query?: {
+                    status?: string;
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                humanId: string;
+                                number: string;
+                                /** @enum {string} */
+                                status: "Draft" | "Submitted" | "Rejected" | "Accepted" | "NotEligible" | "OpenForFunding" | "OffersReceived" | "Funded" | "Settled" | "Disputed" | "Overdue" | "Defaulted" | "Closed" | "Cancelled";
+                                supplier: {
+                                    id: string;
+                                    name: string;
+                                };
+                                buyer: {
+                                    id: string;
+                                    name: string;
+                                };
+                                currency: string;
+                                grossAmount: string;
+                                acceptedAmount: string | null;
+                                issueDate: string;
+                                dueDate: string;
+                                warnings: string[];
+                                disputeFlag: boolean;
+                                submittedAt: string | null;
+                                createdAt: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a draft invoice */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        buyerOrgId: string;
+                        number: string;
+                        /** @enum {string} */
+                        currency: "USD" | "SGD";
+                        amount: string;
+                        issueDate: string;
+                        dueDate: string;
+                        poNumber?: string | null;
+                        shipmentDate?: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            humanId: string;
+                            warnings: string[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invoice detail with documents, acceptance, disputes and timeline */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            humanId: string;
+                            number: string;
+                            /** @enum {string} */
+                            status: "Draft" | "Submitted" | "Rejected" | "Accepted" | "NotEligible" | "OpenForFunding" | "OffersReceived" | "Funded" | "Settled" | "Disputed" | "Overdue" | "Defaulted" | "Closed" | "Cancelled";
+                            supplier: {
+                                id: string;
+                                name: string;
+                            };
+                            buyer: {
+                                id: string;
+                                name: string;
+                            };
+                            currency: string;
+                            grossAmount: string;
+                            acceptedAmount: string | null;
+                            issueDate: string;
+                            dueDate: string;
+                            warnings: string[];
+                            disputeFlag: boolean;
+                            submittedAt: string | null;
+                            createdAt: string;
+                            irn: string | null;
+                            route: string | null;
+                            coverStatus: string;
+                            screeningStatus: string;
+                            shipmentDate: string | null;
+                            disputeWindowEndsAt: string | null;
+                            acceptedAt: string | null;
+                            poNumber: string | null;
+                            reminderCount: number;
+                            documents: {
+                                id: string;
+                                docType: string;
+                                version: number;
+                                fileId: string;
+                                filename: string;
+                                sha256: string;
+                                createdAt: string;
+                            }[];
+                            acceptance: {
+                                decision: string;
+                                acceptedAmount: string | null;
+                                reason: string | null;
+                                undertakingText: string | null;
+                                undertakingSignedAt: string | null;
+                                decidedAt: string;
+                                assignmentAckAt: string | null;
+                            } | null;
+                            disputes: {
+                                id: string;
+                                kind: string;
+                                status: string;
+                                reason: string;
+                                amount: string | null;
+                                raisedByOrg: string;
+                                createdAt: string;
+                            }[];
+                            history: {
+                                from: string | null;
+                                to: string;
+                                note: string | null;
+                                at: string;
+                            }[];
+                            undertakingPreview: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Attach an uploaded file as a (new version of a) document */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        docType: "commercial_invoice" | "packing_list" | "shipping_bill" | "transport_document" | "delivery_proof";
+                        /** Format: uuid */
+                        fileId: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            version: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit a draft to the buyer */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            status: "Draft" | "Submitted" | "Rejected" | "Accepted" | "NotEligible" | "OpenForFunding" | "OffersReceived" | "Funded" | "Settled" | "Disputed" | "Overdue" | "Defaulted" | "Closed" | "Cancelled";
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a draft */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Buyer: accept, part-accept or reject */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        decision: "accept" | "partial" | "reject";
+                        acceptedAmount?: string;
+                        reason?: string;
+                        undertakingAccepted?: boolean;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @enum {string} */
+                            status: "Draft" | "Submitted" | "Rejected" | "Accepted" | "NotEligible" | "OpenForFunding" | "OffersReceived" | "Funded" | "Settled" | "Disputed" | "Overdue" | "Defaulted" | "Closed" | "Cancelled";
+                            acceptedAmount: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/assignment-ack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Buyer: acknowledge the assignment notice */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/disputes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Raise a dispute during the dispute window (freezes the invoice) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/import/csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import invoices from CSV text (columns: buyer, number, currency, amount, issueDate, dueDate, poNumber). Valid rows are created; bad rows are reported. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        csv: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            created: {
+                                row: number;
+                                invoiceId: string;
+                                humanId: string;
+                            }[];
+                            errors: {
+                                row: number;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/import/erp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Import the next batch from the (simulated) ERP / e-invoice portal */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            created: {
+                                row: number;
+                                invoiceId: string;
+                                humanId: string;
+                            }[];
+                            errors: {
+                                row: number;
+                                message: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/purchase-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Purchase orders */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                number: string;
+                                buyerName: string;
+                                buyerOrgId: string;
+                                currency: string;
+                                amount: string;
+                                description: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Record a purchase order */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        buyerOrgId: string;
+                        number: string;
+                        /** @enum {string} */
+                        currency: "USD" | "SGD";
+                        amount: string;
+                        description?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

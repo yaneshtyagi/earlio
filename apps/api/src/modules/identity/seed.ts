@@ -83,6 +83,15 @@ async function seedRelationshipsAndLimits(tx: Tx, svc: Services, ids: DemoIds) {
       `insert into identity.relationships (supplier_org_id, buyer_org_id, status, proposed_by_org_id, supplier_approved_at, buyer_approved_at, created_at)
        values ($1,$2,'active',$1,$3,$3,$3) on conflict do nothing`, [ids[sup], ids[buy], now]);
   }
+  const pos: [string, string, string, string, string][] = [
+    ['shree', 'northwind', 'PO-NW-2201', 'USD', '120000'], ['kumar', 'merlion', 'PO-ML-0815', 'USD', '150000'],
+    ['anand', 'kallang', 'PO-KH-0042', 'SGD', '60000'], ['deccan', 'northwind', 'PO-NW-3310', 'USD', '300000'],
+  ];
+  for (const [sup, buy, num, ccy, amt] of pos) {
+    await tx.query(
+      `insert into invoicing.purchase_orders (supplier_org_id, buyer_org_id, number, currency, amount, created_at) values ($1,$2,$3,$4,$5,$6) on conflict do nothing`,
+      [ids[sup], ids[buy], num, ccy, amt, now]);
+  }
   for (const [org, banks] of Object.entries(DEMO_PREFERRED)) {
     for (const b of banks) {
       await tx.query('insert into identity.org_preferred_banks (org_id, bank_org_id, created_at) values ($1,$2,$3) on conflict do nothing', [ids[org], ids[b], now]);

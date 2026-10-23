@@ -17,3 +17,11 @@ The build runs in a Node-only cloud workspace (no .NET SDK, no Docker daemon). B
 - API: self-registration, KYC document upload/submit, admin KYC queue and decisions, sanctions review (false positive / confirmed → org blocked), relationship propose + two-sided approval (maker-checker), counterparty directory, preferred banks, bank exposure limits with atomic reserve/consume/release.
 - Web: register, KYC application, relationships + preferred banks, admin KYC queue, sanctions review, bank limits.
 - Tests: 39 API tests green (incl. 12 parallel reservations → exactly 10 succeed, file RLS, whitelist behaviour).
+
+## M3 — Invoicing and acceptance
+- Migration 004: purchase orders, invoices (human id INV-xxxx + UUID, fingerprint duplicate guard), versioned/hashed documents, acceptances, disputes, status history. RLS: supplier sees own; buyer sees only submitted-onward invoices addressed to it (never drafts); bank access arrives with invitations in M6.
+- Explicit state machine (`modules/invoicing/state.ts`): full table from the POC plan; a single `transition()` writes compare-and-set status, history, audit (both parties) and outbox. Test enumerates every from/to pair.
+- Create, CSV import (row-by-row with savepoints, per-row errors), simulated ERP source and GST e-invoice (deterministic IRN), documents (commercial invoice + delivery proof required to submit), submit with sanctions screening and document sharing to the buyer.
+- Buyer: accept / part-accept (remainder recorded as non-freezing dispute) / reject (reason required); undertaking text + timestamp + approver stored; assignment-notice acknowledgement; 24 h dispute window (platform minimum 24 h); disputes freeze the invoice. Reminders at 1 and 3 days; no deemed acceptance.
+- Web: invoice list with chips and filters, create/import (CSV + ERP), invoice detail with timeline, documents, buyer review/decision, dispute.
+- Tests: 28 new (67 total). Deviation: dispute resolution is left to M8 as planned.

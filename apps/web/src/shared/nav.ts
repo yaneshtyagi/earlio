@@ -5,9 +5,10 @@ export interface NavItem { to: string; label: string; perm?: string }
 const USERS = { to: '/users', label: 'Users', perm: 'org:manage_users' };
 const ONBOARD = { to: '/onboarding', label: 'KYC application' };
 const RELS = { to: '/relationships', label: 'Relationships' };
+const INVOICES = { to: '/invoices', label: 'Invoices' };
 export const NAV: Record<OrgType, NavItem[]> = {
-  supplier: [{ to: '/', label: 'Home' }, ONBOARD, RELS, USERS],
-  buyer: [{ to: '/', label: 'Home' }, ONBOARD, RELS, USERS],
+  supplier: [{ to: '/', label: 'Home' }, INVOICES, ONBOARD, RELS, USERS],
+  buyer: [{ to: '/', label: 'Home' }, { to: '/invoices?status=Submitted', label: 'Acceptance inbox' }, INVOICES, ONBOARD, RELS, USERS],
   bank: [{ to: '/', label: 'Home' }, ONBOARD, { to: '/limits', label: 'Exposure limits' }, USERS],
   insurer: [{ to: '/', label: 'Home' }, ONBOARD, USERS],
   platform: [{ to: '/', label: 'Home' }, { to: '/admin/kyc', label: 'KYC queue', perm: 'kyc:review' }, { to: '/admin/sanctions', label: 'Sanctions review', perm: 'sanctions:review' },
