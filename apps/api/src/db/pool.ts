@@ -39,10 +39,14 @@ export class Tx {
   async elevated<T>(fn: () => Promise<T>): Promise<T> {
     const prev = (await this.query<{ v: string }>("select coalesce(current_setting('app.is_platform', true), '') as v"))[0]!.v;
     await this.query("select set_config('app.is_platform', 'on', true)");
+    let failed = false;
     try {
       return await fn();
+    } catch (e) {
+      failed = true; // the transaction may be aborted: restoring the scope would mask the real error
+      throw e;
     } finally {
-      await this.query("select set_config('app.is_platform', $1, true)", [prev]);
+      if (!failed) await this.query("select set_config('app.is_platform', $1, true)", [prev]);
     }
   }
 }

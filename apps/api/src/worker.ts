@@ -11,6 +11,8 @@ import { openProceeds, flagOverdueProceeds } from './modules/settlement/export';
 import { openDefault, processDefaults } from './modules/recovery/service';
 import { remindInstallments } from './modules/recovery/recourse';
 import { processDisputeTimers } from './modules/invoicing/disputes';
+import { deliverWebhooks, queueWebhooks } from './modules/integration/service';
+import { refreshAll } from './modules/analytics/service';
 import { deliverNotifications, notifySubscriber } from './modules/notify/service';
 
 /** Outbox subscribers: modules react to each other's events here, never by importing each other's tables. */
@@ -24,7 +26,7 @@ export function handlersFor(svc: Services): Record<string, OutboxHandler[]> {
     'invoice.overdue': [async (tx, e) => { await openDefault(tx, svc, ctx(e.id), e.payload.invoiceId); }],
     'financing.approved': [async (tx, e) => { await instructDisbursement(tx, svc, ctx(e.id), e.payload.financingRequestId); }],
     'financing.funded': [async (tx, e) => { await createExpectation(tx, svc, ctx(e.id), e.payload.financingRequestId); }],
-    '*': [notifySubscriber(svc)],
+    '*': [notifySubscriber(svc), queueWebhooks(svc)],
   };
 }
 
@@ -46,6 +48,8 @@ export async function runWorkOnce(svc: Services): Promise<Record<string, number>
   out.installments = await svc.db.system((tx) => remindInstallments(tx, svc));
   out.proceedsOverdue = await svc.db.system((tx) => flagOverdueProceeds(tx, svc));
   out.earlyPaymentsSettled = await svc.db.system((tx) => settleEarlyPayments(tx, svc, ctx));
+  out.webhooks = await svc.db.system((tx) => deliverWebhooks(tx, svc));
+  out.dashboards = await svc.db.system((tx) => refreshAll(tx, svc));
   // Disbursement credit → completeFunding → financing.funded → expectation: drain until quiet (bounded).
   for (let i = 0; i < 4; i++) {
     const n = await drainOutbox((fn) => svc.db.system(fn), handlersFor(svc), svc.clock.now());

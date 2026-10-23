@@ -1,3 +1,4 @@
+import { envSecrets, requireSecret } from './secrets';
 export type EarlioEnv = 'development' | 'demo' | 'test' | 'production';
 
 export interface Config {
@@ -33,7 +34,7 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
     mode: (process.env.EARLIO_MODE as Config['mode']) ?? 'network',
     simulatedBanner: env !== 'production',
     objectStoreDir: process.env.OBJECT_STORE_DIR ?? '.data/objects',
-    webhookKey: process.env.WEBHOOK_KEY ?? 'earlio-dev-webhook-key',
+    webhookKey: requireSecret(envSecrets, 'WEBHOOK_KEY', env),
     ...overrides,
   };
 }

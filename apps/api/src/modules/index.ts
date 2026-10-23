@@ -9,6 +9,8 @@ import { recoveryRoutes } from './recovery/routes';
 import { disputeRoutes } from './invoicing/dispute-routes';
 import { notifyRoutes } from './notify/routes';
 import { governanceRoutes } from './governance/routes';
+import { integrationRoutes } from './integration/routes';
+import { analyticsRoutes } from './analytics/routes';
 import { relationshipRoutes } from './identity/relationship-routes';
 
 /** Later milestones register their route plugins here. */
@@ -24,5 +26,7 @@ export async function registerModules(app: FastifyInstance): Promise<void> {
   disputeRoutes(app);
   recoveryRoutes(app);
   governanceRoutes(app);
+  analyticsRoutes(app);
+  integrationRoutes(app);
   // invoicing, terms, insurance, marketplace, settlement ... (added per milestone)
 }

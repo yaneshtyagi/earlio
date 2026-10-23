@@ -14,13 +14,16 @@ import { hashToken } from './kernel/password';
 import { identityRoutes } from './modules/identity/routes';
 import { auditRoutes } from './modules/audit/routes';
 import { registerModules } from './modules';
+import { Metrics } from './kernel/metrics';
 
 export async function buildApp(svc: Services): Promise<FastifyInstance> {
   const app = Fastify({
     logger: svc.config.env === 'test' && !process.env.EARLIO_TEST_LOG ? false : { level: 'info', redact: ['req.headers.cookie', 'req.headers.authorization'] },
     genReqId: (req) => (req.headers['x-correlation-id'] as string) || randomUUID(),
     trustProxy: true,
+    bodyLimit: 3 * 1024 * 1024,
   });
+  const metrics = new Metrics();
   app.decorate('svc', svc);
   app.decorateRequest('ctx', undefined as any);
   app.decorateRequest('auth', undefined);
@@ -29,7 +32,8 @@ export async function buildApp(svc: Services): Promise<FastifyInstance> {
 
   await app.register(cookie);
   await app.register(cors, { origin: svc.config.corsOrigins, credentials: true });
-  await app.register(rateLimit, { global: false });
+  // Global ceiling per client address; sensitive routes (login, MFA) set tighter limits of their own.
+  await app.register(rateLimit, { global: true, max: svc.config.env === 'test' ? 100_000 : 600, timeWindow: '1 minute', allowList: (req) => req.url === '/health' || req.url === '/ready' });
   await app.register(swagger, {
     openapi: {
       openapi: '3.0.3',
@@ -47,6 +51,16 @@ export async function buildApp(svc: Services): Promise<FastifyInstance> {
     reply.header('referrer-policy', 'no-referrer');
     reply.header('cache-control', 'no-store');
     reply.header('x-correlation-id', req.id);
+    reply.header('content-security-policy', "default-src 'none'; frame-ancestors 'none'");
+    reply.header('permissions-policy', 'camera=(), microphone=(), geolocation=()');
+    reply.header('cross-origin-resource-policy', 'same-site');
+    if (svc.config.env === 'production') reply.header('strict-transport-security', 'max-age=31536000; includeSubDomains');
+  });
+  app.addHook('onRequest', async (req) => { (req as any).startedAt = process.hrtime.bigint(); });
+  app.addHook('onResponse', async (req, reply) => {
+    const started = (req as any).startedAt as bigint | undefined;
+    const route = (req.routeOptions?.url ?? 'unmatched') as string;
+    metrics.observe(req.method, route, reply.statusCode, started ? Number(process.hrtime.bigint() - started) / 1e9 : 0);
   });
 
   // Session -> request context.
@@ -94,6 +108,22 @@ export async function buildApp(svc: Services): Promise<FastifyInstance> {
   }, async () => {
     await svc.db.pool.query('select 1');
     return { status: 'ok' as const, db: true, time: svc.clock.now().toISOString() };
+  });
+  r.get('/ready', {
+    schema: { tags: ['system'], summary: 'Readiness: database reachable, migrations applied, outbox not stuck', response: { 200: z.object({ ready: z.literal(true), migrations: z.number(), outboxBacklog: z.number() }), 503: z.object({ ready: z.literal(false), reason: z.string() }) } },
+  }, async (_req, reply) => {
+    try {
+      const m = await svc.db.pool.query('select count(*)::int as n from public.schema_migrations');
+      const o = await svc.db.system((tx) => tx.one<{ n: number }>("select count(*)::int as n from platform.outbox where processed_at is null and created_at < $1", [new Date(svc.clock.now().getTime() - 15 * 60_000)]));
+      if (o.n > 1000) return reply.code(503).send({ ready: false as const, reason: `outbox backlog ${o.n}` });
+      return { ready: true as const, migrations: m.rows[0].n as number, outboxBacklog: o.n };
+    } catch (e) { return reply.code(503).send({ ready: false as const, reason: (e as Error).message.slice(0, 120) }); }
+  });
+  app.get('/metrics', { schema: { hide: true } as any }, async (req, reply) => {
+    const token = process.env.METRICS_TOKEN;
+    if (svc.config.env === 'production' && (!token || req.headers.authorization !== `Bearer ${token}`)) return reply.code(401).send({ code: 'unauthenticated', message: 'Metrics need the scrape token.', details: null });
+    const backlog = await svc.db.system((tx) => tx.one<{ n: number }>('select count(*)::int as n from platform.outbox where processed_at is null'));
+    return reply.header('content-type', 'text/plain; version=0.0.4').send(metrics.render({ earlio_outbox_pending: backlog.n, earlio_db_pool_waiting: svc.db.pool.waitingCount, earlio_db_pool_total: svc.db.pool.totalCount }));
   });
   r.get('/api/v1/system/config', {
     schema: { tags: ['system'], summary: 'Public runtime configuration for the SPA',

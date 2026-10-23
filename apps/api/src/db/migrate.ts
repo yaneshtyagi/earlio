@@ -5,7 +5,7 @@ import pg from 'pg';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const MIGRATIONS_DIR = join(here, '../../migrations');
-const SCHEMAS = ['identity', 'audit', 'platform', 'compliance', 'invoicing', 'terms', 'insurance', 'marketplace', 'settlement', 'notify', 'recovery'];
+const SCHEMAS = ['identity', 'audit', 'platform', 'compliance', 'invoicing', 'terms', 'insurance', 'marketplace', 'settlement', 'notify', 'recovery', 'analytics', 'integration'];
 /** Tables the application role may only read and append to. */
 const APPEND_ONLY = ['audit.events', 'audit.anchors'];
 
@@ -40,6 +40,7 @@ export async function migrate(adminUrl: string, opts: MigrateOptions = {}): Prom
     }
     await c.query(`grant usage on schema app to ${appRole}`);
     await c.query(`grant execute on all functions in schema app to ${appRole}`);
+    await c.query(`grant select on public.schema_migrations to ${appRole}`);
     for (const s of SCHEMAS) {
       await c.query(`grant usage on schema ${s} to ${appRole}`);
       await c.query(`grant select, insert, update, delete on all tables in schema ${s} to ${appRole}`);
