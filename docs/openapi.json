@@ -5365,6 +5365,2524 @@
           }
         }
       }
+    },
+    "/api/v1/invoices/{id}/open-funding": {
+      "post": {
+        "summary": "Run the funding gates and invite banks (Accepted → OpenForFunding, or NotEligible with reasons)",
+        "tags": [
+          "marketplace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "opened": {
+                      "type": "boolean"
+                    },
+                    "gates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "n": {
+                            "type": "number"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "ok": {
+                            "type": "boolean"
+                          },
+                          "reason": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "n",
+                          "name",
+                          "ok"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "invited": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "opened",
+                    "gates",
+                    "invited"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/funding-gates": {
+      "get": {
+        "summary": "Funding gates 1 to 4 for this invoice, in plain language",
+        "tags": [
+          "marketplace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "gates": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "n": {
+                            "type": "number"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "ok": {
+                            "type": "boolean"
+                          },
+                          "reason": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "n",
+                          "name",
+                          "ok"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "gates"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/offers": {
+      "get": {
+        "summary": "Offers side by side (supplier: all live offers; bank: my own offers) with the early-payment option",
+        "tags": [
+          "marketplace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "route": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "offers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "invoiceId": {
+                            "type": "string"
+                          },
+                          "bank": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "mode": {
+                            "type": "string"
+                          },
+                          "ratePct": {
+                            "type": "string"
+                          },
+                          "advancePct": {
+                            "type": "string"
+                          },
+                          "fxSpreadPct": {
+                            "type": "string"
+                          },
+                          "netCash": {
+                            "type": "string"
+                          },
+                          "netCashInr": {
+                            "type": "string"
+                          },
+                          "allInPct": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "fxRate": {
+                            "type": "string"
+                          },
+                          "coverPct": {
+                            "type": "number"
+                          },
+                          "insured": {
+                            "type": "boolean"
+                          },
+                          "nonRecourse": {
+                            "type": "boolean"
+                          },
+                          "supplierBorrowingRatePct": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "savingVsBorrowingPct": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "breakdown": {
+                            "type": "object",
+                            "additionalProperties": {}
+                          },
+                          "validUntil": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "expired": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "invoiceId",
+                          "bank",
+                          "status",
+                          "mode",
+                          "ratePct",
+                          "advancePct",
+                          "fxSpreadPct",
+                          "netCash",
+                          "netCashInr",
+                          "allInPct",
+                          "currency",
+                          "fxRate",
+                          "coverPct",
+                          "insured",
+                          "nonRecourse",
+                          "supplierBorrowingRatePct",
+                          "savingVsBorrowingPct",
+                          "breakdown",
+                          "validUntil",
+                          "createdAt",
+                          "expired"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "earlyPayment": {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "reason": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "schedule": {
+                          "nullable": true,
+                          "type": "object",
+                          "additionalProperties": {}
+                        },
+                        "today": {
+                          "nullable": true,
+                          "type": "object",
+                          "additionalProperties": {}
+                        }
+                      },
+                      "required": [
+                        "available",
+                        "reason",
+                        "schedule",
+                        "today"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "route",
+                    "offers",
+                    "earlyPayment"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create (and by default send) an offer. Send an Idempotency-Key header to make retries safe (API offers).",
+        "tags": [
+          "marketplace"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ratePct": {
+                    "type": "number"
+                  },
+                  "advancePct": {
+                    "type": "number"
+                  },
+                  "fxSpreadPct": {
+                    "type": "number"
+                  },
+                  "validityHours": {
+                    "type": "number"
+                  },
+                  "submit": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "mode": {
+                    "default": "manual",
+                    "type": "string",
+                    "enum": [
+                      "manual",
+                      "api"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "in": "header",
+            "name": "idempotency-key",
+            "required": false
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "bank": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string"
+                    },
+                    "ratePct": {
+                      "type": "string"
+                    },
+                    "advancePct": {
+                      "type": "string"
+                    },
+                    "fxSpreadPct": {
+                      "type": "string"
+                    },
+                    "netCash": {
+                      "type": "string"
+                    },
+                    "netCashInr": {
+                      "type": "string"
+                    },
+                    "allInPct": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "fxRate": {
+                      "type": "string"
+                    },
+                    "coverPct": {
+                      "type": "number"
+                    },
+                    "insured": {
+                      "type": "boolean"
+                    },
+                    "nonRecourse": {
+                      "type": "boolean"
+                    },
+                    "supplierBorrowingRatePct": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "savingVsBorrowingPct": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "breakdown": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "validUntil": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "expired": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "invoiceId",
+                    "bank",
+                    "status",
+                    "mode",
+                    "ratePct",
+                    "advancePct",
+                    "fxSpreadPct",
+                    "netCash",
+                    "netCashInr",
+                    "allInPct",
+                    "currency",
+                    "fxRate",
+                    "coverPct",
+                    "insured",
+                    "nonRecourse",
+                    "supplierBorrowingRatePct",
+                    "savingVsBorrowingPct",
+                    "breakdown",
+                    "validUntil",
+                    "createdAt",
+                    "expired"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/offers/preview": {
+      "post": {
+        "summary": "Price an offer within my terms without sending it (offer composer)",
+        "tags": [
+          "marketplace"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ratePct": {
+                    "type": "number"
+                  },
+                  "advancePct": {
+                    "type": "number"
+                  },
+                  "fxSpreadPct": {
+                    "type": "number"
+                  },
+                  "validityHours": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "eligible": {
+                      "type": "boolean"
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "gate": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "quote": {
+                      "nullable": true,
+                      "type": "object",
+                      "additionalProperties": {}
+                    }
+                  },
+                  "required": [
+                    "eligible",
+                    "reasons",
+                    "gate",
+                    "quote"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/offers/{id}/submit": {
+      "post": {
+        "summary": "Send a drafted offer (re-priced at send time)",
+        "tags": [
+          "marketplace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "bank": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "mode": {
+                      "type": "string"
+                    },
+                    "ratePct": {
+                      "type": "string"
+                    },
+                    "advancePct": {
+                      "type": "string"
+                    },
+                    "fxSpreadPct": {
+                      "type": "string"
+                    },
+                    "netCash": {
+                      "type": "string"
+                    },
+                    "netCashInr": {
+                      "type": "string"
+                    },
+                    "allInPct": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "fxRate": {
+                      "type": "string"
+                    },
+                    "coverPct": {
+                      "type": "number"
+                    },
+                    "insured": {
+                      "type": "boolean"
+                    },
+                    "nonRecourse": {
+                      "type": "boolean"
+                    },
+                    "supplierBorrowingRatePct": {
+                      "nullable": true,
+                      "type": "number"
+                    },
+                    "savingVsBorrowingPct": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "breakdown": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "validUntil": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "expired": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "invoiceId",
+                    "bank",
+                    "status",
+                    "mode",
+                    "ratePct",
+                    "advancePct",
+                    "fxSpreadPct",
+                    "netCash",
+                    "netCashInr",
+                    "allInPct",
+                    "currency",
+                    "fxRate",
+                    "coverPct",
+                    "insured",
+                    "nonRecourse",
+                    "supplierBorrowingRatePct",
+                    "savingVsBorrowingPct",
+                    "breakdown",
+                    "validUntil",
+                    "createdAt",
+                    "expired"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/offers/{id}/withdraw": {
+      "post": {
+        "summary": "Withdraw my offer",
+        "tags": [
+          "marketplace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/bank/invitations": {
+      "get": {
+        "summary": "Invoices I am invited to fund (BNK-02)",
+        "tags": [
+          "marketplace"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "invoiceId": {
+                            "type": "string"
+                          },
+                          "invoiceNumber": {
+                            "type": "string"
+                          },
+                          "supplier": {
+                            "type": "string"
+                          },
+                          "buyer": {
+                            "type": "string"
+                          },
+                          "buyerTier": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "string"
+                          },
+                          "dueDate": {
+                            "type": "string"
+                          },
+                          "invoiceStatus": {
+                            "type": "string"
+                          },
+                          "invitationStatus": {
+                            "type": "string"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "coverStatus": {
+                            "type": "string"
+                          },
+                          "coverPct": {
+                            "nullable": true,
+                            "type": "number"
+                          },
+                          "myOffer": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "string"
+                              },
+                              "allInPct": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "status",
+                              "allInPct"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "invitedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "invoiceId",
+                          "invoiceNumber",
+                          "supplier",
+                          "buyer",
+                          "buyerTier",
+                          "currency",
+                          "amount",
+                          "dueDate",
+                          "invoiceStatus",
+                          "invitationStatus",
+                          "source",
+                          "coverStatus",
+                          "coverPct",
+                          "myOffer",
+                          "invitedAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/invitation/decline": {
+      "post": {
+        "summary": "Decline an invitation",
+        "tags": [
+          "marketplace"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/offers/{id}/select": {
+      "post": {
+        "summary": "Choose an offer: reserves limits and a lien, then asks for consent. A second parallel choice fails with a lien conflict.",
+        "tags": [
+          "marketplace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": "string"
+                    },
+                    "offerId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "supplier": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "bank": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "buyerName": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "netCash": {
+                      "type": "string"
+                    },
+                    "netCashInr": {
+                      "type": "string"
+                    },
+                    "allInPct": {
+                      "type": "string"
+                    },
+                    "consentText": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "consentedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "decisionReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "disbursementRef": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "fundedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "assignmentAcknowledged": {
+                      "type": "boolean"
+                    },
+                    "noticeRef": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "invoiceId",
+                    "invoiceNumber",
+                    "offerId",
+                    "status",
+                    "supplier",
+                    "bank",
+                    "buyerName",
+                    "currency",
+                    "amount",
+                    "netCash",
+                    "netCashInr",
+                    "allInPct",
+                    "consentText",
+                    "consentedAt",
+                    "decisionReason",
+                    "disbursementRef",
+                    "fundedAt",
+                    "createdAt",
+                    "assignmentAcknowledged",
+                    "noticeRef"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/financing-requests": {
+      "get": {
+        "summary": "My financing requests",
+        "tags": [
+          "marketplace"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "invoiceId": {
+                            "type": "string"
+                          },
+                          "invoiceNumber": {
+                            "type": "string"
+                          },
+                          "offerId": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "supplier": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "bank": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "buyerName": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "string"
+                          },
+                          "netCash": {
+                            "type": "string"
+                          },
+                          "netCashInr": {
+                            "type": "string"
+                          },
+                          "allInPct": {
+                            "type": "string"
+                          },
+                          "consentText": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "consentedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "decisionReason": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "disbursementRef": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "fundedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "assignmentAcknowledged": {
+                            "type": "boolean"
+                          },
+                          "noticeRef": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "invoiceId",
+                          "invoiceNumber",
+                          "offerId",
+                          "status",
+                          "supplier",
+                          "bank",
+                          "buyerName",
+                          "currency",
+                          "amount",
+                          "netCash",
+                          "netCashInr",
+                          "allInPct",
+                          "consentText",
+                          "consentedAt",
+                          "decisionReason",
+                          "disbursementRef",
+                          "fundedAt",
+                          "createdAt",
+                          "assignmentAcknowledged",
+                          "noticeRef"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/financing-requests/{id}": {
+      "get": {
+        "summary": "One financing request",
+        "tags": [
+          "marketplace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": "string"
+                    },
+                    "offerId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "supplier": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "bank": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "buyerName": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "netCash": {
+                      "type": "string"
+                    },
+                    "netCashInr": {
+                      "type": "string"
+                    },
+                    "allInPct": {
+                      "type": "string"
+                    },
+                    "consentText": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "consentedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "decisionReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "disbursementRef": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "fundedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "assignmentAcknowledged": {
+                      "type": "boolean"
+                    },
+                    "noticeRef": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "invoiceId",
+                    "invoiceNumber",
+                    "offerId",
+                    "status",
+                    "supplier",
+                    "bank",
+                    "buyerName",
+                    "currency",
+                    "amount",
+                    "netCash",
+                    "netCashInr",
+                    "allInPct",
+                    "consentText",
+                    "consentedAt",
+                    "decisionReason",
+                    "disbursementRef",
+                    "fundedAt",
+                    "createdAt",
+                    "assignmentAcknowledged",
+                    "noticeRef"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/financing-requests/{id}/consent": {
+      "post": {
+        "summary": "Supplier consents to the assignment and terms",
+        "tags": [
+          "marketplace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": "string"
+                    },
+                    "offerId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "supplier": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "bank": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "buyerName": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "netCash": {
+                      "type": "string"
+                    },
+                    "netCashInr": {
+                      "type": "string"
+                    },
+                    "allInPct": {
+                      "type": "string"
+                    },
+                    "consentText": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "consentedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "decisionReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "disbursementRef": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "fundedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "assignmentAcknowledged": {
+                      "type": "boolean"
+                    },
+                    "noticeRef": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "invoiceId",
+                    "invoiceNumber",
+                    "offerId",
+                    "status",
+                    "supplier",
+                    "bank",
+                    "buyerName",
+                    "currency",
+                    "amount",
+                    "netCash",
+                    "netCashInr",
+                    "allInPct",
+                    "consentText",
+                    "consentedAt",
+                    "decisionReason",
+                    "disbursementRef",
+                    "fundedAt",
+                    "createdAt",
+                    "assignmentAcknowledged",
+                    "noticeRef"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/financing-requests/{id}/cancel": {
+      "post": {
+        "summary": "Cancel during the cooling-off period (before the bank instructs payment)",
+        "tags": [
+          "marketplace"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 300
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": "string"
+                    },
+                    "offerId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "supplier": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "bank": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "buyerName": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "netCash": {
+                      "type": "string"
+                    },
+                    "netCashInr": {
+                      "type": "string"
+                    },
+                    "allInPct": {
+                      "type": "string"
+                    },
+                    "consentText": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "consentedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "decisionReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "disbursementRef": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "fundedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "assignmentAcknowledged": {
+                      "type": "boolean"
+                    },
+                    "noticeRef": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "invoiceId",
+                    "invoiceNumber",
+                    "offerId",
+                    "status",
+                    "supplier",
+                    "bank",
+                    "buyerName",
+                    "currency",
+                    "amount",
+                    "netCash",
+                    "netCashInr",
+                    "allInPct",
+                    "consentText",
+                    "consentedAt",
+                    "decisionReason",
+                    "disbursementRef",
+                    "fundedAt",
+                    "createdAt",
+                    "assignmentAcknowledged",
+                    "noticeRef"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/financing-requests/{id}/confirm": {
+      "post": {
+        "summary": "Bank re-checks and confirms; the (simulated) payment is instructed and the lien becomes active",
+        "tags": [
+          "marketplace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": "string"
+                    },
+                    "offerId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "supplier": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "bank": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "buyerName": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "netCash": {
+                      "type": "string"
+                    },
+                    "netCashInr": {
+                      "type": "string"
+                    },
+                    "allInPct": {
+                      "type": "string"
+                    },
+                    "consentText": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "consentedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "decisionReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "disbursementRef": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "fundedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "assignmentAcknowledged": {
+                      "type": "boolean"
+                    },
+                    "noticeRef": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "invoiceId",
+                    "invoiceNumber",
+                    "offerId",
+                    "status",
+                    "supplier",
+                    "bank",
+                    "buyerName",
+                    "currency",
+                    "amount",
+                    "netCash",
+                    "netCashInr",
+                    "allInPct",
+                    "consentText",
+                    "consentedAt",
+                    "decisionReason",
+                    "disbursementRef",
+                    "fundedAt",
+                    "createdAt",
+                    "assignmentAcknowledged",
+                    "noticeRef"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/financing-requests/{id}/decline": {
+      "post": {
+        "summary": "Bank declines at confirmation; limits and lien are released",
+        "tags": [
+          "marketplace"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": "string"
+                    },
+                    "offerId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "supplier": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "bank": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "buyerName": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "netCash": {
+                      "type": "string"
+                    },
+                    "netCashInr": {
+                      "type": "string"
+                    },
+                    "allInPct": {
+                      "type": "string"
+                    },
+                    "consentText": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "consentedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "decisionReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "disbursementRef": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "fundedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    },
+                    "assignmentAcknowledged": {
+                      "type": "boolean"
+                    },
+                    "noticeRef": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "invoiceId",
+                    "invoiceNumber",
+                    "offerId",
+                    "status",
+                    "supplier",
+                    "bank",
+                    "buyerName",
+                    "currency",
+                    "amount",
+                    "netCash",
+                    "netCashInr",
+                    "allInPct",
+                    "consentText",
+                    "consentedAt",
+                    "decisionReason",
+                    "disbursementRef",
+                    "fundedAt",
+                    "createdAt",
+                    "assignmentAcknowledged",
+                    "noticeRef"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/assignment-notice": {
+      "get": {
+        "summary": "Assignment notice for an invoice (BUY-04)",
+        "tags": [
+          "marketplace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "reference": {
+                      "type": "string"
+                    },
+                    "governingLaw": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "issuedAt": {
+                      "type": "string"
+                    },
+                    "usFiling": {
+                      "nullable": true,
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "sgDataConsent": {
+                      "nullable": true,
+                      "type": "boolean"
+                    },
+                    "acknowledged": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "reference",
+                    "governingLaw",
+                    "body",
+                    "issuedAt",
+                    "usFiling",
+                    "sgDataConsent",
+                    "acknowledged"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/discount-schedule": {
+      "put": {
+        "summary": "Publish a discount schedule (dates with discounts, or an annual rate applied pro rata)",
+        "tags": [
+          "marketplace"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "table"
+                        ]
+                      },
+                      "entries": {
+                        "minItems": 1,
+                        "maxItems": 12,
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "payBy": {
+                              "type": "string"
+                            },
+                            "discountPct": {
+                              "type": "number"
+                            }
+                          },
+                          "required": [
+                            "payBy",
+                            "discountPct"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "entries"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "mode": {
+                        "type": "string",
+                        "enum": [
+                          "annual_rate"
+                        ]
+                      },
+                      "annualRatePct": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "mode",
+                      "annualRatePct"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "warnings"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Withdraw the schedule",
+        "tags": [
+          "marketplace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      },
+      "get": {
+        "summary": "The published schedule",
+        "tags": [
+          "marketplace"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string"
+                    },
+                    "entries": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "payBy": {
+                            "type": "string"
+                          },
+                          "discountPct": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "payBy",
+                          "discountPct"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "annualRatePct": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "entries",
+                    "annualRatePct",
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/early-payment/quote": {
+      "post": {
+        "summary": "What would paying on this date cost and save?",
+        "tags": [
+          "marketplace"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payDate": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "fundingSource": {
+                    "default": "cash",
+                    "type": "string",
+                    "enum": [
+                      "cash",
+                      "bank_loan"
+                    ]
+                  }
+                },
+                "required": [
+                  "payDate"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/early-payment": {
+      "post": {
+        "summary": "Buyer confirms early payment: executes the (simulated) payment and locks this route",
+        "tags": [
+          "marketplace"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payDate": {
+                    "type": "string",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                  },
+                  "fundingSource": {
+                    "default": "cash",
+                    "type": "string",
+                    "enum": [
+                      "cash",
+                      "bank_loan"
+                    ]
+                  },
+                  "buyerBankOrgId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "payDate"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/liens": {
+      "get": {
+        "summary": "Lien registry with transfer-of-rights history",
+        "tags": [
+          "admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "liens": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "invoiceId": {
+                            "type": "string"
+                          },
+                          "invoiceNumber": {
+                            "type": "string"
+                          },
+                          "bank": {
+                            "type": "string"
+                          },
+                          "supplier": {
+                            "type": "string"
+                          },
+                          "buyer": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "assignmentRef": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "reservedAt": {
+                            "type": "string"
+                          },
+                          "activatedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "releasedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "releaseReason": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "invoiceId",
+                          "invoiceNumber",
+                          "bank",
+                          "supplier",
+                          "buyer",
+                          "status",
+                          "assignmentRef",
+                          "reservedAt",
+                          "activatedAt",
+                          "releasedAt",
+                          "releaseReason"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "invoiceNumber": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "event": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "invoiceNumber",
+                          "event",
+                          "detail",
+                          "at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "liens",
+                    "events"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "security": [

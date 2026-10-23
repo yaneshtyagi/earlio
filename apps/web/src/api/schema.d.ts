@@ -3303,6 +3303,1290 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/{id}/open-funding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run the funding gates and invite banks (Accepted → OpenForFunding, or NotEligible with reasons) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            opened: boolean;
+                            gates: {
+                                n: number;
+                                name: string;
+                                ok: boolean;
+                                reason?: string;
+                            }[];
+                            invited: number;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/funding-gates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Funding gates 1 to 4 for this invoice, in plain language */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            gates: {
+                                n: number;
+                                name: string;
+                                ok: boolean;
+                                reason?: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Offers side by side (supplier: all live offers; bank: my own offers) with the early-payment option */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            route: string | null;
+                            offers: {
+                                id: string;
+                                invoiceId: string;
+                                bank: {
+                                    id: string;
+                                    name: string;
+                                };
+                                status: string;
+                                mode: string;
+                                ratePct: string;
+                                advancePct: string;
+                                fxSpreadPct: string;
+                                netCash: string;
+                                netCashInr: string;
+                                allInPct: string;
+                                currency: string;
+                                fxRate: string;
+                                coverPct: number;
+                                insured: boolean;
+                                nonRecourse: boolean;
+                                supplierBorrowingRatePct: number | null;
+                                savingVsBorrowingPct: string | null;
+                                breakdown: {
+                                    [key: string]: unknown;
+                                };
+                                validUntil: string;
+                                createdAt: string;
+                                expired: boolean;
+                            }[];
+                            earlyPayment: {
+                                available: boolean;
+                                reason: string | null;
+                                schedule: {
+                                    [key: string]: unknown;
+                                } | null;
+                                today: {
+                                    [key: string]: unknown;
+                                } | null;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create (and by default send) an offer. Send an Idempotency-Key header to make retries safe (API offers). */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    "idempotency-key"?: string;
+                };
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ratePct?: number;
+                        advancePct?: number;
+                        fxSpreadPct?: number;
+                        validityHours?: number;
+                        /** @default true */
+                        submit?: boolean;
+                        /**
+                         * @default manual
+                         * @enum {string}
+                         */
+                        mode?: "manual" | "api";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            invoiceId: string;
+                            bank: {
+                                id: string;
+                                name: string;
+                            };
+                            status: string;
+                            mode: string;
+                            ratePct: string;
+                            advancePct: string;
+                            fxSpreadPct: string;
+                            netCash: string;
+                            netCashInr: string;
+                            allInPct: string;
+                            currency: string;
+                            fxRate: string;
+                            coverPct: number;
+                            insured: boolean;
+                            nonRecourse: boolean;
+                            supplierBorrowingRatePct: number | null;
+                            savingVsBorrowingPct: string | null;
+                            breakdown: {
+                                [key: string]: unknown;
+                            };
+                            validUntil: string;
+                            createdAt: string;
+                            expired: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/offers/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Price an offer within my terms without sending it (offer composer) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        ratePct?: number;
+                        advancePct?: number;
+                        fxSpreadPct?: number;
+                        validityHours?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            eligible: boolean;
+                            reasons: string[];
+                            gate: string | null;
+                            quote: {
+                                [key: string]: unknown;
+                            } | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/offers/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a drafted offer (re-priced at send time) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            invoiceId: string;
+                            bank: {
+                                id: string;
+                                name: string;
+                            };
+                            status: string;
+                            mode: string;
+                            ratePct: string;
+                            advancePct: string;
+                            fxSpreadPct: string;
+                            netCash: string;
+                            netCashInr: string;
+                            allInPct: string;
+                            currency: string;
+                            fxRate: string;
+                            coverPct: number;
+                            insured: boolean;
+                            nonRecourse: boolean;
+                            supplierBorrowingRatePct: number | null;
+                            savingVsBorrowingPct: string | null;
+                            breakdown: {
+                                [key: string]: unknown;
+                            };
+                            validUntil: string;
+                            createdAt: string;
+                            expired: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/offers/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw my offer */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/bank/invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invoices I am invited to fund (BNK-02) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                invoiceId: string;
+                                invoiceNumber: string;
+                                supplier: string;
+                                buyer: string;
+                                buyerTier: string | null;
+                                currency: string;
+                                amount: string;
+                                dueDate: string;
+                                invoiceStatus: string;
+                                invitationStatus: string;
+                                source: string;
+                                coverStatus: string;
+                                coverPct: number | null;
+                                myOffer: {
+                                    id: string;
+                                    status: string;
+                                    allInPct: string;
+                                } | null;
+                                invitedAt: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/invitation/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline an invitation */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/offers/{id}/select": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Choose an offer: reserves limits and a lien, then asks for consent. A second parallel choice fails with a lien conflict. */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            invoiceId: string;
+                            invoiceNumber: string;
+                            offerId: string;
+                            status: string;
+                            supplier: {
+                                id: string;
+                                name: string;
+                            };
+                            bank: {
+                                id: string;
+                                name: string;
+                            };
+                            buyerName: string;
+                            currency: string;
+                            amount: string;
+                            netCash: string;
+                            netCashInr: string;
+                            allInPct: string;
+                            consentText: string | null;
+                            consentedAt: string | null;
+                            decisionReason: string | null;
+                            disbursementRef: string | null;
+                            fundedAt: string | null;
+                            createdAt: string;
+                            assignmentAcknowledged: boolean;
+                            noticeRef: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/financing-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** My financing requests */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                invoiceId: string;
+                                invoiceNumber: string;
+                                offerId: string;
+                                status: string;
+                                supplier: {
+                                    id: string;
+                                    name: string;
+                                };
+                                bank: {
+                                    id: string;
+                                    name: string;
+                                };
+                                buyerName: string;
+                                currency: string;
+                                amount: string;
+                                netCash: string;
+                                netCashInr: string;
+                                allInPct: string;
+                                consentText: string | null;
+                                consentedAt: string | null;
+                                decisionReason: string | null;
+                                disbursementRef: string | null;
+                                fundedAt: string | null;
+                                createdAt: string;
+                                assignmentAcknowledged: boolean;
+                                noticeRef: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/financing-requests/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One financing request */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            invoiceId: string;
+                            invoiceNumber: string;
+                            offerId: string;
+                            status: string;
+                            supplier: {
+                                id: string;
+                                name: string;
+                            };
+                            bank: {
+                                id: string;
+                                name: string;
+                            };
+                            buyerName: string;
+                            currency: string;
+                            amount: string;
+                            netCash: string;
+                            netCashInr: string;
+                            allInPct: string;
+                            consentText: string | null;
+                            consentedAt: string | null;
+                            decisionReason: string | null;
+                            disbursementRef: string | null;
+                            fundedAt: string | null;
+                            createdAt: string;
+                            assignmentAcknowledged: boolean;
+                            noticeRef: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/financing-requests/{id}/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Supplier consents to the assignment and terms */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            invoiceId: string;
+                            invoiceNumber: string;
+                            offerId: string;
+                            status: string;
+                            supplier: {
+                                id: string;
+                                name: string;
+                            };
+                            bank: {
+                                id: string;
+                                name: string;
+                            };
+                            buyerName: string;
+                            currency: string;
+                            amount: string;
+                            netCash: string;
+                            netCashInr: string;
+                            allInPct: string;
+                            consentText: string | null;
+                            consentedAt: string | null;
+                            decisionReason: string | null;
+                            disbursementRef: string | null;
+                            fundedAt: string | null;
+                            createdAt: string;
+                            assignmentAcknowledged: boolean;
+                            noticeRef: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/financing-requests/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel during the cooling-off period (before the bank instructs payment) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            invoiceId: string;
+                            invoiceNumber: string;
+                            offerId: string;
+                            status: string;
+                            supplier: {
+                                id: string;
+                                name: string;
+                            };
+                            bank: {
+                                id: string;
+                                name: string;
+                            };
+                            buyerName: string;
+                            currency: string;
+                            amount: string;
+                            netCash: string;
+                            netCashInr: string;
+                            allInPct: string;
+                            consentText: string | null;
+                            consentedAt: string | null;
+                            decisionReason: string | null;
+                            disbursementRef: string | null;
+                            fundedAt: string | null;
+                            createdAt: string;
+                            assignmentAcknowledged: boolean;
+                            noticeRef: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/financing-requests/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bank re-checks and confirms; the (simulated) payment is instructed and the lien becomes active */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            invoiceId: string;
+                            invoiceNumber: string;
+                            offerId: string;
+                            status: string;
+                            supplier: {
+                                id: string;
+                                name: string;
+                            };
+                            bank: {
+                                id: string;
+                                name: string;
+                            };
+                            buyerName: string;
+                            currency: string;
+                            amount: string;
+                            netCash: string;
+                            netCashInr: string;
+                            allInPct: string;
+                            consentText: string | null;
+                            consentedAt: string | null;
+                            decisionReason: string | null;
+                            disbursementRef: string | null;
+                            fundedAt: string | null;
+                            createdAt: string;
+                            assignmentAcknowledged: boolean;
+                            noticeRef: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/financing-requests/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bank declines at confirmation; limits and lien are released */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            invoiceId: string;
+                            invoiceNumber: string;
+                            offerId: string;
+                            status: string;
+                            supplier: {
+                                id: string;
+                                name: string;
+                            };
+                            bank: {
+                                id: string;
+                                name: string;
+                            };
+                            buyerName: string;
+                            currency: string;
+                            amount: string;
+                            netCash: string;
+                            netCashInr: string;
+                            allInPct: string;
+                            consentText: string | null;
+                            consentedAt: string | null;
+                            decisionReason: string | null;
+                            disbursementRef: string | null;
+                            fundedAt: string | null;
+                            createdAt: string;
+                            assignmentAcknowledged: boolean;
+                            noticeRef: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/assignment-notice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Assignment notice for an invoice (BUY-04) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            reference: string;
+                            governingLaw: string;
+                            body: string;
+                            issuedAt: string;
+                            usFiling: {
+                                [key: string]: unknown;
+                            } | null;
+                            sgDataConsent: boolean | null;
+                            acknowledged: boolean;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/discount-schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The published schedule */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            mode: string;
+                            entries: {
+                                payBy: string;
+                                discountPct: number;
+                            }[] | null;
+                            annualRatePct: string | null;
+                            status: string;
+                        };
+                    };
+                };
+            };
+        };
+        /** Publish a discount schedule (dates with discounts, or an annual rate applied pro rata) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        mode: "table";
+                        entries: {
+                            payBy: string;
+                            discountPct: number;
+                        }[];
+                    } | {
+                        /** @enum {string} */
+                        mode: "annual_rate";
+                        annualRatePct: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            warnings: string[];
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        /** Withdraw the schedule */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/early-payment/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What would paying on this date cost and save? */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        payDate: string;
+                        /**
+                         * @default cash
+                         * @enum {string}
+                         */
+                        fundingSource?: "cash" | "bank_loan";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/early-payment": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Buyer confirms early payment: executes the (simulated) payment and locks this route */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        payDate: string;
+                        /**
+                         * @default cash
+                         * @enum {string}
+                         */
+                        fundingSource?: "cash" | "bank_loan";
+                        /** Format: uuid */
+                        buyerBankOrgId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/liens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lien registry with transfer-of-rights history */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            liens: {
+                                id: string;
+                                invoiceId: string;
+                                invoiceNumber: string;
+                                bank: string;
+                                supplier: string;
+                                buyer: string;
+                                status: string;
+                                assignmentRef: string | null;
+                                reservedAt: string;
+                                activatedAt: string | null;
+                                releasedAt: string | null;
+                                releaseReason: string | null;
+                            }[];
+                            events: {
+                                id: string;
+                                invoiceNumber: string | null;
+                                event: string;
+                                detail: string | null;
+                                at: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {

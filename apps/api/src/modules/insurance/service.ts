@@ -153,12 +153,19 @@ export async function decideCover(tx: Tx, svc: Services, ctx: Ctx, coverId: stri
 
 /** Funding consumes the reservation; settlement or cancellation releases it. Called by Marketplace / Settlement. */
 export async function consumeCover(tx: Tx, svc: Services, invoiceId: string) {
+  // Funding is triggered by the bank, who cannot lock or update the insurer's record under RLS, so this runs elevated.
+  return tx.elevated(() => consumeCoverInner(tx, svc, invoiceId));
+}
+async function consumeCoverInner(tx: Tx, svc: Services, invoiceId: string) {
   const c = await tx.maybe<any>('select * from insurance.cover_records where invoice_id = $1 for update', [invoiceId]);
   if (!c || !isInsured(c.status) || D(c.reserved_usd).lte(0)) return;
   if (!(await moveBuyerLimit(tx, svc, 'consume', c.insurer_org_id, c.buyer_org_id, c.reserved_usd))) throw new DomainError('limit_state', 'Insurer limit bookkeeping error.', 500);
   await tx.query('update insurance.cover_records set consumed_usd = reserved_usd, reserved_usd = 0 where id = $1', [c.id]);
 }
 export async function releaseCover(tx: Tx, svc: Services, invoiceId: string) {
+  return tx.elevated(() => releaseCoverInner(tx, svc, invoiceId));
+}
+async function releaseCoverInner(tx: Tx, svc: Services, invoiceId: string) {
   const c = await tx.maybe<any>('select * from insurance.cover_records where invoice_id = $1 for update', [invoiceId]);
   if (!c) return;
   if (D(c.reserved_usd).gt(0)) await moveBuyerLimit(tx, svc, 'release_reserved', c.insurer_org_id, c.buyer_org_id, c.reserved_usd);

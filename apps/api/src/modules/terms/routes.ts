@@ -13,7 +13,7 @@ import { checkTermsGuardrails } from './guardrails';
 import { jsonSchemaFor, validateBody } from './schema';
 import { approveVersion, corridorOf, createSet, createVersion, resolveTerms, simulateBankTerms, submitVersion, retireExpired } from './service';
 import { evaluateOffer } from './evaluate';
-import { coverForInvoice, coverGate } from '../insurance/service';
+import { quoteForBank } from './quote';
 
 const ownerEnum = z.enum(['platform', 'bank', 'insurer']);
 const scopeSchema = z.object({ buyerOrgId: z.string().uuid().optional(), supplierOrgId: z.string().uuid().optional(), corridor: z.string().optional() });
@@ -162,38 +162,9 @@ export function termsRoutes(app: FastifyInstance) {
       response: { 200: z.object({ eligible: z.boolean(), reasons: z.array(z.string()), gate: z.string().nullable(), quote: z.record(z.string(), z.any()).nullable(), explanation: z.record(z.string(), z.any()) }) } },
   }, async (req) => svc.db.tx(ctxFor(req), async (tx) => {
     const inv = await loadInvoice(tx, req.params.id);
-    const now = svc.clock.now();
-    const [buyer, supplier] = await tx.elevated(async () => [
-      await tx.one<any>('select * from identity.organisations where id = $1', [inv.buyer_org_id]),
-      await tx.one<any>('select * from identity.organisations where id = $1', [inv.supplier_org_id]),
-    ]);
-    if (!buyer.rating_tier) throw invalid('The buyer has no rating tier on file.');
-    const bank = await tx.elevated(() => tx.maybe<any>("select id from identity.organisations where id = $1 and type = 'bank'", [req.body.bankOrgId]));
-    if (!bank) throw notFound('Bank');
-    const ctx = { buyerOrgId: buyer.id, supplierOrgId: supplier.id, corridor: corridorOf(supplier.country, buyer.country) };
-    const bankTerms = await resolveTerms(tx, now, 'bank', bank.id, ctx);
-    const platform = await resolveTerms(tx, now, 'platform', null, ctx);
-    const real = await coverForInvoice(tx, inv.id);
-    const insurerId = req.body.insurerOrgId ?? real?.insurerOrgId ?? undefined;
-    const insurerTerms = insurerId ? await resolveTerms(tx, now, 'insurer', insurerId, ctx) : null;
-    if (real && req.body.coverPct == null && !['approved', 'partial'].includes(real.status)) {
-      const g = coverGate(real, 0);
-      return { eligible: false, reasons: [g.reason!], gate: 'cover', quote: null, explanation: {} };
-    }
-    const today = now.toISOString().slice(0, 10);
-    const tenor = daysBetween(today, String(inv.due_date).slice(0, 10)) + Number(bankTerms.terms.graceDays ?? 0);
-    if (tenor <= 0) throw invalid('The invoice is already due.');
-    const lim = await tx.elevated(() => tx.query<any>('select subject_org_id, kind, limit_usd, reserved_usd, used_usd from identity.bank_limits where bank_org_id = $1 and subject_org_id = any($2)', [bank.id, [buyer.id, supplier.id]]));
-    const avail = (id: string) => { const l = lim.find((x) => x.subject_org_id === id); return l ? D(l.limit_usd).minus(l.reserved_usd).minus(l.used_usd).toFixed(2) : '0.00'; };
-    const amount = inv.accepted_amount ?? inv.gross_amount;
-    const ev = evaluateOffer({
-      now, invoice: { amount, currency: inv.currency as 'USD', tenorDays: tenor }, buyer: { country: buyer.country, tier: buyer.rating_tier }, supplier: { country: supplier.country, small: supplier.small, borrowingRatePct: supplier.borrowing_rate ? Number(supplier.borrowing_rate) : null },
-      bank: bankTerms.terms, insurer: insurerTerms?.terms ?? null, platform: platform.terms, cover: req.body.coverPct != null ? { coverPct: req.body.coverPct } : real?.coverPct != null ? { coverPct: real.coverPct } : null,
-      headroom: { bankBuyerUsd: avail(buyer.id), bankSupplierUsd: avail(supplier.id) },
-      mids: { USDINR: await svc.adapters.fx.mid('USDINR', now), SGDINR: await svc.adapters.fx.mid('SGDINR', now) },
-      termsVersionIds: [...new Set([...bankTerms.versionIds, ...platform.versionIds, ...(insurerTerms?.versionIds ?? [])])],
-    });
-    return { eligible: ev.eligible, reasons: ev.reasons, gate: ev.gate ?? null, quote: (ev.quote ?? null) as Record<string, any> | null, explanation: bankTerms.explanation };
+    const q = await quoteForBank(tx, svc, inv, req.body.bankOrgId, { insurerOrgId: req.body.insurerOrgId, coverPct: req.body.coverPct });
+    const ev = q.evaluation;
+    return { eligible: ev.eligible, reasons: ev.reasons, gate: ev.gate ?? null, quote: (ev.quote ?? null) as Record<string, any> | null, explanation: q.explanation };
   }));
 
   void D;

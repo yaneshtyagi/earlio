@@ -24,7 +24,7 @@ export interface OfferInputs {
 export interface OfferQuote {
   breakdown: FinancingBreakdown;
   ratePct: string; advancePct: string; advanceCappedToCover: boolean;
-  coverPct: number; coverAssumed: boolean; insuredAmount: string;
+  coverPct: number; coverAssumed: boolean; minCoverPct: number; insuredAmount: string;
   fx: { pair: string; mid: string; spreadPct: string; rate: string; netCashInr: string; advanceInr: string };
   validUntil: string; insured: true; nonRecourse: true; termsVersionIds: string[];
   supplierBorrowingRatePct: number | null; savingVsBorrowingPct: string | null;
@@ -114,7 +114,7 @@ export function evaluateOffer(i: OfferInputs): OfferEvaluation {
   return {
     eligible: true, reasons: [],
     quote: {
-      breakdown, ratePct: D(ratePct!).toFixed(2), advancePct: String(advancePct), advanceCappedToCover: capped, coverPct, coverAssumed, insuredAmount: insuredAmount.toFixed(2),
+      breakdown, ratePct: D(ratePct!).toFixed(2), advancePct: String(advancePct), advanceCappedToCover: capped, coverPct, coverAssumed, minCoverPct: b.minCoverPct, insuredAmount: insuredAmount.toFixed(2),
       fx: { pair, mid, spreadPct: D(b.fxSpreadPct).toFixed(2), rate: rate.toFixed(4), netCashInr: inrAmount(breakdown.netCash, rate).toFixed(2), advanceInr: inrAmount(breakdown.advance, rate).toFixed(2) },
       validUntil: new Date(i.now.getTime() + b.offerValidityHours * 3_600_000).toISOString(), insured: true, nonRecourse: true, termsVersionIds: i.termsVersionIds,
       supplierBorrowingRatePct: borrowing, savingVsBorrowingPct: borrowing == null ? null : D(borrowing).minus(breakdown.allInAnnualisedPct).toFixed(2),

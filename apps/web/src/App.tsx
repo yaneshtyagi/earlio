@@ -13,6 +13,7 @@ import { InvoicesPage } from './pages/InvoicesPage';
 import { InvoiceNewPage } from './pages/InvoiceNewPage';
 import { InvoiceDetailPage } from './pages/InvoiceDetailPage';
 import { BankLimitsPage } from './pages/BankLimitsPage';
+import { AdminLiensPage, BankInvitationsPage } from './pages/FundingPanels';
 import { InsuranceLimitsPage, InsuranceRequestsPage } from './pages/InsurancePages';
 
 export function App() {
@@ -31,6 +32,8 @@ export function App() {
         <Route path="invoices/new" element={<InvoiceNewPage />} />
         <Route path="invoices/:id" element={<InvoiceDetailPage />} />
         <Route path="limits" element={<BankLimitsPage />} />
+        <Route path="bank/invitations" element={<BankInvitationsPage />} />
+        <Route path="admin/liens" element={<AdminLiensPage />} />
         <Route path="insurance/requests" element={<InsuranceRequestsPage />} />
         <Route path="insurance/limits" element={<InsuranceLimitsPage />} />
         <Route path="admin/kyc" element={<AdminKycPage />} />

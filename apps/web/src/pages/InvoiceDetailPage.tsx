@@ -1,4 +1,5 @@
 import { CoverPanel } from './InsurancePages';
+import { BankFundingPanel, BuyerFundingPanel, SupplierFundingPanel } from './FundingPanels';
 import { useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
@@ -72,6 +73,11 @@ export function InvoiceDetailPage() {
       </div>
 
       {inv.acceptedAt && <CoverPanel invoiceId={inv.id} />}
+      {inv.acceptedAt && (() => {
+        const f = { id: inv.id, humanId: inv.humanId, status: inv.status, route: inv.route, currency: inv.currency, dueDate: inv.dueDate };
+        return isSupplier ? <SupplierFundingPanel inv={f} onChange={refresh} /> : isBuyer ? <BuyerFundingPanel inv={f} onChange={refresh} />
+          : me_?.type === 'bank' ? <BankFundingPanel inv={f} onChange={refresh} /> : null;
+      })()}
 
       <div className="panel">
         <h3>Documents</h3>

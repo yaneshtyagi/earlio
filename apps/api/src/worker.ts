@@ -3,6 +3,7 @@ import type { OutboxHandler } from './platform/outbox';
 import { drainOutbox } from './platform/outbox';
 import { requestCover, processInsurerGateway, expireCovers } from './modules/insurance/service';
 import { sendAcceptanceReminders } from './modules/invoicing/service';
+import { expireOffers } from './modules/marketplace/service';
 import { retireExpired } from './modules/terms/service';
 
 /** Outbox subscribers: modules react to each other's events here, never by importing each other's tables. */
@@ -20,6 +21,7 @@ export async function runWorkOnce(svc: Services): Promise<Record<string, number>
   out.events = await drainOutbox((fn) => svc.db.system(fn), handlersFor(svc), svc.clock.now());
   out.reminders = await svc.db.system((tx) => sendAcceptanceReminders(tx, svc, ctx));
   out.insurerApi = await svc.db.system((tx) => processInsurerGateway(tx, svc, ctx));
+  out.offersExpired = await svc.db.system((tx) => expireOffers(tx, svc, ctx));
   out.coversExpired = await svc.db.system((tx) => expireCovers(tx, svc, ctx));
   await svc.db.system((tx) => retireExpired(tx, svc));
   out.events += await drainOutbox((fn) => svc.db.system(fn), handlersFor(svc), svc.clock.now());
