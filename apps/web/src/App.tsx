@@ -14,6 +14,7 @@ import { InvoiceNewPage } from './pages/InvoiceNewPage';
 import { InvoiceDetailPage } from './pages/InvoiceDetailPage';
 import { BankLimitsPage } from './pages/BankLimitsPage';
 import { AdminLiensPage, BankInvitationsPage } from './pages/FundingPanels';
+import { BuyerPaymentsPage, ControlRoomPage, IntegrationInspectorPage, NotificationsPage, SettlementConsolePage } from './pages/SettlementPages';
 import { InsuranceLimitsPage, InsuranceRequestsPage } from './pages/InsurancePages';
 
 export function App() {
@@ -36,6 +37,11 @@ export function App() {
         <Route path="admin/liens" element={<AdminLiensPage />} />
         <Route path="insurance/requests" element={<InsuranceRequestsPage />} />
         <Route path="insurance/limits" element={<InsuranceLimitsPage />} />
+        <Route path="payments" element={<BuyerPaymentsPage />} />
+        <Route path="settlement" element={<SettlementConsolePage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="admin/control-room" element={<ControlRoomPage />} />
+        <Route path="admin/integrations" element={<IntegrationInspectorPage />} />
         <Route path="admin/kyc" element={<AdminKycPage />} />
         <Route path="admin/sanctions" element={<AdminSanctionsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

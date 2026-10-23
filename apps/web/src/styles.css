@@ -46,3 +46,7 @@ button.danger { background: var(--danger); }
 .chip.requested { background: #eff8ff; color: #175cd3; }
 .chip.declined, .chip.expired { background: #fef3f2; color: var(--danger); }
 .chip.uninsured { background: #f2f4f7; color: #667085; }
+.bell { position: relative; text-decoration: none; font-size: 18px; } .badge { position: absolute; top: -6px; right: -10px; background: var(--danger); color: #fff; border-radius: 999px; font-size: 11px; padding: 1px 5px; }
+.chip.Credited, .chip.Matched, .chip.Distributed, .chip.Reconciled { background: #ecfdf3; color: #067647; }
+.chip.Reversed, .chip.Failed, .chip.Returned { background: #fef3f2; color: var(--danger); }
+.chip.QueuedForValueDate, .chip.PartiallyReceived, .chip.Retry { background: #fff4e5; color: var(--warn); }

@@ -1,3 +1,4 @@
+import { SettlementPanel } from './SettlementPages';
 import { CoverPanel } from './InsurancePages';
 import { BankFundingPanel, BuyerFundingPanel, SupplierFundingPanel } from './FundingPanels';
 import { useRef, useState } from 'react';
@@ -78,6 +79,8 @@ export function InvoiceDetailPage() {
         return isSupplier ? <SupplierFundingPanel inv={f} onChange={refresh} /> : isBuyer ? <BuyerFundingPanel inv={f} onChange={refresh} />
           : me_?.type === 'bank' ? <BankFundingPanel inv={f} onChange={refresh} /> : null;
       })()}
+
+      {['Funded', 'Overdue', 'Settled', 'Closed'].includes(inv.status) && <SettlementPanel invoiceId={inv.id} />}
 
       <div className="panel">
         <h3>Documents</h3>

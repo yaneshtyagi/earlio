@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { navFor } from '../shared/nav';
+import { NotificationBell } from './SettlementPages';
 
 export function Layout() {
   const { me, signOut, refresh } = useAuth();
@@ -23,6 +24,7 @@ export function Layout() {
         <strong>Earlio</strong>
         <span className="org">{me.activeOrg.legalName} <small>({me.activeOrg.type}, {me.role})</small></span>
         <span className="spacer" />
+        <NotificationBell />
         {me.memberships.length > 1 && (
           <select aria-label="Switch organisation" value={me.activeOrg.id} onChange={(e) => switchOrg(e.target.value)}>
             {me.memberships.map((m) => <option key={m.orgId} value={m.orgId}>{m.orgName} — {m.role}</option>)}
