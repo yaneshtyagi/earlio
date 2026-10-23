@@ -5,6 +5,8 @@ import { termsRoutes } from './terms/routes';
 import { insuranceRoutes } from './insurance/routes';
 import { marketplaceRoutes } from './marketplace/routes';
 import { settlementRoutes } from './settlement/routes';
+import { recoveryRoutes } from './recovery/routes';
+import { disputeRoutes } from './invoicing/dispute-routes';
 import { notifyRoutes } from './notify/routes';
 import { relationshipRoutes } from './identity/relationship-routes';
 
@@ -18,5 +20,7 @@ export async function registerModules(app: FastifyInstance): Promise<void> {
   marketplaceRoutes(app);
   settlementRoutes(app);
   notifyRoutes(app);
+  disputeRoutes(app);
+  recoveryRoutes(app);
   // invoicing, terms, insurance, marketplace, settlement ... (added per milestone)
 }

@@ -212,23 +212,47 @@ export async function acknowledgeAssignment(tx: Tx, svc: Services, ctx: Ctx, inv
   await audit(tx, ctx, now, { action: 'invoice.assignment_acknowledged', entityType: 'invoice', entityId: inv.id, orgId: inv.supplier_org_id });
 }
 
-/** Any party can dispute an accepted invoice while the dispute window is open; this freezes progression. */
-export async function raiseDispute(tx: Tx, svc: Services, ctx: Ctx, invoiceId: string, myOrgId: string, reason: string) {
+/**
+ * Any party can dispute an accepted invoice while the dispute window is open, and the buyer or supplier can dispute a funded or
+ * overdue invoice afterwards (J-B3). A freezing dispute stops progression, late interest and dunning until it is resolved.
+ */
+export async function raiseDispute(tx: Tx, svc: Services, ctx: Ctx, invoiceId: string, myOrgId: string, reason: string, opts: { amount?: string } = {}) {
   const inv = await loadInvoice(tx, invoiceId, true);
   if (inv.supplier_org_id !== myOrgId && inv.buyer_org_id !== myOrgId) throw notFound('Invoice');
   if (!reason || reason.trim().length < 3) throw invalid('Please describe the dispute.');
-  if (inv.status !== 'Accepted') throw conflict('cannot_dispute', `Invoice ${inv.human_id} is ${inv.status}; disputes can be raised on accepted invoices during the dispute window.`);
+  const postFunding = ['Funded', 'Overdue'].includes(inv.status);
+  if (inv.status !== 'Accepted' && !postFunding) {
+    throw conflict('cannot_dispute', `Invoice ${inv.human_id} is ${inv.status}; disputes can be raised on accepted invoices during the dispute window, or on funded and overdue invoices.`);
+  }
   const now = svc.clock.now();
-  if (inv.dispute_window_ends_at && now > new Date(inv.dispute_window_ends_at)) {
+  if (inv.status === 'Accepted' && inv.dispute_window_ends_at && now > new Date(inv.dispute_window_ends_at)) {
     throw new DomainError('window_closed', 'The dispute window for this invoice has closed.', 409);
   }
+  if (opts.amount && (D(opts.amount).lte(0) || D(opts.amount).gt(inv.accepted_amount ?? inv.gross_amount))) throw invalid('The disputed amount must be between zero and the invoice amount.');
+  const t = await disputeTimers(tx);
+  const fr = postFunding ? await tx.elevated(() => tx.maybe<any>("select bank_org_id from marketplace.financing_requests where invoice_id = $1 and status = 'Funded'", [inv.id])) : undefined;
   const d = await tx.one<{ id: string }>(
-    `insert into invoicing.disputes (invoice_id, supplier_org_id, buyer_org_id, raised_by_org, raised_by_user, reason, created_at) values ($1,$2,$3,$4,$5,$6,$7) returning id`,
-    [inv.id, inv.supplier_org_id, inv.buyer_org_id, myOrgId, ctx.userId, reason.trim(), now]);
+    `insert into invoicing.disputes (invoice_id, supplier_org_id, buyer_org_id, raised_by_org, raised_by_user, reason, amount, phase, frozen_status, bank_org_id, response_due_at, escalate_at, timeout_at, created_at)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) returning id`,
+    [inv.id, inv.supplier_org_id, inv.buyer_org_id, myOrgId, ctx.userId, reason.trim(), opts.amount ?? null, postFunding ? 'post_funding' : 'window', inv.status, fr?.bank_org_id ?? null,
+      new Date(now.getTime() + t.responseHours * 3_600_000), new Date(now.getTime() + t.escalateAfterHours * 3_600_000), new Date(now.getTime() + t.timeoutAfterHours * 3_600_000), now]);
   await transition(tx, svc, ctx, inv, 'Disputed', {
     note: reason.trim(), event: 'invoice.disputed', set: { dispute_flag: true, status_before_dispute: inv.status }, payload: { disputeId: d.id },
   });
+  if (postFunding) await tx.elevated(() => tx.query('update recovery.defaults set frozen_since = coalesce(frozen_since, $2), updated_at = $2 where invoice_id = $1', [inv.id, now]));
+  const who = await tx.one<{ legal_name: string }>('select legal_name from identity.organisations where id = $1', [myOrgId]);
+  await tx.query(
+    `insert into invoicing.dispute_messages (dispute_id, invoice_id, supplier_org_id, buyer_org_id, bank_org_id, author_org_id, author_name, author_user, kind, body, created_at) values ($1,$2,$3,$4,$5,$6,$7,$8,'system',$9,$10)`,
+    [d.id, inv.id, inv.supplier_org_id, inv.buyer_org_id, fr?.bank_org_id ?? null, myOrgId, who.legal_name, ctx.userId ?? null, `${who.legal_name} raised this dispute: ${reason.trim()}`, now]);
+  await emit(tx, now, 'dispute.raised', { disputeId: d.id, invoiceId: inv.id, humanId: inv.human_id }, [inv.supplier_org_id, inv.buyer_org_id, ...(fr?.bank_org_id ? [fr.bank_org_id] : [])]);
   return d.id;
+}
+
+export interface DisputeTimers { responseHours: number; escalateAfterHours: number; timeoutAfterHours: number }
+export const DEFAULT_DISPUTE_TIMERS: DisputeTimers = { responseHours: 48, escalateAfterHours: 72, timeoutAfterHours: 240 };
+export async function disputeTimers(tx: Tx): Promise<DisputeTimers> {
+  const s = await tx.elevated(() => tx.maybe<{ value: any }>("select value from platform.settings where key = 'dispute_timers'"));
+  return { ...DEFAULT_DISPUTE_TIMERS, ...(s?.value ?? {}) };
 }
 
 export function dueForReminder(submittedAt: Date, now: Date, sent: number): boolean {

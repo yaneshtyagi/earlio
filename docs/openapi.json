@@ -3223,7 +3223,7 @@
     },
     "/api/v1/invoices/{id}/disputes": {
       "post": {
-        "summary": "Raise a dispute during the dispute window (freezes the invoice)",
+        "summary": "Raise a dispute (during the dispute window, or on a funded / overdue invoice); freezes the invoice",
         "tags": [
           "invoices"
         ],
@@ -3238,6 +3238,10 @@
                     "type": "string",
                     "minLength": 3,
                     "maxLength": 2000
+                  },
+                  "amount": {
+                    "type": "string",
+                    "pattern": "^\\d+(\\.\\d{1,2})?$"
                   }
                 },
                 "required": [
@@ -9262,6 +9266,2614 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/disputes": {
+      "get": {
+        "summary": "Disputes my organisation is party to (platform staff see the whole queue)",
+        "tags": [
+          "disputes"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "resolved"
+              ]
+            },
+            "in": "query",
+            "name": "status",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "invoiceId": {
+                            "type": "string"
+                          },
+                          "invoiceNumber": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "phase": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "cause": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "outcome": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "raisedByOrg": {
+                            "type": "string"
+                          },
+                          "raisedByName": {
+                            "type": "string"
+                          },
+                          "supplierName": {
+                            "type": "string"
+                          },
+                          "buyerName": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "responseDueAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "escalateAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "timeoutAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "resolvedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "decisionNote": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "creditAmount": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "financed": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "invoiceId",
+                          "invoiceNumber",
+                          "status",
+                          "phase",
+                          "reason",
+                          "amount",
+                          "cause",
+                          "outcome",
+                          "raisedByOrg",
+                          "raisedByName",
+                          "supplierName",
+                          "buyerName",
+                          "createdAt",
+                          "responseDueAt",
+                          "escalateAt",
+                          "timeoutAt",
+                          "resolvedAt",
+                          "decisionNote",
+                          "creditAmount",
+                          "financed"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/disputes/{id}": {
+      "get": {
+        "summary": "Dispute with its thread, evidence and timers",
+        "tags": [
+          "disputes"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "dispute": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "invoiceId": {
+                          "type": "string"
+                        },
+                        "invoiceNumber": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "phase": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "amount": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "cause": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "outcome": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "raisedByOrg": {
+                          "type": "string"
+                        },
+                        "raisedByName": {
+                          "type": "string"
+                        },
+                        "supplierName": {
+                          "type": "string"
+                        },
+                        "buyerName": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "responseDueAt": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "escalateAt": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "timeoutAt": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "resolvedAt": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "decisionNote": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "creditAmount": {
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "financed": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "invoiceId",
+                        "invoiceNumber",
+                        "status",
+                        "phase",
+                        "reason",
+                        "amount",
+                        "cause",
+                        "outcome",
+                        "raisedByOrg",
+                        "raisedByName",
+                        "supplierName",
+                        "buyerName",
+                        "createdAt",
+                        "responseDueAt",
+                        "escalateAt",
+                        "timeoutAt",
+                        "resolvedAt",
+                        "decisionNote",
+                        "creditAmount",
+                        "financed"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "causes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "authorName": {
+                            "type": "string"
+                          },
+                          "body": {
+                            "type": "string"
+                          },
+                          "fileId": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "authorName",
+                          "body",
+                          "fileId",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "dispute",
+                    "causes",
+                    "messages"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/disputes/{id}/messages": {
+      "post": {
+        "summary": "Post a message or attach evidence to a dispute",
+        "tags": [
+          "disputes"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  },
+                  "fileId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "kind": {
+                    "default": "message",
+                    "type": "string",
+                    "enum": [
+                      "message",
+                      "evidence"
+                    ]
+                  }
+                },
+                "required": [
+                  "body"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/disputes/{id}/withdraw": {
+      "post": {
+        "summary": "Withdraw a dispute I raised (concedes the point)",
+        "tags": [
+          "disputes"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/disputes/{id}/review": {
+      "post": {
+        "summary": "Platform: start reviewing a dispute",
+        "tags": [
+          "disputes"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/disputes/{id}/decision": {
+      "post": {
+        "summary": "Platform: decide a dispute; the decision is applied to the invoice and its financing (credit note, recourse, unfreeze)",
+        "tags": [
+          "disputes"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "type": "string",
+                    "enum": [
+                      "buyer",
+                      "supplier"
+                    ]
+                  },
+                  "cause": {
+                    "type": "string",
+                    "maxLength": 60
+                  },
+                  "creditAmount": {
+                    "type": "string",
+                    "pattern": "^\\d+(\\.\\d{1,2})?$"
+                  },
+                  "note": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "outcome",
+                  "note"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "creditNote": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "recourseId": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "creditNote",
+                    "recourseId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/credit-notes": {
+      "post": {
+        "summary": "Buyer issues a credit note (before funding it reduces the invoice; after funding it reduces exposure)",
+        "tags": [
+          "invoices"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "string",
+                    "pattern": "^\\d+(\\.\\d{1,2})?$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 1000
+                  }
+                },
+                "required": [
+                  "amount",
+                  "reason"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "number": {
+                      "type": "string"
+                    },
+                    "stage": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "amount": {
+                      "type": "string"
+                    },
+                    "priorAmount": {
+                      "type": "string"
+                    },
+                    "newAmount": {
+                      "type": "string"
+                    },
+                    "supplierOwes": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    },
+                    "createdAt": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "number",
+                    "stage",
+                    "currency",
+                    "amount",
+                    "priorAmount",
+                    "newAmount",
+                    "supplierOwes",
+                    "reason",
+                    "createdAt"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Credit notes on an invoice",
+        "tags": [
+          "invoices"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "number": {
+                            "type": "string"
+                          },
+                          "stage": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "string"
+                          },
+                          "priorAmount": {
+                            "type": "string"
+                          },
+                          "newAmount": {
+                            "type": "string"
+                          },
+                          "supplierOwes": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "number",
+                          "stage",
+                          "currency",
+                          "amount",
+                          "priorAmount",
+                          "newAmount",
+                          "supplierOwes",
+                          "reason",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/dispute-timers": {
+      "get": {
+        "summary": "Dispute timers",
+        "tags": [
+          "admin"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "responseHours": {
+                      "type": "number",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 1440
+                    },
+                    "escalateAfterHours": {
+                      "type": "number",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 2160
+                    },
+                    "timeoutAfterHours": {
+                      "type": "number",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 8760
+                    }
+                  },
+                  "required": [
+                    "responseHours",
+                    "escalateAfterHours",
+                    "timeoutAfterHours"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Set dispute timers (response ≤ escalation < timeout)",
+        "tags": [
+          "admin"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "responseHours": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "maximum": 1440
+                  },
+                  "escalateAfterHours": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "maximum": 2160
+                  },
+                  "timeoutAfterHours": {
+                    "type": "number",
+                    "minimum": 0,
+                    "exclusiveMinimum": true,
+                    "maximum": 8760
+                  }
+                },
+                "required": [
+                  "responseHours",
+                  "escalateAfterHours",
+                  "timeoutAfterHours"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "responseHours": {
+                      "type": "number",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 1440
+                    },
+                    "escalateAfterHours": {
+                      "type": "number",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 2160
+                    },
+                    "timeoutAfterHours": {
+                      "type": "number",
+                      "minimum": 0,
+                      "exclusiveMinimum": true,
+                      "maximum": 8760
+                    }
+                  },
+                  "required": [
+                    "responseHours",
+                    "escalateAfterHours",
+                    "timeoutAfterHours"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recovery/defaults": {
+      "get": {
+        "summary": "Overdue and defaulted financed invoices with late interest, waiting period and claim deadline",
+        "tags": [
+          "recovery"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "invoiceId": {
+                            "type": "string"
+                          },
+                          "invoiceNumber": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "principal": {
+                            "type": "string"
+                          },
+                          "financingRatePct": {
+                            "type": "string"
+                          },
+                          "dueDate": {
+                            "type": "string"
+                          },
+                          "overdueDays": {
+                            "type": "number"
+                          },
+                          "frozenDays": {
+                            "type": "number"
+                          },
+                          "lateInterest": {
+                            "type": "string"
+                          },
+                          "waitingDays": {
+                            "type": "number"
+                          },
+                          "waitingEndsOn": {
+                            "type": "string"
+                          },
+                          "claimDeadlineOn": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "insolvency": {
+                            "type": "boolean"
+                          },
+                          "dunningLevel": {
+                            "type": "number"
+                          },
+                          "insured": {
+                            "type": "boolean"
+                          },
+                          "bankName": {
+                            "type": "string"
+                          },
+                          "buyerName": {
+                            "type": "string"
+                          },
+                          "supplierName": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "invoiceId",
+                          "invoiceNumber",
+                          "status",
+                          "currency",
+                          "principal",
+                          "financingRatePct",
+                          "dueDate",
+                          "overdueDays",
+                          "frozenDays",
+                          "lateInterest",
+                          "waitingDays",
+                          "waitingEndsOn",
+                          "claimDeadlineOn",
+                          "insolvency",
+                          "dunningLevel",
+                          "insured",
+                          "bankName",
+                          "buyerName",
+                          "supplierName"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recovery/defaults/{invoiceId}": {
+      "get": {
+        "summary": "One default, with the live late-interest figure",
+        "tags": [
+          "recovery"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "invoiceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "principal": {
+                      "type": "string"
+                    },
+                    "financingRatePct": {
+                      "type": "string"
+                    },
+                    "dueDate": {
+                      "type": "string"
+                    },
+                    "overdueDays": {
+                      "type": "number"
+                    },
+                    "frozenDays": {
+                      "type": "number"
+                    },
+                    "lateInterest": {
+                      "type": "string"
+                    },
+                    "waitingDays": {
+                      "type": "number"
+                    },
+                    "waitingEndsOn": {
+                      "type": "string"
+                    },
+                    "claimDeadlineOn": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "insolvency": {
+                      "type": "boolean"
+                    },
+                    "dunningLevel": {
+                      "type": "number"
+                    },
+                    "insured": {
+                      "type": "boolean"
+                    },
+                    "bankName": {
+                      "type": "string"
+                    },
+                    "buyerName": {
+                      "type": "string"
+                    },
+                    "supplierName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "invoiceId",
+                    "invoiceNumber",
+                    "status",
+                    "currency",
+                    "principal",
+                    "financingRatePct",
+                    "dueDate",
+                    "overdueDays",
+                    "frozenDays",
+                    "lateInterest",
+                    "waitingDays",
+                    "waitingEndsOn",
+                    "claimDeadlineOn",
+                    "insolvency",
+                    "dunningLevel",
+                    "insured",
+                    "bankName",
+                    "buyerName",
+                    "supplierName"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recovery/defaults/{invoiceId}/insolvency": {
+      "post": {
+        "summary": "Report a buyer insolvency event: the waiting period is waived (A-14)",
+        "tags": [
+          "recovery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reference": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "reference"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "invoiceId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/invoices/{id}/claims": {
+      "post": {
+        "summary": "Bank files an insurance claim once the waiting period has ended (or the buyer is insolvent)",
+        "tags": [
+          "recovery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "documents": {
+                    "maxItems": 20,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "docType": {
+                          "type": "string",
+                          "enum": [
+                            "invoice",
+                            "acceptance",
+                            "delivery_proof",
+                            "statement"
+                          ]
+                        },
+                        "fileId": {
+                          "type": "string",
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        }
+                      },
+                      "required": [
+                        "docType",
+                        "fileId"
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "documents"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "faceAmount": {
+                      "type": "string"
+                    },
+                    "advanceAmount": {
+                      "type": "string"
+                    },
+                    "coverPct": {
+                      "type": "string"
+                    },
+                    "claimedAmount": {
+                      "type": "string"
+                    },
+                    "approvedAmount": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "decisionReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "exclusions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "detail"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "docType": {
+                            "type": "string"
+                          },
+                          "fileId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "docType",
+                          "fileId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "waterfall": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "bankClaim": {
+                          "type": "string"
+                        },
+                        "payout": {
+                          "type": "string"
+                        },
+                        "toBank": {
+                          "type": "string"
+                        },
+                        "toSupplier": {
+                          "type": "string"
+                        },
+                        "bankShortfall": {
+                          "type": "string"
+                        },
+                        "supplierLoss": {
+                          "type": "string"
+                        },
+                        "insurerLoss": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "bankClaim",
+                        "payout",
+                        "toBank",
+                        "toSupplier",
+                        "bankShortfall",
+                        "supplierLoss",
+                        "insurerLoss"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "filedAt": {
+                      "type": "string"
+                    },
+                    "decidedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "paidAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "bankName": {
+                      "type": "string"
+                    },
+                    "insurerName": {
+                      "type": "string"
+                    },
+                    "supplierName": {
+                      "type": "string"
+                    },
+                    "recoveries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "gross": {
+                            "type": "string"
+                          },
+                          "costs": {
+                            "type": "string"
+                          },
+                          "net": {
+                            "type": "string"
+                          },
+                          "shares": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "note": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "gross",
+                          "costs",
+                          "net",
+                          "shares",
+                          "note",
+                          "at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "invoiceId",
+                    "invoiceNumber",
+                    "status",
+                    "currency",
+                    "faceAmount",
+                    "advanceAmount",
+                    "coverPct",
+                    "claimedAmount",
+                    "approvedAmount",
+                    "decisionReason",
+                    "exclusions",
+                    "documents",
+                    "waterfall",
+                    "filedAt",
+                    "decidedAt",
+                    "paidAt",
+                    "bankName",
+                    "insurerName",
+                    "supplierName",
+                    "recoveries"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/claims": {
+      "get": {
+        "summary": "Claims my organisation is party to",
+        "tags": [
+          "recovery"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "invoiceId": {
+                            "type": "string"
+                          },
+                          "invoiceNumber": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "faceAmount": {
+                            "type": "string"
+                          },
+                          "advanceAmount": {
+                            "type": "string"
+                          },
+                          "coverPct": {
+                            "type": "string"
+                          },
+                          "claimedAmount": {
+                            "type": "string"
+                          },
+                          "approvedAmount": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "decisionReason": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "exclusions": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "code": {
+                                  "type": "string"
+                                },
+                                "detail": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "code",
+                                "detail"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "documents": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "docType": {
+                                  "type": "string"
+                                },
+                                "fileId": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "docType",
+                                "fileId"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "waterfall": {
+                            "nullable": true,
+                            "type": "object",
+                            "properties": {
+                              "bankClaim": {
+                                "type": "string"
+                              },
+                              "payout": {
+                                "type": "string"
+                              },
+                              "toBank": {
+                                "type": "string"
+                              },
+                              "toSupplier": {
+                                "type": "string"
+                              },
+                              "bankShortfall": {
+                                "type": "string"
+                              },
+                              "supplierLoss": {
+                                "type": "string"
+                              },
+                              "insurerLoss": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "bankClaim",
+                              "payout",
+                              "toBank",
+                              "toSupplier",
+                              "bankShortfall",
+                              "supplierLoss",
+                              "insurerLoss"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "filedAt": {
+                            "type": "string"
+                          },
+                          "decidedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "paidAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "bankName": {
+                            "type": "string"
+                          },
+                          "insurerName": {
+                            "type": "string"
+                          },
+                          "supplierName": {
+                            "type": "string"
+                          },
+                          "recoveries": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "gross": {
+                                  "type": "string"
+                                },
+                                "costs": {
+                                  "type": "string"
+                                },
+                                "net": {
+                                  "type": "string"
+                                },
+                                "shares": {
+                                  "type": "object",
+                                  "additionalProperties": {
+                                    "type": "string"
+                                  }
+                                },
+                                "note": {
+                                  "nullable": true,
+                                  "type": "string"
+                                },
+                                "at": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "gross",
+                                "costs",
+                                "net",
+                                "shares",
+                                "note",
+                                "at"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "invoiceId",
+                          "invoiceNumber",
+                          "status",
+                          "currency",
+                          "faceAmount",
+                          "advanceAmount",
+                          "coverPct",
+                          "claimedAmount",
+                          "approvedAmount",
+                          "decisionReason",
+                          "exclusions",
+                          "documents",
+                          "waterfall",
+                          "filedAt",
+                          "decidedAt",
+                          "paidAt",
+                          "bankName",
+                          "insurerName",
+                          "supplierName",
+                          "recoveries"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/claims/{id}": {
+      "get": {
+        "summary": "One claim with documents, exclusions, waterfall and recoveries",
+        "tags": [
+          "recovery"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "invoiceId": {
+                      "type": "string"
+                    },
+                    "invoiceNumber": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "currency": {
+                      "type": "string"
+                    },
+                    "faceAmount": {
+                      "type": "string"
+                    },
+                    "advanceAmount": {
+                      "type": "string"
+                    },
+                    "coverPct": {
+                      "type": "string"
+                    },
+                    "claimedAmount": {
+                      "type": "string"
+                    },
+                    "approvedAmount": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "decisionReason": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "exclusions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "detail"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "documents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "docType": {
+                            "type": "string"
+                          },
+                          "fileId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "docType",
+                          "fileId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "waterfall": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "bankClaim": {
+                          "type": "string"
+                        },
+                        "payout": {
+                          "type": "string"
+                        },
+                        "toBank": {
+                          "type": "string"
+                        },
+                        "toSupplier": {
+                          "type": "string"
+                        },
+                        "bankShortfall": {
+                          "type": "string"
+                        },
+                        "supplierLoss": {
+                          "type": "string"
+                        },
+                        "insurerLoss": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "bankClaim",
+                        "payout",
+                        "toBank",
+                        "toSupplier",
+                        "bankShortfall",
+                        "supplierLoss",
+                        "insurerLoss"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "filedAt": {
+                      "type": "string"
+                    },
+                    "decidedAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "paidAt": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "bankName": {
+                      "type": "string"
+                    },
+                    "insurerName": {
+                      "type": "string"
+                    },
+                    "supplierName": {
+                      "type": "string"
+                    },
+                    "recoveries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "gross": {
+                            "type": "string"
+                          },
+                          "costs": {
+                            "type": "string"
+                          },
+                          "net": {
+                            "type": "string"
+                          },
+                          "shares": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "note": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "gross",
+                          "costs",
+                          "net",
+                          "shares",
+                          "note",
+                          "at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "invoiceId",
+                    "invoiceNumber",
+                    "status",
+                    "currency",
+                    "faceAmount",
+                    "advanceAmount",
+                    "coverPct",
+                    "claimedAmount",
+                    "approvedAmount",
+                    "decisionReason",
+                    "exclusions",
+                    "documents",
+                    "waterfall",
+                    "filedAt",
+                    "decidedAt",
+                    "paidAt",
+                    "bankName",
+                    "insurerName",
+                    "supplierName",
+                    "recoveries"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/claims/{id}/review": {
+      "post": {
+        "summary": "Insurer starts reviewing: documents and exclusions are checked",
+        "tags": [
+          "recovery"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "exclusions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "detail"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "exclusions"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/claims/{id}/decision": {
+      "post": {
+        "summary": "Insurer approves in full, approves less, or rejects",
+        "tags": [
+          "recovery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "approve",
+                      "partial",
+                      "reject"
+                    ]
+                  },
+                  "approvedAmount": {
+                    "type": "string",
+                    "pattern": "^\\d+(\\.\\d{1,2})?$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "decision"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "approvedAmount": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "waterfall": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "bankClaim": {
+                          "type": "string"
+                        },
+                        "payout": {
+                          "type": "string"
+                        },
+                        "toBank": {
+                          "type": "string"
+                        },
+                        "toSupplier": {
+                          "type": "string"
+                        },
+                        "bankShortfall": {
+                          "type": "string"
+                        },
+                        "supplierLoss": {
+                          "type": "string"
+                        },
+                        "insurerLoss": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "bankClaim",
+                        "payout",
+                        "toBank",
+                        "toSupplier",
+                        "bankShortfall",
+                        "supplierLoss",
+                        "insurerLoss"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "exclusions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "detail": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "code",
+                          "detail"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "recourseId": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "approvedAmount",
+                    "waterfall",
+                    "exclusions",
+                    "recourseId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/claims/{id}/pay": {
+      "post": {
+        "summary": "Insurer records the payout; the waterfall pays the bank first, then the supplier’s retention",
+        "tags": [
+          "recovery"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true,
+                  "type": "object",
+                  "properties": {
+                    "bankClaim": {
+                      "type": "string"
+                    },
+                    "payout": {
+                      "type": "string"
+                    },
+                    "toBank": {
+                      "type": "string"
+                    },
+                    "toSupplier": {
+                      "type": "string"
+                    },
+                    "bankShortfall": {
+                      "type": "string"
+                    },
+                    "supplierLoss": {
+                      "type": "string"
+                    },
+                    "insurerLoss": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "bankClaim",
+                    "payout",
+                    "toBank",
+                    "toSupplier",
+                    "bankShortfall",
+                    "supplierLoss",
+                    "insurerLoss"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/claims/{id}/recoveries": {
+      "post": {
+        "summary": "Bank records a recovery from the buyer; net of costs it is shared pro rata to losses",
+        "tags": [
+          "recovery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "gross": {
+                    "type": "string",
+                    "pattern": "^\\d+(\\.\\d{1,2})?$"
+                  },
+                  "costs": {
+                    "default": "0.00",
+                    "type": "string",
+                    "pattern": "^\\d+(\\.\\d{1,2})?$"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "gross"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "net": {
+                      "type": "string"
+                    },
+                    "shares": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "net",
+                    "shares"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recovery/recourse": {
+      "get": {
+        "summary": "What a supplier owes its bank, in plain terms (or what a bank is owed)",
+        "tags": [
+          "recovery"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "invoiceId": {
+                            "type": "string"
+                          },
+                          "invoiceNumber": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "cause": {
+                            "type": "string"
+                          },
+                          "amountOwed": {
+                            "type": "string"
+                          },
+                          "outstanding": {
+                            "type": "string"
+                          },
+                          "smallSupplier": {
+                            "type": "boolean"
+                          },
+                          "mode": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "plan": {
+                            "nullable": true,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "dueOn": {
+                                  "type": "string"
+                                },
+                                "amount": {
+                                  "type": "string"
+                                },
+                                "paid": {
+                                  "type": "boolean"
+                                }
+                              },
+                              "required": [
+                                "dueOn",
+                                "amount",
+                                "paid"
+                              ],
+                              "additionalProperties": false
+                            }
+                          },
+                          "note": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "supplierName": {
+                            "type": "string"
+                          },
+                          "bankName": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "payments": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "amount": {
+                                  "type": "string"
+                                },
+                                "source": {
+                                  "type": "string"
+                                },
+                                "note": {
+                                  "nullable": true,
+                                  "type": "string"
+                                },
+                                "at": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "amount",
+                                "source",
+                                "note",
+                                "at"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "invoiceId",
+                          "invoiceNumber",
+                          "currency",
+                          "cause",
+                          "amountOwed",
+                          "outstanding",
+                          "smallSupplier",
+                          "mode",
+                          "status",
+                          "plan",
+                          "note",
+                          "supplierName",
+                          "bankName",
+                          "createdAt",
+                          "payments"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recovery/recourse/{id}/mode": {
+      "post": {
+        "summary": "Small supplier chooses how to repay: offset of at most 20% of each payout, or a 90-day plan",
+        "tags": [
+          "recovery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "offset_20pct",
+                      "plan_90d"
+                    ]
+                  }
+                },
+                "required": [
+                  "mode"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mode": {
+                      "type": "string"
+                    },
+                    "plan": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "dueOn": {
+                            "type": "string"
+                          },
+                          "amount": {
+                            "type": "string"
+                          },
+                          "paid": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "dueOn",
+                          "amount",
+                          "paid"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "mode",
+                    "plan"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/recovery/recourse/{id}/payments": {
+      "post": {
+        "summary": "Bank records a repayment received from the supplier",
+        "tags": [
+          "recovery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "amount": {
+                    "type": "string",
+                    "pattern": "^\\d+(\\.\\d{1,2})?$"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 300
+                  }
+                },
+                "required": [
+                  "amount"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/export-proceeds": {
+      "get": {
+        "summary": "Export proceeds realisation tracker",
+        "tags": [
+          "export"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "invoiceId": {
+                            "type": "string"
+                          },
+                          "invoiceNumber": {
+                            "type": "string"
+                          },
+                          "currency": {
+                            "type": "string"
+                          },
+                          "amountForeign": {
+                            "type": "string"
+                          },
+                          "shipmentDate": {
+                            "type": "string"
+                          },
+                          "realisationDeadline": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "type": "string"
+                          },
+                          "realisedInr": {
+                            "type": "string"
+                          },
+                          "realisedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "reportedAt": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "chainBroken": {
+                            "type": "boolean"
+                          },
+                          "chainNote": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "daysLeft": {
+                            "type": "number"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "invoiceId",
+                          "invoiceNumber",
+                          "currency",
+                          "amountForeign",
+                          "shipmentDate",
+                          "realisationDeadline",
+                          "status",
+                          "realisedInr",
+                          "realisedAt",
+                          "reportedAt",
+                          "chainBroken",
+                          "chainNote",
+                          "daysLeft"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/export-proceeds/{id}/report": {
+      "post": {
+        "summary": "Authorised dealer bank records that the realisation was reported",
+        "tags": [
+          "export"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reference": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 100
+                  }
+                },
+                "required": [
+                  "reference"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
           }
         }
       }

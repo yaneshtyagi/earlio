@@ -5,7 +5,7 @@ import pg from 'pg';
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const MIGRATIONS_DIR = join(here, '../../migrations');
-const SCHEMAS = ['identity', 'audit', 'platform', 'compliance', 'invoicing', 'terms', 'insurance', 'marketplace', 'settlement', 'notify'];
+const SCHEMAS = ['identity', 'audit', 'platform', 'compliance', 'invoicing', 'terms', 'insurance', 'marketplace', 'settlement', 'notify', 'recovery'];
 /** Tables the application role may only read and append to. */
 const APPEND_ONLY = ['audit.events', 'audit.anchors'];
 

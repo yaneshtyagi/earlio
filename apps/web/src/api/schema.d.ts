@@ -2003,7 +2003,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Raise a dispute during the dispute window (freezes the invoice) */
+        /** Raise a dispute (during the dispute window, or on a funded / overdue invoice); freezes the invoice */
         post: {
             parameters: {
                 query?: never;
@@ -2017,6 +2017,7 @@ export interface paths {
                 content: {
                     "application/json": {
                         reason: string;
+                        amount?: string;
                     };
                 };
             };
@@ -5434,6 +5435,1356 @@ export interface paths {
                             ok: true;
                         };
                     };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/disputes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Disputes my organisation is party to (platform staff see the whole queue) */
+        get: {
+            parameters: {
+                query?: {
+                    status?: "open" | "resolved";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                invoiceId: string;
+                                invoiceNumber: string;
+                                status: string;
+                                phase: string;
+                                reason: string;
+                                amount: string | null;
+                                cause: string | null;
+                                outcome: string | null;
+                                raisedByOrg: string;
+                                raisedByName: string;
+                                supplierName: string;
+                                buyerName: string;
+                                createdAt: string;
+                                responseDueAt: string | null;
+                                escalateAt: string | null;
+                                timeoutAt: string | null;
+                                resolvedAt: string | null;
+                                decisionNote: string | null;
+                                creditAmount: string | null;
+                                financed: boolean;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/disputes/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dispute with its thread, evidence and timers */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            dispute: {
+                                id: string;
+                                invoiceId: string;
+                                invoiceNumber: string;
+                                status: string;
+                                phase: string;
+                                reason: string;
+                                amount: string | null;
+                                cause: string | null;
+                                outcome: string | null;
+                                raisedByOrg: string;
+                                raisedByName: string;
+                                supplierName: string;
+                                buyerName: string;
+                                createdAt: string;
+                                responseDueAt: string | null;
+                                escalateAt: string | null;
+                                timeoutAt: string | null;
+                                resolvedAt: string | null;
+                                decisionNote: string | null;
+                                creditAmount: string | null;
+                                financed: boolean;
+                            };
+                            causes: string[];
+                            messages: {
+                                id: string;
+                                kind: string;
+                                authorName: string;
+                                body: string;
+                                fileId: string | null;
+                                createdAt: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/disputes/{id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Post a message or attach evidence to a dispute */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        body: string;
+                        /** Format: uuid */
+                        fileId?: string;
+                        /**
+                         * @default message
+                         * @enum {string}
+                         */
+                        kind?: "message" | "evidence";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/disputes/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Withdraw a dispute I raised (concedes the point) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/disputes/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Platform: start reviewing a dispute */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/disputes/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Platform: decide a dispute; the decision is applied to the invoice and its financing (credit note, recourse, unfreeze) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        outcome: "buyer" | "supplier";
+                        cause?: string;
+                        creditAmount?: string;
+                        note: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            status: string;
+                            creditNote: string | null;
+                            recourseId: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/credit-notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Credit notes on an invoice */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                number: string;
+                                stage: string;
+                                currency: string;
+                                amount: string;
+                                priorAmount: string;
+                                newAmount: string;
+                                supplierOwes: string;
+                                reason: string;
+                                createdAt: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Buyer issues a credit note (before funding it reduces the invoice; after funding it reduces exposure) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        amount: string;
+                        reason: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            number: string;
+                            stage: string;
+                            currency: string;
+                            amount: string;
+                            priorAmount: string;
+                            newAmount: string;
+                            supplierOwes: string;
+                            reason: string;
+                            createdAt: string;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/dispute-timers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dispute timers */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            responseHours: number;
+                            escalateAfterHours: number;
+                            timeoutAfterHours: number;
+                        };
+                    };
+                };
+            };
+        };
+        /** Set dispute timers (response ≤ escalation < timeout) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        responseHours: number;
+                        escalateAfterHours: number;
+                        timeoutAfterHours: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            responseHours: number;
+                            escalateAfterHours: number;
+                            timeoutAfterHours: number;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recovery/defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overdue and defaulted financed invoices with late interest, waiting period and claim deadline */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                invoiceId: string;
+                                invoiceNumber: string;
+                                status: string;
+                                currency: string;
+                                principal: string;
+                                financingRatePct: string;
+                                dueDate: string;
+                                overdueDays: number;
+                                frozenDays: number;
+                                lateInterest: string;
+                                waitingDays: number;
+                                waitingEndsOn: string;
+                                claimDeadlineOn: string | null;
+                                insolvency: boolean;
+                                dunningLevel: number;
+                                insured: boolean;
+                                bankName: string;
+                                buyerName: string;
+                                supplierName: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recovery/defaults/{invoiceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One default, with the live late-interest figure */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    invoiceId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            invoiceId: string;
+                            invoiceNumber: string;
+                            status: string;
+                            currency: string;
+                            principal: string;
+                            financingRatePct: string;
+                            dueDate: string;
+                            overdueDays: number;
+                            frozenDays: number;
+                            lateInterest: string;
+                            waitingDays: number;
+                            waitingEndsOn: string;
+                            claimDeadlineOn: string | null;
+                            insolvency: boolean;
+                            dunningLevel: number;
+                            insured: boolean;
+                            bankName: string;
+                            buyerName: string;
+                            supplierName: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recovery/defaults/{invoiceId}/insolvency": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Report a buyer insolvency event: the waiting period is waived (A-14) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    invoiceId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reference: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bank files an insurance claim once the waiting period has ended (or the buyer is insolvent) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        documents: {
+                            /** @enum {string} */
+                            docType: "invoice" | "acceptance" | "delivery_proof" | "statement";
+                            /** Format: uuid */
+                            fileId: string;
+                        }[];
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            invoiceId: string;
+                            invoiceNumber: string;
+                            status: string;
+                            currency: string;
+                            faceAmount: string;
+                            advanceAmount: string;
+                            coverPct: string;
+                            claimedAmount: string;
+                            approvedAmount: string | null;
+                            decisionReason: string | null;
+                            exclusions: {
+                                code: string;
+                                detail: string;
+                            }[];
+                            documents: {
+                                docType: string;
+                                fileId: string;
+                            }[];
+                            waterfall: {
+                                bankClaim: string;
+                                payout: string;
+                                toBank: string;
+                                toSupplier: string;
+                                bankShortfall: string;
+                                supplierLoss: string;
+                                insurerLoss: string;
+                            } | null;
+                            filedAt: string;
+                            decidedAt: string | null;
+                            paidAt: string | null;
+                            bankName: string;
+                            insurerName: string;
+                            supplierName: string;
+                            recoveries: {
+                                id: string;
+                                gross: string;
+                                costs: string;
+                                net: string;
+                                shares: {
+                                    [key: string]: string;
+                                };
+                                note: string | null;
+                                at: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Claims my organisation is party to */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                invoiceId: string;
+                                invoiceNumber: string;
+                                status: string;
+                                currency: string;
+                                faceAmount: string;
+                                advanceAmount: string;
+                                coverPct: string;
+                                claimedAmount: string;
+                                approvedAmount: string | null;
+                                decisionReason: string | null;
+                                exclusions: {
+                                    code: string;
+                                    detail: string;
+                                }[];
+                                documents: {
+                                    docType: string;
+                                    fileId: string;
+                                }[];
+                                waterfall: {
+                                    bankClaim: string;
+                                    payout: string;
+                                    toBank: string;
+                                    toSupplier: string;
+                                    bankShortfall: string;
+                                    supplierLoss: string;
+                                    insurerLoss: string;
+                                } | null;
+                                filedAt: string;
+                                decidedAt: string | null;
+                                paidAt: string | null;
+                                bankName: string;
+                                insurerName: string;
+                                supplierName: string;
+                                recoveries: {
+                                    id: string;
+                                    gross: string;
+                                    costs: string;
+                                    net: string;
+                                    shares: {
+                                        [key: string]: string;
+                                    };
+                                    note: string | null;
+                                    at: string;
+                                }[];
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/claims/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One claim with documents, exclusions, waterfall and recoveries */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            invoiceId: string;
+                            invoiceNumber: string;
+                            status: string;
+                            currency: string;
+                            faceAmount: string;
+                            advanceAmount: string;
+                            coverPct: string;
+                            claimedAmount: string;
+                            approvedAmount: string | null;
+                            decisionReason: string | null;
+                            exclusions: {
+                                code: string;
+                                detail: string;
+                            }[];
+                            documents: {
+                                docType: string;
+                                fileId: string;
+                            }[];
+                            waterfall: {
+                                bankClaim: string;
+                                payout: string;
+                                toBank: string;
+                                toSupplier: string;
+                                bankShortfall: string;
+                                supplierLoss: string;
+                                insurerLoss: string;
+                            } | null;
+                            filedAt: string;
+                            decidedAt: string | null;
+                            paidAt: string | null;
+                            bankName: string;
+                            insurerName: string;
+                            supplierName: string;
+                            recoveries: {
+                                id: string;
+                                gross: string;
+                                costs: string;
+                                net: string;
+                                shares: {
+                                    [key: string]: string;
+                                };
+                                note: string | null;
+                                at: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/claims/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Insurer starts reviewing: documents and exclusions are checked */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            exclusions: {
+                                code: string;
+                                detail: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/claims/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Insurer approves in full, approves less, or rejects */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        decision: "approve" | "partial" | "reject";
+                        approvedAmount?: string;
+                        reason?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            status: string;
+                            approvedAmount: string | null;
+                            waterfall: {
+                                bankClaim: string;
+                                payout: string;
+                                toBank: string;
+                                toSupplier: string;
+                                bankShortfall: string;
+                                supplierLoss: string;
+                                insurerLoss: string;
+                            } | null;
+                            exclusions: {
+                                code: string;
+                                detail: string;
+                            }[];
+                            recourseId: string | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/claims/{id}/pay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Insurer records the payout; the waterfall pays the bank first, then the supplier’s retention */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            bankClaim: string;
+                            payout: string;
+                            toBank: string;
+                            toSupplier: string;
+                            bankShortfall: string;
+                            supplierLoss: string;
+                            insurerLoss: string;
+                        } | null;
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/claims/{id}/recoveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bank records a recovery from the buyer; net of costs it is shared pro rata to losses */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        gross: string;
+                        /** @default 0.00 */
+                        costs?: string;
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            id: string;
+                            net: string;
+                            shares: {
+                                [key: string]: string;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recovery/recourse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What a supplier owes its bank, in plain terms (or what a bank is owed) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                invoiceId: string;
+                                invoiceNumber: string;
+                                currency: string;
+                                cause: string;
+                                amountOwed: string;
+                                outstanding: string;
+                                smallSupplier: boolean;
+                                mode: string;
+                                status: string;
+                                plan: {
+                                    dueOn: string;
+                                    amount: string;
+                                    paid: boolean;
+                                }[] | null;
+                                note: string | null;
+                                supplierName: string;
+                                bankName: string;
+                                createdAt: string;
+                                payments: {
+                                    amount: string;
+                                    source: string;
+                                    note: string | null;
+                                    at: string;
+                                }[];
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recovery/recourse/{id}/mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Small supplier chooses how to repay: offset of at most 20% of each payout, or a 90-day plan */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        mode: "offset_20pct" | "plan_90d";
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            mode: string;
+                            plan: {
+                                dueOn: string;
+                                amount: string;
+                                paid: boolean;
+                            }[] | null;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/recovery/recourse/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bank records a repayment received from the supplier */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        amount: string;
+                        note?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/export-proceeds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export proceeds realisation tracker */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            items: {
+                                id: string;
+                                invoiceId: string;
+                                invoiceNumber: string;
+                                currency: string;
+                                amountForeign: string;
+                                shipmentDate: string;
+                                realisationDeadline: string;
+                                status: string;
+                                realisedInr: string;
+                                realisedAt: string | null;
+                                reportedAt: string | null;
+                                chainBroken: boolean;
+                                chainNote: string | null;
+                                daysLeft: number;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/export-proceeds/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Authorised dealer bank records that the realisation was reported */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        reference: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
                 };
             };
         };

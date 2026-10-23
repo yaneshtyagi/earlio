@@ -271,3 +271,18 @@ export async function coverForInvoice(tx: Tx, invoiceId: string) {
   const c = await tx.elevated(() => tx.maybe<any>('select * from insurance.cover_records where invoice_id = $1', [invoiceId]));
   return c ? { status: c.status as string, coverPct: c.cover_pct == null ? null : Number(c.cover_pct), insurerOrgId: c.insurer_org_id as string | null } : null;
 }
+
+/** The invoice amount changed (credit note): scale the reserved / consumed cover and give the difference back to the insurer's buyer limit (BR-13). */
+export async function rescaleCover(tx: Tx, svc: Services, invoiceId: string, newFace: string, oldFace: string) {
+  return tx.elevated(async () => {
+    const c = await tx.maybe<any>('select * from insurance.cover_records where invoice_id = $1 for update', [invoiceId]);
+    if (!c) return;
+    const ratio = D(newFace).div(oldFace);
+    const newReserved = D(c.reserved_usd).times(ratio).toDecimalPlaces(2), newConsumed = D(c.consumed_usd).times(ratio).toDecimalPlaces(2);
+    const dr = D(c.reserved_usd).minus(newReserved), dc = D(c.consumed_usd).minus(newConsumed);
+    if (dr.gt(0)) await moveBuyerLimit(tx, svc, 'release_reserved', c.insurer_org_id, c.buyer_org_id, dr.toFixed(2));
+    if (dc.gt(0)) await moveBuyerLimit(tx, svc, 'release_used', c.insurer_org_id, c.buyer_org_id, dc.toFixed(2));
+    await tx.query('update insurance.cover_records set reserved_usd = $2, consumed_usd = $3, invoice_amount = $4, insured_amount = case when insured_amount is null then null else round(insured_amount * $5, 2) end where id = $1',
+      [c.id, newReserved.toFixed(2), newConsumed.toFixed(2), newFace, ratio.toFixed(10)]);
+  });
+}

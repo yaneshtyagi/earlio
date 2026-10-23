@@ -10,6 +10,9 @@ import { releaseUsed } from '../identity/limits';
 import { releaseCover } from '../insurance/service';
 import { bankRate } from '../pricing/fx';
 import { acceptMismatch, raiseException } from './disbursement';
+import { addRealised, noteFinancing, realiseEarly } from './export';
+import { applyRecourseOffset, settleRecourseForInvoice } from '../recovery/recourse';
+import { accruedInterest, markRecovered } from '../recovery/service';
 
 const ref = (humanId: string, invoiceId: string) => `EARL-${humanId}-${createHash('sha256').update(invoiceId).digest('hex').slice(0, 4).toUpperCase()}`;
 const now_ = (svc: Services) => svc.clock.now();
@@ -44,6 +47,7 @@ export async function createExpectation(tx: Tx, svc: Services, ctx: Ctx, frId: s
     `insert into settlement.expectations (invoice_id, invoice_number, reference, bank_org_id, supplier_org_id, buyer_org_id, collection_account_id, currency, expected_amount, advance_amount, retention_amount, fx_spread_pct, platform_fee_note, due_date, created_at, updated_at)
      values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$15) returning *`,
     [inv.id, inv.human_id, ref(inv.human_id, inv.id), fr.bank_org_id, fr.supplier_org_id, fr.buyer_org_id, acct.id, inv.currency, face, b.advance, b.retention, offer.fx_spread_pct, b.platformFee, inv.due_date, now]);
+  await noteFinancing(tx, svc, inv.id, fr.bank_org_id);
   await audit(tx, ctx, now, { action: 'settlement.expectation_created', entityType: 'invoice', entityId: inv.id, orgId: fr.buyer_org_id, after: { reference: row.reference } });
   await emit(tx, now, 'settlement.payment_due', { invoiceId: inv.id, humanId: inv.human_id, reference: row.reference, dueDate: String(inv.due_date).slice(0, 10), amount: face, currency: inv.currency }, [fr.buyer_org_id, fr.bank_org_id, fr.supplier_org_id]);
   return row;
@@ -101,15 +105,23 @@ async function applyPayment(tx: Tx, svc: Services, ctx: Ctx, exp: any, txn: any)
     return 'short_paid';
   }
   if (total.gt(expected)) {
-    await raiseException(tx, svc, { type: 'OverPaid', bankOrgId: exp.bank_org_id, invoiceId: exp.invoice_id, invoiceNumber: exp.invoice_number, expectationId: exp.id, bankTxnId: txn.id, amount: total.minus(expected).toFixed(2), currency: exp.currency,
-      detail: `${total.minus(expected).toFixed(2)} was paid over the amount due and should be refunded to the buyer.` });
+    // Money above the amount due first covers late interest the buyer owes on an overdue invoice; only the rest is an overpayment.
+    const over = total.minus(expected);
+    const interest = D(await accruedInterest(tx, svc, exp.invoice_id, new Date(String(txn.value_date).slice(0, 10) + 'T12:00:00Z')));
+    const toInterest = over.lt(interest) ? over : interest;
+    if (toInterest.gt(0)) await ledger(tx, svc, { invoiceId: exp.invoice_id, invoiceNumber: exp.invoice_number, bankOrgId: exp.bank_org_id, supplierOrgId: exp.supplier_org_id, buyerOrgId: exp.buyer_org_id, kind: 'late_interest', party: 'bank', currency: exp.currency, amount: toInterest.toFixed(2), note: 'Late interest paid by the buyer (financing rate + 2 points)' });
+    if (over.minus(toInterest).gt(0.005)) await raiseException(tx, svc, { type: 'OverPaid', bankOrgId: exp.bank_org_id, invoiceId: exp.invoice_id, invoiceNumber: exp.invoice_number, expectationId: exp.id, bankTxnId: txn.id, amount: over.minus(toInterest).toFixed(2), currency: exp.currency,
+      detail: `${over.minus(toInterest).toFixed(2)} was paid over the amount due and should be refunded to the buyer.` });
+  } else if (late && total.eq(expected)) {
+    const interest = D(await accruedInterest(tx, svc, exp.invoice_id, new Date(String(txn.value_date).slice(0, 10) + 'T12:00:00Z')));
+    if (interest.gt(0)) await ledger(tx, svc, { invoiceId: exp.invoice_id, invoiceNumber: exp.invoice_number, bankOrgId: exp.bank_org_id, supplierOrgId: exp.supplier_org_id, buyerOrgId: exp.buyer_org_id, kind: 'late_interest_due', party: 'buyer', currency: exp.currency, amount: interest.toFixed(2), note: 'Late interest still owed by the buyer' });
   }
   if (late) {
     await raiseException(tx, svc, { type: 'Late', bankOrgId: exp.bank_org_id, invoiceId: exp.invoice_id, invoiceNumber: exp.invoice_number, expectationId: exp.id, bankTxnId: txn.id, detail: `Payment arrived on ${String(txn.value_date).slice(0, 10)}, after the due date ${String(exp.due_date).slice(0, 10)}.` });
   }
   await tx.query("update settlement.expectations set status = 'Matched', updated_at = $2 where id = $1", [exp.id, now]);
   await distribute(tx, svc, ctx, exp.id, expected.toFixed(2));
-  return total.gt(expected) ? 'over_paid' : late ? 'late' : 'matched';
+  return late ? 'late' : total.gt(expected) ? 'over_paid' : 'matched';
 }
 
 /** Distribution lines (ST-3): principal to the bank, retention released to the supplier at the settlement FX rate, platform fee noted. */
@@ -124,7 +136,13 @@ async function distribute(tx: Tx, svc: Services, ctx: Ctx, expId: string, availa
   const rate = bankRate(await svc.adapters.fx.mid(pair, now), exp.fx_spread_pct);
   const common = { invoiceId: exp.invoice_id, invoiceNumber: exp.invoice_number, bankOrgId: exp.bank_org_id, supplierOrgId: exp.supplier_org_id, buyerOrgId: exp.buyer_org_id, currency: exp.currency };
   await ledger(tx, svc, { ...common, kind: 'bank_principal', party: 'bank', amount: toBank.toFixed(2), note: 'Principal advanced, returned to the funding bank' });
-  if (toSupplier.gt(0)) await ledger(tx, svc, { ...common, kind: 'retention_release', party: 'supplier', amount: toSupplier.toFixed(2), amountInr: round2(toSupplier.times(rate)).toFixed(2), fxRate: rate.toFixed(4), note: `Retention released, converted at settlement FX ${rate.toFixed(4)}` });
+  if (toSupplier.gt(0)) {
+    const offset = D(await applyRecourseOffset(tx, svc, exp.supplier_org_id, exp.currency, toSupplier.toFixed(2)));
+    const pay = toSupplier.minus(offset);
+    await ledger(tx, svc, { ...common, kind: 'retention_release', party: 'supplier', amount: pay.toFixed(2), amountInr: round2(pay.times(rate)).toFixed(2), fxRate: rate.toFixed(4), note: `Retention released, converted at settlement FX ${rate.toFixed(4)}` });
+    if (offset.gt(0)) await ledger(tx, svc, { ...common, kind: 'recourse_offset', party: 'supplier', amount: offset.toFixed(2), amountInr: round2(offset.times(rate)).toFixed(2), fxRate: rate.toFixed(4), note: 'Withheld to repay recourse owed to the bank (at most 20% of the payout)' });
+    await addRealised(tx, svc, exp.invoice_id, round2(toSupplier.times(rate)).toFixed(2), true);
+  } else await addRealised(tx, svc, exp.invoice_id, '0.00', true);
   if (D(exp.platform_fee_note).gt(0)) await ledger(tx, svc, { ...common, kind: 'platform_fee_note', party: 'platform', amount: D(exp.platform_fee_note).toFixed(2), note: 'Platform fee noted (paid by the bank under its terms)' });
   if (toBank.lt(exp.advance_amount)) await ledger(tx, svc, { ...common, kind: 'shortfall', party: 'bank', amount: D(exp.advance_amount).minus(toBank).toFixed(2), note: 'Shortfall against the advance (see exceptions)' });
   await tx.query("update settlement.expectations set status = 'Distributed', updated_at = $2 where id = $1", [exp.id, now]);
@@ -135,7 +153,9 @@ async function distribute(tx: Tx, svc: Services, ctx: Ctx, expId: string, availa
   await releaseCover(tx, svc, exp.invoice_id);
   let inv = await tx.one<any>('select * from invoicing.invoices where id = $1', [exp.invoice_id]);
   if (inv.status === 'Funded' && exp.late) { await transition(tx, svc, ctx, inv, 'Overdue', { note: 'Paid after the due date', event: 'invoice.overdue' }); inv = await tx.one<any>('select * from invoicing.invoices where id = $1', [exp.invoice_id]); }
-  if (['Funded', 'Overdue', 'Disputed'].includes(inv.status)) await transition(tx, svc, ctx, inv, 'Settled', { note: 'Buyer payment received and distributed', event: 'invoice.settled' });
+  if (['Funded', 'Overdue', 'Disputed', 'Defaulted'].includes(inv.status)) await transition(tx, svc, ctx, inv, 'Settled', { note: 'Buyer payment received and distributed', event: 'invoice.settled' });
+  await markRecovered(tx, svc, exp.invoice_id);
+  await settleRecourseForInvoice(tx, svc, exp.invoice_id);
   await audit(tx, ctx, now, { action: 'settlement.distributed', entityType: 'invoice', entityId: exp.invoice_id, orgId: exp.bank_org_id, after: { toBank: toBank.toFixed(2), toSupplier: toSupplier.toFixed(2) } });
   await audit(tx, ctx, now, { action: 'settlement.distributed', entityType: 'invoice', entityId: exp.invoice_id, orgId: exp.supplier_org_id });
   await emit(tx, now, 'settlement.distributed', { invoiceId: exp.invoice_id, humanId: exp.invoice_number, toBank: toBank.toFixed(2), retention: toSupplier.toFixed(2), currency: exp.currency }, [exp.bank_org_id, exp.supplier_org_id, exp.buyer_org_id]);
@@ -187,6 +207,7 @@ export async function settleEarlyPayments(tx: Tx, svc: Services, ctx: Ctx): Prom
     await ledger(tx, svc, { ...common, kind: 'supplier_credit', party: 'supplier', amount: p.buyer_pays, note: 'Credited to the supplier' });
     if (D(p.commission).gt(0)) await ledger(tx, svc, { ...common, bankOrgId: p.buyer_bank_org_id, kind: 'commission', party: 'bank', amount: p.commission, note: 'Share of the discount booked to the buyer’s bank' });
     await tx.query('update marketplace.early_payments set settled_at = $2 where id = $1', [p.id, now]);
+    await realiseEarly(tx, svc, p.invoice_id, p.currency, p.buyer_pays);
     let inv = await tx.one<any>('select * from invoicing.invoices where id = $1', [p.invoice_id]);
     if (inv.status === 'Funded') { await transition(tx, svc, ctx, inv, 'Settled', { note: 'Early payment credited to the supplier', event: 'invoice.settled' }); inv = await tx.one<any>('select * from invoicing.invoices where id = $1', [p.invoice_id]); }
     if (inv.status === 'Settled') await transition(tx, svc, ctx, inv, 'Closed', { note: 'Early payment complete', event: 'invoice.closed' });

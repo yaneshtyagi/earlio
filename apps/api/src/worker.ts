@@ -7,13 +7,21 @@ import { expireOffers } from './modules/marketplace/service';
 import { retireExpired } from './modules/terms/service';
 import { instructDisbursement, processDisbursements } from './modules/settlement/disbursement';
 import { createExpectation, fetchStatements, markOverdue, reconcile, settleEarlyPayments } from './modules/settlement/collection';
+import { openProceeds, flagOverdueProceeds } from './modules/settlement/export';
+import { openDefault, processDefaults } from './modules/recovery/service';
+import { remindInstallments } from './modules/recovery/recourse';
+import { processDisputeTimers } from './modules/invoicing/disputes';
 import { deliverNotifications, notifySubscriber } from './modules/notify/service';
 
 /** Outbox subscribers: modules react to each other's events here, never by importing each other's tables. */
 export function handlersFor(svc: Services): Record<string, OutboxHandler[]> {
   const ctx = (id: string) => ({ platform: true, correlationId: `evt-${id}` });
   return {
-    'invoice.accepted': [async (tx, e) => { await requestCover(tx, svc, ctx(e.id), e.payload.invoiceId); }],
+    'invoice.accepted': [
+      async (tx, e) => { await requestCover(tx, svc, ctx(e.id), e.payload.invoiceId); },
+      async (tx, e) => { await openProceeds(tx, svc, ctx(e.id), e.payload.invoiceId); },
+    ],
+    'invoice.overdue': [async (tx, e) => { await openDefault(tx, svc, ctx(e.id), e.payload.invoiceId); }],
     'financing.approved': [async (tx, e) => { await instructDisbursement(tx, svc, ctx(e.id), e.payload.financingRequestId); }],
     'financing.funded': [async (tx, e) => { await createExpectation(tx, svc, ctx(e.id), e.payload.financingRequestId); }],
     '*': [notifySubscriber(svc)],
@@ -34,6 +42,9 @@ export async function runWorkOnce(svc: Services): Promise<Record<string, number>
   out.statements = await svc.db.system((tx) => fetchStatements(tx, svc, ctx));
   out.reconciled = await svc.db.system((tx) => reconcile(tx, svc, ctx));
   out.overdue = await svc.db.system((tx) => markOverdue(tx, svc, ctx));
+  out.disputeTimers = await svc.db.system((tx) => processDisputeTimers(tx, svc, ctx));
+  out.installments = await svc.db.system((tx) => remindInstallments(tx, svc));
+  out.proceedsOverdue = await svc.db.system((tx) => flagOverdueProceeds(tx, svc));
   out.earlyPaymentsSettled = await svc.db.system((tx) => settleEarlyPayments(tx, svc, ctx));
   // Disbursement credit → completeFunding → financing.funded → expectation: drain until quiet (bounded).
   for (let i = 0; i < 4; i++) {
@@ -41,6 +52,8 @@ export async function runWorkOnce(svc: Services): Promise<Record<string, number>
     out.events += n;
     if (!n) break;
   }
+  out.defaults = await svc.db.system((tx) => processDefaults(tx, svc, ctx)); // after events: a default opened this pass is processed this pass
+  out.events += await drainOutbox((fn) => svc.db.system(fn), handlersFor(svc), svc.clock.now());
   out.notificationsDelivered = await svc.db.system((tx) => deliverNotifications(tx, svc));
   return out;
 }

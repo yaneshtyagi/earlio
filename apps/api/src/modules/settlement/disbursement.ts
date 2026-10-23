@@ -1,5 +1,6 @@
 import type { Ctx, Tx } from '../../db/pool';
 import type { Services } from '../../services';
+import { addRealised } from './export';
 import { DomainError, conflict, notFound } from '../../kernel/errors';
 import { audit } from '../../platform/audit';
 import { emit } from '../../platform/outbox';
@@ -90,6 +91,7 @@ async function credited(tx: Tx, svc: Services, ctx: Ctx, d: any) {
   await tx.query(
     `insert into settlement.ledger_entries (invoice_id, invoice_number, bank_org_id, supplier_org_id, kind, party, currency, amount, amount_inr, fx_rate, note, at) values ($1,$2,$3,$4,'disbursement','supplier',$5,$6,$7,$8,$9,$10)`,
     [d.invoice_id, d.invoice_number, d.bank_org_id, d.supplier_org_id, d.currency, d.amount_foreign, d.amount_inr, d.fx_rate, `Net cash disbursed at the bank's rate ${d.fx_rate}`, now]);
+  await addRealised(tx, svc, d.invoice_id, d.amount_inr);
   await emit(tx, now, 'disbursement.credited', { disbursementId: d.id, invoiceId: d.invoice_id, humanId: d.invoice_number, amountInr: d.amount_inr }, [d.supplier_org_id, d.bank_org_id]);
   await completeFunding(tx, svc, ctx, d.financing_request_id);
 }

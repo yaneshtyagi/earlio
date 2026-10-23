@@ -136,10 +136,10 @@ export function invoicingRoutes(app: FastifyInstance) {
 
   r.post('/api/v1/invoices/:id/disputes', {
     preHandler: async (req, reply) => { await requireOrgType('supplier', 'buyer')(req, reply); await requirePerm('dispute:raise')(req, reply); },
-    schema: { tags: ['invoices'], summary: 'Raise a dispute during the dispute window (freezes the invoice)', params: z.object({ id: z.string() }),
-      body: z.object({ reason: z.string().min(3).max(2000) }), response: { 201: z.object({ id: z.string() }) } },
+    schema: { tags: ['invoices'], summary: 'Raise a dispute (during the dispute window, or on a funded / overdue invoice); freezes the invoice', params: z.object({ id: z.string() }),
+      body: z.object({ reason: z.string().min(3).max(2000), amount: z.string().regex(/^\d+(\.\d{1,2})?$/).optional() }), response: { 201: z.object({ id: z.string() }) } },
   }, async (req, reply) => {
-    const id = await svc.db.tx(req.ctx, (tx) => raiseDispute(tx, svc, req.ctx, req.params.id, req.auth!.orgId!, req.body.reason));
+    const id = await svc.db.tx(req.ctx, (tx) => raiseDispute(tx, svc, req.ctx, req.params.id, req.auth!.orgId!, req.body.reason, { amount: req.body.amount }));
     return reply.code(201).send({ id });
   });
 
