@@ -6,6 +6,7 @@ import { SimSanctionsProvider, type SanctionsProvider } from './sanctions';
 import { SimKycProvider, type KycProvider } from './kyc';
 import { SimEInvoiceService, SimErpInvoiceSource, type EInvoiceService, type ErpInvoiceSource } from './erp';
 import { SimFxRateProvider, type FxRateProvider } from './fx';
+import { SimBankGateway, type PaymentGateway } from './payments';
 import { SimInsurerApi, type InsurerGateway } from './insurer';
 import { SimTimestampAuthority, type TimestampAuthority } from '../platform/audit';
 
@@ -20,6 +21,7 @@ export interface Adapters {
   erp: ErpInvoiceSource;
   fx: FxRateProvider;
   insurerApi: InsurerGateway;
+  payments: PaymentGateway;
 }
 
 export function defaultAdapters(config: Config, overrides: Partial<Adapters> = {}): Adapters {
@@ -33,6 +35,7 @@ export function defaultAdapters(config: Config, overrides: Partial<Adapters> = {
     erp: new SimErpInvoiceSource(),
     fx: new SimFxRateProvider(),
     insurerApi: new SimInsurerApi(),
+    payments: new SimBankGateway(),
     ...overrides,
   };
 }

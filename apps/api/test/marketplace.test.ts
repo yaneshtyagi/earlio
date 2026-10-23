@@ -39,6 +39,14 @@ async function opened(opts: Parameters<typeof accepted>[0] = {}) {
 }
 const invStatus = async (id: string) => (await shree.req('GET', `/api/v1/invoices/${id}`)).json;
 const offer = async (s: Session, id: string, body: Record<string, unknown> = {}) => s.req('POST', `/api/v1/invoices/${id}/offers`, body);
+/** Disbursement is asynchronous: run the workers, moving the virtual clock past value dates, until the invoice is funded. */
+async function fundIt(invoiceId: string) {
+  for (let i = 0; i < 8; i++) {
+    await env.work();
+    if ((await invStatus(invoiceId)).status === 'Funded') return;
+    env.clock.advanceHours(i % 2 === 0 ? 2 : 24); await logins();
+  }
+}
 const q = <T = any>(sql: string, p: unknown[] = []) => env.svc.db.system((tx) => tx.query<T>(sql, p));
 const limit = async (bank: string, subject: string) => (await q('select * from identity.bank_limits where bank_org_id = $1 and subject_org_id = $2', [env.ids[bank], env.ids[subject]]))[0];
 
@@ -192,7 +200,9 @@ describe('financing request, lien and funding (J-S1)', () => {
     try {
       env.clock.advanceHours(25); await logins();
       const done = await aurelia.req('POST', `/api/v1/financing-requests/${fr.id}/confirm`);
-      expect(done.status, JSON.stringify(done.json)).toBe(200); expect(done.json.status).toBe('Funded');
+      expect(done.status, JSON.stringify(done.json)).toBe(200); expect(done.json.status).toBe('DisbursementInstructed');
+      expect((await invStatus(inv.id)).status).not.toBe('Funded'); // money has not moved yet
+      await fundIt(inv.id);
       const after = await invStatus(inv.id);
       expect(after.status).toBe('Funded'); expect(after.route).toBe('financing');
       const lien = (await q("select status, assignment_ref from marketplace.liens where invoice_id = $1", [inv.id]))[0];
@@ -201,7 +211,7 @@ describe('financing request, lien and funding (J-S1)', () => {
       expect(Number(l.used_usd) - Number(before.used_usd)).toBe(100000); expect(Number(l.reserved_usd)).toBe(Number(before.reserved_usd));
       const cover = (await q('select consumed_usd, reserved_usd from insurance.cover_records where invoice_id = $1', [inv.id]))[0];
       expect(Number(cover.consumed_usd)).toBe(90000); expect(Number(cover.reserved_usd)).toBe(0);
-      expect((await q('select status from marketplace.offers where id = $1', [k.id]))[0].status).toBe('Rejected');
+      expect(['Rejected', 'Expired']).toContain((await q('select status from marketplace.offers where id = $1', [k.id]))[0].status); // never left live
       const hist = (await shree.req('GET', `/api/v1/invoices/${inv.id}`)).json.history.map((h: any) => h.to);
       expect(hist).toEqual(expect.arrayContaining(['OpenForFunding', 'OffersReceived', 'Funded']));
       // route is locked now: no early payment either

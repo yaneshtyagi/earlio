@@ -381,7 +381,7 @@ export async function consentFinancing(tx: Tx, svc: Services, ctx: Ctx, supplier
   return { noticeRef: ref };
 }
 
-async function releaseFinancing(tx: Tx, svc: Services, ctx: Ctx, fr: any, inv: any, newStatus: 'Cancelled' | 'Declined', reason: string, offerBack: boolean) {
+async function releaseFinancing(tx: Tx, svc: Services, ctx: Ctx, fr: any, inv: any, newStatus: 'Cancelled' | 'Declined' | 'Failed', reason: string, offerBack: boolean) {
   const now = svc.clock.now();
   await tx.query('update marketplace.financing_requests set status = $2, decision_reason = $3, decided_by = $4, decided_at = $5, updated_at = $5 where id = $1', [fr.id, newStatus, reason, ctx.userId ?? null, now]);
   await tx.elevated(() => tx.query("update marketplace.liens set status = 'Released', released_at = $2, release_reason = $3 where financing_request_id = $1 and status in ('Reserved','Active')", [fr.id, now, reason]));
@@ -390,7 +390,7 @@ async function releaseFinancing(tx: Tx, svc: Services, ctx: Ctx, fr: any, inv: a
   const stillValid = new Date(o.valid_until) > now;
   await tx.elevated(() => tx.query('update marketplace.offers set status = $2, decision_note = $3, updated_at = $4 where id = $1', [o.id, offerBack && stillValid ? 'Submitted' : offerBack ? 'Expired' : 'Rejected', reason, now]));
   await setRoute(tx, inv.id, null);
-  await lienEvent(tx, svc, inv, null, newStatus === 'Cancelled' ? 'released_cancelled' : 'released_declined', fr.bank_org_id, reason);
+  await lienEvent(tx, svc, inv, null, `released_${newStatus.toLowerCase()}`, fr.bank_org_id, reason);
   await reopenIfNoOffers(tx, svc, ctx, inv.id);
   await audit(tx, ctx, now, { action: `financing.${newStatus.toLowerCase()}`, entityType: 'financing_request', entityId: fr.id, orgId: fr.supplier_org_id, after: { reason } });
   await audit(tx, ctx, now, { action: `financing.${newStatus.toLowerCase()}`, entityType: 'financing_request', entityId: fr.id, orgId: fr.bank_org_id });
@@ -437,11 +437,18 @@ export async function bankConfirm(tx: Tx, svc: Services, ctx: Ctx, bankOrgId: st
   await tx.query("update marketplace.financing_requests set status = 'Approved', decided_by = $2, decided_at = $3, updated_at = $3 where id = $1", [fr.id, ctx.userId ?? null, now]);
   await audit(tx, ctx, now, { action: 'financing.approved', entityType: 'financing_request', entityId: fr.id, orgId: bankOrgId });
   await audit(tx, ctx, now, { action: 'financing.approved', entityType: 'financing_request', entityId: fr.id, orgId: inv.supplier_org_id });
-  // M6 stub: the payment is instructed and credited in one step. M7 replaces this with the disbursement state machine,
-  // calling `completeFunding` only when the payment is credited.
-  await tx.query("update marketplace.financing_requests set status = 'DisbursementInstructed', disbursement_ref = $2, updated_at = $3 where id = $1", [fr.id, `SIM-DISB-${inv.human_id}`, now]);
-  await completeFunding(tx, svc, ctx, fr.id);
-  return { status: 'Funded' as const };
+  // The payment is instructed through the Settlement module (event `financing.approved`); funding completes only when the
+  // disbursement is credited, at which point Settlement calls `completeFunding`.
+  await tx.query("update marketplace.financing_requests set status = 'DisbursementInstructed', updated_at = $2 where id = $1", [fr.id, now]);
+  await emit(tx, now, 'financing.approved', { financingRequestId: fr.id, invoiceId: inv.id, humanId: inv.human_id }, [inv.supplier_org_id, bankOrgId]);
+  return { status: 'DisbursementInstructed' as const };
+}
+
+/** A disbursement that could not be completed: everything is released and the supplier can choose again. */
+export async function failFinancing(tx: Tx, svc: Services, ctx: Ctx, frId: string, reason: string) {
+  const fr = await tx.elevated(() => tx.one<any>('select * from marketplace.financing_requests where id = $1 for update', [frId]));
+  const inv = await lockInvoice(tx, fr.invoice_id);
+  await releaseFinancing(tx, svc, ctx, fr, inv, 'Failed', reason, true);
 }
 
 /** The step that makes a financing real: lien Active, limits and cover consumed, invoice Funded, competing offers rejected. */
@@ -453,7 +460,7 @@ export async function completeFunding(tx: Tx, svc: Services, ctx: Ctx, frId: str
   await tx.elevated(() => tx.query("update marketplace.liens set status = 'Active', activated_at = $2 where financing_request_id = $1 and status = 'Reserved'", [fr.id, now]));
   await consumeLimits(tx, svc, { bankOrgId: fr.bank_org_id, buyerOrgId: fr.buyer_org_id, supplierOrgId: fr.supplier_org_id, amountUsd: fr.reserved_usd });
   await consumeCover(tx, svc, inv.id);
-  await tx.query("update marketplace.financing_requests set status = 'Funded', funded_at = $2, updated_at = $2 where id = $1", [fr.id, now]);
+  await tx.elevated(() => tx.query("update marketplace.financing_requests set status = 'Funded', funded_at = $2, updated_at = $2 where id = $1", [fr.id, now]));
   const rejected = await tx.elevated(() => tx.query<any>("update marketplace.offers set status = 'Rejected', decision_note = 'Another offer was funded', updated_at = $2 where invoice_id = $1 and status in ('Drafted','Submitted') returning id, bank_org_id", [inv.id, now]));
   await tx.elevated(() => tx.query("update marketplace.invitations set status = 'closed' where invoice_id = $1 and bank_org_id <> $2", [inv.id, fr.bank_org_id]));
   for (const r of rejected) await emit(tx, now, 'offer.rejected', { offerId: r.id, invoiceId: inv.id }, [r.bank_org_id]);

@@ -15,6 +15,8 @@ export interface Config {
   simulatedBanner: boolean;
   /** Directory for the local-disk object store (development/test). */
   objectStoreDir: string;
+  /** Master key from which per-bank webhook secrets are derived. Must be set in production. */
+  webhookKey: string;
 }
 
 export function loadConfig(overrides: Partial<Config> = {}): Config {
@@ -31,6 +33,7 @@ export function loadConfig(overrides: Partial<Config> = {}): Config {
     mode: (process.env.EARLIO_MODE as Config['mode']) ?? 'network',
     simulatedBanner: env !== 'production',
     objectStoreDir: process.env.OBJECT_STORE_DIR ?? '.data/objects',
+    webhookKey: process.env.WEBHOOK_KEY ?? 'earlio-dev-webhook-key',
     ...overrides,
   };
 }

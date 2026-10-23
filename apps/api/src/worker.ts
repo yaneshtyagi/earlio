@@ -5,12 +5,18 @@ import { requestCover, processInsurerGateway, expireCovers } from './modules/ins
 import { sendAcceptanceReminders } from './modules/invoicing/service';
 import { expireOffers } from './modules/marketplace/service';
 import { retireExpired } from './modules/terms/service';
+import { instructDisbursement, processDisbursements } from './modules/settlement/disbursement';
+import { createExpectation, fetchStatements, markOverdue, reconcile, settleEarlyPayments } from './modules/settlement/collection';
+import { deliverNotifications, notifySubscriber } from './modules/notify/service';
 
 /** Outbox subscribers: modules react to each other's events here, never by importing each other's tables. */
 export function handlersFor(svc: Services): Record<string, OutboxHandler[]> {
   const ctx = (id: string) => ({ platform: true, correlationId: `evt-${id}` });
   return {
     'invoice.accepted': [async (tx, e) => { await requestCover(tx, svc, ctx(e.id), e.payload.invoiceId); }],
+    'financing.approved': [async (tx, e) => { await instructDisbursement(tx, svc, ctx(e.id), e.payload.financingRequestId); }],
+    'financing.funded': [async (tx, e) => { await createExpectation(tx, svc, ctx(e.id), e.payload.financingRequestId); }],
+    '*': [notifySubscriber(svc)],
   };
 }
 
@@ -24,7 +30,18 @@ export async function runWorkOnce(svc: Services): Promise<Record<string, number>
   out.offersExpired = await svc.db.system((tx) => expireOffers(tx, svc, ctx));
   out.coversExpired = await svc.db.system((tx) => expireCovers(tx, svc, ctx));
   await svc.db.system((tx) => retireExpired(tx, svc));
-  out.events += await drainOutbox((fn) => svc.db.system(fn), handlersFor(svc), svc.clock.now());
+  out.disbursements = await svc.db.system((tx) => processDisbursements(tx, svc, ctx));
+  out.statements = await svc.db.system((tx) => fetchStatements(tx, svc, ctx));
+  out.reconciled = await svc.db.system((tx) => reconcile(tx, svc, ctx));
+  out.overdue = await svc.db.system((tx) => markOverdue(tx, svc, ctx));
+  out.earlyPaymentsSettled = await svc.db.system((tx) => settleEarlyPayments(tx, svc, ctx));
+  // Disbursement credit → completeFunding → financing.funded → expectation: drain until quiet (bounded).
+  for (let i = 0; i < 4; i++) {
+    const n = await drainOutbox((fn) => svc.db.system(fn), handlersFor(svc), svc.clock.now());
+    out.events += n;
+    if (!n) break;
+  }
+  out.notificationsDelivered = await svc.db.system((tx) => deliverNotifications(tx, svc));
   return out;
 }
 
