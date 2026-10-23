@@ -1,0 +1,2 @@
+# ADR-004: Adapters and simulators
+Every external system (KYC, sanctions, FX, bank payments, insurer API, ERP/e-invoice, timestamp authority, notification channels) is an interface in `Services.adapters`. The MVP ships deterministic `Sim*` implementations with fault injection and a payload log (`platform.integration_messages`). Real integrations replace the implementation per partner without touching the core.

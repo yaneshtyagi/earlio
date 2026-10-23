@@ -1,0 +1,2 @@
+# ADR-005: Hash-chained audit log
+`audit.events` is append-only for the application role (UPDATE/DELETE revoked). Each event stores `prev_hash` and `hash = sha256(prev_hash + canonicalJson(row))`. Appends serialise on the single `audit.chain_head` row lock, so the chain cannot fork under concurrency. `verifyAuditChain` recomputes the chain and the head. A periodic anchor stores the head hash with a (simulated) trusted timestamp token. A database superuser can still rewrite history and the chain; the external anchor is what makes that detectable in production.

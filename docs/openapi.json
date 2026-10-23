@@ -1,0 +1,999 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Earlio API",
+    "version": "0.1.0",
+    "description": "Tri-party receivables financing platform. Simulated environment: all names and rates are fictional."
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "earlio_sid"
+      },
+      "csrf": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-csrf-token"
+      }
+    },
+    "schemas": {}
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Liveness and database check",
+        "tags": [
+          "system"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "ok"
+                      ]
+                    },
+                    "db": {
+                      "type": "boolean"
+                    },
+                    "time": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "db",
+                    "time"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/config": {
+      "get": {
+        "summary": "Public runtime configuration for the SPA",
+        "tags": [
+          "system"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "env": {
+                      "type": "string"
+                    },
+                    "simulated": {
+                      "type": "boolean"
+                    },
+                    "mode": {
+                      "type": "string",
+                      "enum": [
+                        "network",
+                        "white-label"
+                      ]
+                    },
+                    "apiVersion": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "env",
+                    "simulated",
+                    "mode",
+                    "apiVersion"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "Password login (step 1; MFA follows)",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mfaEnrolled": {
+                      "type": "boolean"
+                    },
+                    "mfaVerified": {
+                      "type": "boolean",
+                      "enum": [
+                        false
+                      ]
+                    },
+                    "csrfToken": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "mfaEnrolled",
+                    "mfaVerified",
+                    "csrfToken"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/mfa/enroll": {
+      "post": {
+        "summary": "Start TOTP enrolment (returns the secret once)",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "secret": {
+                      "type": "string"
+                    },
+                    "otpauthUrl": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "secret",
+                    "otpauthUrl"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/mfa/verify": {
+      "post": {
+        "summary": "Verify a TOTP code or a recovery code; completes sign-in",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 32
+                  }
+                },
+                "required": [
+                  "code"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "mfaVerified": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "recoveryCodes": {
+                      "nullable": true,
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "activeOrgId": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "mfaVerified",
+                    "recoveryCodes",
+                    "activeOrgId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "summary": "Current session, memberships and permissions",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "email",
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "mfaEnabled": {
+                      "type": "boolean"
+                    },
+                    "mfaVerified": {
+                      "type": "boolean"
+                    },
+                    "csrfToken": {
+                      "type": "string"
+                    },
+                    "activeOrg": {
+                      "nullable": true,
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "supplier",
+                            "buyer",
+                            "bank",
+                            "insurer",
+                            "platform"
+                          ]
+                        },
+                        "legalName": {
+                          "type": "string"
+                        },
+                        "country": {
+                          "type": "string"
+                        },
+                        "ratingTier": {
+                          "nullable": true,
+                          "type": "string",
+                          "enum": [
+                            "AA",
+                            "A",
+                            "BBB"
+                          ]
+                        },
+                        "isPartner": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "type",
+                        "legalName",
+                        "country",
+                        "ratingTier",
+                        "isPartner"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "role": {
+                      "nullable": true,
+                      "type": "string",
+                      "enum": [
+                        "Admin",
+                        "FinanceUser",
+                        "Approver",
+                        "Viewer",
+                        "CreditOfficer",
+                        "Operations",
+                        "RelationshipManager",
+                        "Underwriter",
+                        "ClaimsHandler",
+                        "PlatformAdmin",
+                        "Auditor"
+                      ]
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "memberships": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "orgId": {
+                            "type": "string"
+                          },
+                          "orgName": {
+                            "type": "string"
+                          },
+                          "orgType": {
+                            "type": "string",
+                            "enum": [
+                              "supplier",
+                              "buyer",
+                              "bank",
+                              "insurer",
+                              "platform"
+                            ]
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "Admin",
+                              "FinanceUser",
+                              "Approver",
+                              "Viewer",
+                              "CreditOfficer",
+                              "Operations",
+                              "RelationshipManager",
+                              "Underwriter",
+                              "ClaimsHandler",
+                              "PlatformAdmin",
+                              "Auditor"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "orgId",
+                          "orgName",
+                          "orgType",
+                          "role"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "user",
+                    "mfaEnabled",
+                    "mfaVerified",
+                    "csrfToken",
+                    "activeOrg",
+                    "role",
+                    "permissions",
+                    "memberships"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/switch-org": {
+      "post": {
+        "summary": "Switch the active organisation",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orgId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "orgId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "activeOrgId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "activeOrgId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "End the session",
+        "tags": [
+          "auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org": {
+      "get": {
+        "summary": "The active organisation (full view)",
+        "tags": [
+          "organisation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "supplier",
+                        "buyer",
+                        "bank",
+                        "insurer",
+                        "platform"
+                      ]
+                    },
+                    "legalName": {
+                      "type": "string"
+                    },
+                    "country": {
+                      "type": "string"
+                    },
+                    "ratingTier": {
+                      "nullable": true,
+                      "type": "string",
+                      "enum": [
+                        "AA",
+                        "A",
+                        "BBB"
+                      ]
+                    },
+                    "isPartner": {
+                      "type": "boolean"
+                    },
+                    "small": {
+                      "type": "boolean"
+                    },
+                    "msme": {
+                      "type": "boolean"
+                    },
+                    "dataRegion": {
+                      "type": "string"
+                    },
+                    "kycStatus": {
+                      "type": "string"
+                    },
+                    "sanctionsStatus": {
+                      "type": "string"
+                    },
+                    "blocked": {
+                      "type": "boolean"
+                    },
+                    "borrowingRate": {
+                      "nullable": true,
+                      "type": "string"
+                    },
+                    "branding": {
+                      "type": "object",
+                      "additionalProperties": {}
+                    },
+                    "hostname": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "type",
+                    "legalName",
+                    "country",
+                    "ratingTier",
+                    "isPartner",
+                    "small",
+                    "msme",
+                    "dataRegion",
+                    "kycStatus",
+                    "sanctionsStatus",
+                    "blocked",
+                    "borrowingRate",
+                    "branding",
+                    "hostname"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/org/users": {
+      "get": {
+        "summary": "Members of the active organisation",
+        "tags": [
+          "organisation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "userId": {
+                        "type": "string"
+                      },
+                      "email": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "Admin",
+                          "FinanceUser",
+                          "Approver",
+                          "Viewer",
+                          "CreditOfficer",
+                          "Operations",
+                          "RelationshipManager",
+                          "Underwriter",
+                          "ClaimsHandler",
+                          "PlatformAdmin",
+                          "Auditor"
+                        ]
+                      },
+                      "mfaEnabled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "userId",
+                      "email",
+                      "name",
+                      "role",
+                      "mfaEnabled"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a user (or an existing user) to the active organisation",
+        "tags": [
+          "organisation"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": [
+                      "Admin",
+                      "FinanceUser",
+                      "Approver",
+                      "Viewer",
+                      "CreditOfficer",
+                      "Operations",
+                      "RelationshipManager",
+                      "Underwriter",
+                      "ClaimsHandler",
+                      "PlatformAdmin",
+                      "Auditor"
+                    ]
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email",
+                  "name",
+                  "role"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userId": {
+                      "type": "string"
+                    },
+                    "membershipId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "userId",
+                    "membershipId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/dev/totp": {
+      "get": {
+        "summary": "Current demo TOTP code for a seeded user (development only)",
+        "tags": [
+          "dev"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "email",
+              "pattern": "^(?:[A-Za-z0-9_'+\\-]+\\.)*[A-Za-z0-9_'+\\-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+            },
+            "in": "query",
+            "name": "email",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audit/events": {
+      "get": {
+        "summary": "Audit log (platform staff: cross-tenant, and the read itself is audited)",
+        "tags": [
+          "audit"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "default": 100,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 500
+            },
+            "in": "query",
+            "name": "limit",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "query",
+            "name": "orgId",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "entityType",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "seq": {
+                        "type": "string"
+                      },
+                      "action": {
+                        "type": "string"
+                      },
+                      "entityType": {
+                        "type": "string"
+                      },
+                      "entityId": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "orgId": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "actorUserId": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "occurredAt": {
+                        "type": "string"
+                      },
+                      "hash": {
+                        "type": "string"
+                      },
+                      "prevHash": {
+                        "type": "string"
+                      },
+                      "before": {},
+                      "after": {}
+                    },
+                    "required": [
+                      "seq",
+                      "action",
+                      "entityType",
+                      "entityId",
+                      "orgId",
+                      "actorUserId",
+                      "occurredAt",
+                      "hash",
+                      "prevHash",
+                      "before",
+                      "after"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audit/verify": {
+      "get": {
+        "summary": "Recompute the hash chain and report the first broken link",
+        "tags": [
+          "audit"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "checked": {
+                      "type": "number"
+                    },
+                    "headHash": {
+                      "type": "string"
+                    },
+                    "firstBrokenSeq": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "checked",
+                    "headHash"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/audit/anchor": {
+      "post": {
+        "summary": "Anchor the current chain head with a (simulated) trusted timestamp",
+        "tags": [
+          "audit"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "headHash": {
+                      "type": "string"
+                    },
+                    "lastSeq": {
+                      "type": "string"
+                    },
+                    "token": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "headHash",
+                    "lastSeq",
+                    "token"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "cookieAuth": [],
+      "csrf": []
+    }
+  ]
+}

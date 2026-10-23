@@ -1,0 +1,17 @@
+{
+  "name": "earlio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev:api": "npm run dev -w @earlio/api",
+    "dev:web": "npm run dev -w @earlio/web",
+    "test": "npm test -w @earlio/api",
+    "typecheck": "npm run typecheck -w @earlio/api && npm run typecheck -w @earlio/web",
+    "openapi": "npm run openapi -w @earlio/api",
+    "gen:client": "npm run gen:client -w @earlio/web",
+    "build": "npm run build -w @earlio/api && npm run build -w @earlio/web"
+  },
+  "engines": { "node": ">=22" }
+}

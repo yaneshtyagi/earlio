@@ -1,0 +1,74 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`permission matrix (POC plan A-22) > matches the agreed matrix exactly 1`] = `
+{
+  "Admin": [
+    "read",
+    "org:manage_users",
+    "org:settings",
+    "kyc:submit",
+    "relationship:propose",
+  ],
+  "Approver": [
+    "read",
+    "invoice:accept",
+    "financing:consent",
+    "relationship:approve",
+    "terms:publish",
+    "dispute:raise",
+  ],
+  "Auditor": [
+    "read",
+    "audit:read",
+  ],
+  "ClaimsHandler": [
+    "read",
+    "claim:decide",
+  ],
+  "CreditOfficer": [
+    "read",
+    "offer:submit",
+    "claim:file",
+  ],
+  "FinanceUser": [
+    "read",
+    "invoice:create",
+    "kyc:submit",
+    "relationship:propose",
+    "discount:manage",
+    "dispute:raise",
+  ],
+  "Operations": [
+    "read",
+    "settlement:operate",
+  ],
+  "PlatformAdmin": [
+    "read",
+    "org:manage_users",
+    "kyc:review",
+    "sanctions:review",
+    "dispute:decide",
+    "audit:read",
+    "platform:admin",
+    "terms:publish",
+    "terms:edit",
+    "settlement:operate",
+  ],
+  "RelationshipManager": [
+    "read",
+    "terms:edit",
+    "limits:manage",
+    "org:settings",
+    "relationship:propose",
+  ],
+  "Underwriter": [
+    "read",
+    "cover:decide",
+    "terms:edit",
+    "limits:manage",
+  ],
+  "Viewer": [
+    "read",
+  ],
+}
+`;
