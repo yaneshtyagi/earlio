@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { Alert, Button, DatePicker, FormGrid, MoneyField, SelectField, TextField, TextareaField } from '@yaneshtyagi/design-system';
 import { api, ensureOk, problemOf } from '../api/client';
+import { ErrorNote, Page, Panel } from '../ui';
 
 type Report = { created: { row: number; humanId: string }[]; errors: { row: number; message: string }[] };
 
@@ -36,47 +38,43 @@ export function InvoiceNewPage() {
   const buyerPos = (pos.data ?? []).filter((p) => p.buyerOrgId === f.buyerOrgId);
 
   return (
-    <section>
-      <h2>New invoice</h2>
-      {error && <p className="alert">{error}</p>}
-      <div className="row">
-        <form className="panel" onSubmit={create}>
-          <h3>Enter an invoice</h3>
-          <label>Buyer
-            <select style={{ width: '100%' }} value={f.buyerOrgId} onChange={set('buyerOrgId')} required>
+    <>
+      <Page title="New invoice" breadcrumbs={[{ label: 'Invoices', href: '/invoices' }, { label: 'New invoice' }]} />
+      <ErrorNote>{error}</ErrorNote>
+      <div className="split">
+        <Panel title="Enter an invoice">
+          <form className="stack-3" onSubmit={create}>
+            <SelectField label="Buyer" value={f.buyerOrgId} onChange={set('buyerOrgId')} required>
               <option value="">Choose…</option>{(buyers.data ?? []).map((r) => <option key={r.id} value={r.buyer.id}>{r.buyer.name}</option>)}
-            </select>
-          </label>
-          <label>Invoice number<input value={f.number} onChange={set('number')} required /></label>
-          <label>Purchase order
-            <select style={{ width: '100%' }} value={f.poNumber} onChange={set('poNumber')}>
+            </SelectField>
+            <TextField label="Invoice number" value={f.number} onChange={set('number')} required />
+            <SelectField label="Purchase order" value={f.poNumber} onChange={set('poNumber')}>
               <option value="">None (flagged)</option>{buyerPos.map((p) => <option key={p.id} value={p.number}>{p.number}</option>)}
-            </select>
-          </label>
-          <div className="row">
-            <label>Currency<select style={{ width: '100%' }} value={f.currency} onChange={set('currency')}><option>USD</option><option>SGD</option></select></label>
-            <label>Amount<input value={f.amount} onChange={set('amount')} inputMode="decimal" required /></label>
+            </SelectField>
+            <FormGrid>
+              <SelectField label="Currency" value={f.currency} onChange={set('currency')}><option>USD</option><option>SGD</option></SelectField>
+              <MoneyField label="Amount" currency={f.currency} value={f.amount} onValueChange={(v) => setF({ ...f, amount: v })} required />
+              <DatePicker label="Issue date" value={f.issueDate || null} onChange={(v) => setF({ ...f, issueDate: v ?? '' })} required />
+              <DatePicker label="Due date" value={f.dueDate || null} onChange={(v) => setF({ ...f, dueDate: v ?? '' })} min={f.issueDate || undefined} required />
+            </FormGrid>
+            <div><Button type="submit" variant="primary">Create draft</Button></div>
+          </form>
+        </Panel>
+        <Panel title="Import" sub="Paste CSV (columns: buyer, number, currency, amount, issueDate, dueDate, poNumber). Valid rows are created; bad rows are listed.">
+          <TextareaField label="CSV" value={csv} onChange={(e) => setCsv(e.target.value)} className="mono" rows={6} />
+          <div className="row-actions">
+            <Button variant="primary" onClick={importCsv}>Import CSV</Button>
+            <Button onClick={importErp}>Import from ERP / e-invoice portal</Button>
           </div>
-          <div className="row">
-            <label>Issue date<input type="date" value={f.issueDate} onChange={set('issueDate')} required /></label>
-            <label>Due date<input type="date" value={f.dueDate} onChange={set('dueDate')} required /></label>
-          </div>
-          <button type="submit">Create draft</button>
-        </form>
-        <div className="panel">
-          <h3>Import</h3>
-          <p className="hint">Paste CSV (columns: buyer, number, currency, amount, issueDate, dueDate, poNumber). Valid rows are created; bad rows are listed.</p>
-          <textarea value={csv} onChange={(e) => setCsv(e.target.value)} />
-          <p><button onClick={importCsv}>Import CSV</button> <button className="secondary" onClick={importErp}>Import from ERP / e-invoice portal</button></p>
           {report && (
             <>
-              <p className="ok">{report.created.length} invoice(s) created: {report.created.map((c) => c.humanId).join(', ') || '—'}</p>
-              {report.errors.map((e) => <p className="alert" key={e.row}>Row {e.row}: {e.message}</p>)}
+              <Alert tone="success" title={`${report.created.length} invoice(s) created: ${report.created.map((c) => c.humanId).join(', ') || '—'}`} />
+              {report.errors.map((e) => <Alert key={e.row} tone="danger" title={`Row ${e.row}: ${e.message}`} />)}
               <Link to="/invoices?status=Draft">View drafts</Link>
             </>
           )}
-        </div>
+        </Panel>
       </div>
-    </section>
+    </>
   );
 }

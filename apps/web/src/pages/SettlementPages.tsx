@@ -2,42 +2,40 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Badge, Button, DataTable, DescriptionList, SelectField, TabPanel, Tabs, TextField } from '@yaneshtyagi/design-system';
 import { api, ensureOk } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { formatMoney, type Currency } from '../shared/money';
-
-const when = (s: string) => new Date(s).toLocaleString();
+import { Amt, ErrorNote, Hint, Notice, Page, Panel, StatusChip, TimelineList, dd, dt, label, noRows, type Msg } from '../ui';
 
 /** BUY-07: what to pay, by when, with which reference and into which collection account. */
 export function BuyerPaymentsPage() {
   const q = useQuery({ queryKey: ['payments-due'], queryFn: async () => (await api.GET('/api/v1/settlement/payments-due')).data?.items ?? [] });
   return (
-    <section>
-      <h2>Payments due</h2>
-      <p className="hint">Pay the full amount into the collection account and quote the reference exactly, so the payment is matched automatically.</p>
+    <>
+      <Page title="Payments due" description="Pay the full amount into the collection account and quote the reference exactly, so the payment is matched automatically." />
       {(q.data ?? []).map((p) => (
-        <div className="panel" key={p.id}>
-          <h3><Link to={`/invoices/${p.invoiceId}`}>{p.invoiceNumber}</Link> <span className={`chip ${p.status}`}>{p.status}</span> {p.late && <span className="chip Overdue">late</span>}</h3>
-          <table><tbody>
-            <tr><td>Amount due</td><td className="num"><strong>{formatMoney(p.expectedAmount, p.currency as Currency)}</strong> by {p.dueDate}</td></tr>
-            <tr><td>Payment reference</td><td className="num"><code>{p.reference}</code></td></tr>
-            <tr><td>Pay to</td><td className="num">{p.collectionAccount.name} · {p.collectionAccount.number} · SWIFT {p.collectionAccount.swift}</td></tr>
-            <tr><td>Received so far</td><td className="num">{formatMoney(p.receivedAmount, p.currency as Currency)}</td></tr>
-          </tbody></table>
-        </div>
+        <Panel key={p.id} title={<><Link to={`/invoices/${p.invoiceId}`}>{p.invoiceNumber}</Link> <StatusChip status={p.status} /> {p.late && <StatusChip status="late">late</StatusChip>}</>}>
+          <DescriptionList columns={2} items={[
+            { label: 'Amount due', value: <><Amt v={p.expectedAmount} c={p.currency} strong /> by {dd(p.dueDate)}</> },
+            { label: 'Payment reference', value: p.reference, mono: true },
+            { label: 'Pay to', value: `${p.collectionAccount.name} · ${p.collectionAccount.number} · SWIFT ${p.collectionAccount.swift}`, wide: true },
+            { label: 'Received so far', value: <Amt v={p.receivedAmount} c={p.currency} />, num: true },
+          ]} />
+        </Panel>
       ))}
-      {q.data?.length === 0 && <p className="muted">Nothing to pay yet. A payment reference appears once an invoice of yours is funded by a bank.</p>}
-    </section>
+      {q.data?.length === 0 && noRows('Nothing to pay yet', 'A payment reference appears once an invoice of yours is funded by a bank.')}
+    </>
   );
 }
 
 const ACTION_LABEL: Record<string, string> = { assign: 'Assign to invoice', wait: 'Wait for balance', accept_short: 'Accept as full', refund: 'Refund buyer', acknowledge: 'Acknowledge', accept_credit: 'Accept credited amount' };
+type Tab = 'exceptions' | 'expectations' | 'transactions' | 'disbursements';
 
 /** BNK-10: expectations, bank transactions, exceptions and disbursements in one console. */
 export function SettlementConsolePage() {
   const { me } = useAuth();
   const qc = useQueryClient();
-  const [tab, setTab] = useState<'exceptions' | 'expectations' | 'transactions' | 'disbursements'>('exceptions');
+  const [tab, setTab] = useState<Tab>('exceptions');
   const [err, setErr] = useState<string | null>(null);
   const [invNo, setInvNo] = useState<Record<string, string>>({});
   const exc = useQuery({ queryKey: ['exceptions'], queryFn: async () => (await api.GET('/api/v1/settlement/exceptions', { params: { query: {} } })).data?.items ?? [] });
@@ -54,63 +52,63 @@ export function SettlementConsolePage() {
     onError: (e: Error) => setErr(e.message),
   });
   const open = (exc.data ?? []).filter((e) => e.status === 'open').length;
+  const P = 'settlement';
+  const panel = (id: Tab, children: React.ReactNode) => <TabPanel tabId={id} activeTab={tab} idPrefix={P}>{children}</TabPanel>;
   return (
-    <section>
-      <h2>Settlement</h2>
-      <div className="filters">
-        {(['exceptions', 'expectations', 'transactions', 'disbursements'] as const).map((t) => (
-          <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>{t[0]!.toUpperCase() + t.slice(1)}{t === 'exceptions' && open ? ` (${open})` : ''}</button>
-        ))}
-      </div>
-      {err && <p className="alert" role="alert">{err}</p>}
-      {tab === 'exceptions' && (
-        <table>
-          <thead><tr><th>Type</th><th>Invoice</th><th className="num">Amount</th><th>Detail</th><th>Status</th><th /></tr></thead>
-          <tbody>
-            {(exc.data ?? []).map((e) => (
-              <tr key={e.id}>
-                <td><span className="chip Disputed">{e.type}</span></td><td>{e.invoiceNumber ?? '—'}</td>
-                <td className="num">{e.amount ? formatMoney(e.amount, (e.currency ?? 'USD') as Currency) : '—'}</td>
-                <td>{e.detail}{e.resolution && <div className="hint">Resolved: {e.resolution}</div>}</td><td>{e.status}</td>
-                <td>{canOperate && e.allowedActions.map((a) => (
-                  <span key={a}>
-                    {a === 'assign' && <input aria-label="Invoice number" placeholder="INV-…" value={invNo[e.id] ?? ''} onChange={(ev) => setInvNo({ ...invNo, [e.id]: ev.target.value })} style={{ width: 110 }} />}
-                    <button className="link" disabled={resolve.isPending} onClick={() => resolve.mutate({ id: e.id, action: a })}>{ACTION_LABEL[a]}</button>
-                  </span>
-                ))}</td>
-              </tr>
-            ))}
-            {exc.data?.length === 0 && <tr><td colSpan={6} className="muted">No exceptions. Everything matched.</td></tr>}
-          </tbody>
-        </table>
-      )}
-      {tab === 'expectations' && (
-        <table>
-          <thead><tr><th>Invoice</th><th>Reference</th><th>Buyer</th><th className="num">Expected</th><th className="num">Received</th><th>Due</th><th>Status</th></tr></thead>
-          <tbody>{(exp.data ?? []).map((e) => (
-            <tr key={e.id}><td><Link to={`/invoices/${e.invoiceId}`}>{e.invoiceNumber}</Link></td><td><code>{e.reference}</code></td><td>{e.buyerName}</td>
-              <td className="num">{formatMoney(e.expectedAmount, e.currency as Currency)}</td><td className="num">{formatMoney(e.receivedAmount, e.currency as Currency)}</td><td>{e.dueDate}</td><td><span className={`chip ${e.status}`}>{e.status}</span></td></tr>
-          ))}</tbody>
-        </table>
-      )}
-      {tab === 'transactions' && (
-        <table>
-          <thead><tr><th>Source</th><th>Bank txn</th><th>Reference</th><th className="num">Amount</th><th>Value date</th><th>Match</th></tr></thead>
-          <tbody>{(txn.data ?? []).map((t) => (
-            <tr key={t.id}><td>{t.source}</td><td>{t.bankTxnId}</td><td><code>{t.reference ?? '—'}</code></td><td className="num">{formatMoney(t.amount, t.currency as Currency)}</td><td>{t.valueDate}</td><td>{t.matchStatus}{t.invoiceNumber && ` · ${t.invoiceNumber}`}</td></tr>
-          ))}</tbody>
-        </table>
-      )}
-      {tab === 'disbursements' && (
-        <table>
-          <thead><tr><th>Invoice</th><th>Status</th><th className="num">Foreign</th><th className="num">FX</th><th className="num">INR</th><th>Value date</th><th>Attempts</th></tr></thead>
-          <tbody>{(dis.data ?? []).map((d) => (
-            <tr key={d.id}><td><Link to={`/invoices/${d.invoiceId}`}>{d.invoiceNumber}</Link></td><td><span className={`chip ${d.status}`}>{d.status}</span>{d.failureReason && <div className="hint">{d.failureReason}</div>}</td>
-              <td className="num">{formatMoney(d.amountForeign, d.currency as Currency)}</td><td className="num">{d.fxRate}</td><td className="num">{formatMoney(d.amountInr, 'INR')}</td><td>{d.valueDate}{d.cutoffMissed && ' (cut-off missed)'}</td><td>{d.attempts}</td></tr>
-          ))}</tbody>
-        </table>
-      )}
-    </section>
+    <>
+      <Page title="Settlement" />
+      <Tabs aria-label="Settlement views" idPrefix={P} value={tab} onValueChange={(v) => setTab(v as Tab)}
+        items={[{ id: 'exceptions', label: 'Exceptions', count: open || undefined }, { id: 'expectations', label: 'Expectations' }, { id: 'transactions', label: 'Transactions' }, { id: 'disbursements', label: 'Disbursements' }]} />
+      <ErrorNote>{err}</ErrorNote>
+      {tab === 'exceptions' && panel('exceptions',
+        <DataTable aria-label="Exceptions" noun="exceptions" loading={exc.isLoading} rowKey={(e) => e.id} rows={exc.data ?? []} empty={noRows('No exceptions', 'Everything matched.')}
+          columns={[
+            { id: 'type', header: 'Type', cell: (e) => <Badge tone="warning">{e.type}</Badge> },
+            { id: 'invoice', header: 'Invoice', cell: (e) => e.invoiceNumber ?? '—' },
+            { id: 'amount', header: 'Amount', numeric: true, cell: (e) => (e.amount ? <Amt v={e.amount} c={e.currency ?? 'USD'} /> : '—') },
+            { id: 'detail', header: 'Detail', cell: (e) => <>{e.detail}{e.resolution && <div className="hint">Resolved: {e.resolution}</div>}</> },
+            { id: 'status', header: 'Status', cell: (e) => <StatusChip status={e.status} /> },
+            { id: 'act', header: <span className="bv-sr-only">Actions</span>, cell: (e) => canOperate ? (
+              <div className="row-actions">{e.allowedActions.map((a) => (
+                <span key={a} className="row-actions">
+                  {a === 'assign' && <TextField label="Invoice number" size="sm" placeholder="INV-…" value={invNo[e.id] ?? ''} onChange={(ev) => setInvNo({ ...invNo, [e.id]: ev.target.value })} />}
+                  <Button size="sm" disabled={resolve.isPending} onClick={() => resolve.mutate({ id: e.id, action: a })}>{ACTION_LABEL[a]}</Button>
+                </span>
+              ))}</div>) : null },
+          ]} />)}
+      {tab === 'expectations' && panel('expectations',
+        <DataTable aria-label="Payment expectations" noun="expectations" loading={exp.isLoading} rowKey={(e) => e.id} rows={exp.data ?? []} empty={noRows('No expectations yet')}
+          columns={[
+            { id: 'invoice', header: 'Invoice', rowHeader: true, cell: (e) => <Link to={`/invoices/${e.invoiceId}`}>{e.invoiceNumber}</Link> },
+            { id: 'ref', header: 'Reference', cell: (e) => <span className="mono">{e.reference}</span> },
+            { id: 'buyer', header: 'Buyer', cell: (e) => e.buyerName },
+            { id: 'expected', header: 'Expected', numeric: true, cell: (e) => <Amt v={e.expectedAmount} c={e.currency} /> },
+            { id: 'received', header: 'Received', numeric: true, cell: (e) => <Amt v={e.receivedAmount} c={e.currency} /> },
+            { id: 'due', header: 'Due', cell: (e) => dd(e.dueDate) },
+            { id: 'status', header: 'Status', cell: (e) => <StatusChip status={e.status} /> },
+          ]} />)}
+      {tab === 'transactions' && panel('transactions',
+        <DataTable aria-label="Bank transactions" noun="transactions" loading={txn.isLoading} rowKey={(t) => t.id} rows={txn.data ?? []} empty={noRows('No transactions yet')}
+          columns={[
+            { id: 'source', header: 'Source', cell: (t) => t.source },
+            { id: 'txn', header: 'Bank txn', rowHeader: true, cell: (t) => <span className="mono">{t.bankTxnId}</span> },
+            { id: 'ref', header: 'Reference', cell: (t) => <span className="mono">{t.reference ?? '—'}</span> },
+            { id: 'amount', header: 'Amount', numeric: true, cell: (t) => <Amt v={t.amount} c={t.currency} /> },
+            { id: 'value', header: 'Value date', cell: (t) => dd(t.valueDate) },
+            { id: 'match', header: 'Match', cell: (t) => <>{label(t.matchStatus)}{t.invoiceNumber && ` · ${t.invoiceNumber}`}</> },
+          ]} />)}
+      {tab === 'disbursements' && panel('disbursements',
+        <DataTable aria-label="Disbursements" noun="disbursements" loading={dis.isLoading} rowKey={(d) => d.id} rows={dis.data ?? []} empty={noRows('No disbursements yet')}
+          columns={[
+            { id: 'invoice', header: 'Invoice', rowHeader: true, cell: (d) => <Link to={`/invoices/${d.invoiceId}`}>{d.invoiceNumber}</Link> },
+            { id: 'status', header: 'Status', cell: (d) => <><StatusChip status={d.status} />{d.failureReason && <div className="hint">{d.failureReason}</div>}</> },
+            { id: 'foreign', header: 'Foreign', numeric: true, cell: (d) => <Amt v={d.amountForeign} c={d.currency} /> },
+            { id: 'fx', header: 'FX', numeric: true, cell: (d) => d.fxRate },
+            { id: 'inr', header: 'INR', numeric: true, cell: (d) => <Amt v={d.amountInr} c="INR" /> },
+            { id: 'value', header: 'Value date', cell: (d) => <>{dd(d.valueDate)}{d.cutoffMissed && ' (cut-off missed)'}</> },
+            { id: 'attempts', header: 'Attempts', numeric: true, cell: (d) => d.attempts },
+          ]} />)}
+    </>
   );
 }
 
@@ -121,29 +119,25 @@ export function SettlementPanel({ invoiceId }: { invoiceId: string }) {
   const d = dis.data?.[0];
   if (!d && !led.data?.length) return null;
   return (
-    <div className="panel">
-      <h3>Payment and settlement</h3>
+    <Panel title="Payment and settlement">
       {d && (
         <>
-          <p>Payout of <strong>{formatMoney(d.amountInr, 'INR')}</strong> ({formatMoney(d.amountForeign, d.currency as Currency)} at {d.fxRate}) — <span className={`chip ${d.status}`}>{d.status}</span>, value date {d.valueDate}{d.cutoffMissed && ' (bank cut-off had passed)'}.</p>
-          <ul className="timeline">{d.events.map((e, i) => <li key={i}><strong>{e.status}</strong> · {when(e.at)}{e.note && <div className="hint">{e.note}</div>}</li>)}</ul>
+          <p>Payout of <Amt v={d.amountInr} c="INR" strong /> (<Amt v={d.amountForeign} c={d.currency} /> at {d.fxRate}) — <StatusChip status={d.status} />, value date {dd(d.valueDate)}{d.cutoffMissed && ' (bank cut-off had passed)'}.</p>
+          <TimelineList aria-label="Disbursement steps" events={d.events.map((e, i) => ({ id: String(i), title: e.status, meta: e.note, at: e.at }))} />
         </>
       )}
       {!!led.data?.length && (
-        <table>
-          <thead><tr><th>When</th><th>Entry</th><th>Party</th><th className="num">Amount</th><th className="num">INR</th></tr></thead>
-          <tbody>{led.data.map((l) => <tr key={l.id}><td>{when(l.at)}</td><td>{l.note ?? l.kind}</td><td>{l.party}</td><td className="num">{formatMoney(l.amount, l.currency as Currency)}</td><td className="num">{l.amountInr ? formatMoney(l.amountInr, 'INR') : ''}</td></tr>)}</tbody>
-        </table>
+        <DataTable aria-label="Settlement ledger" noun="entries" density="compact" rowKey={(l) => l.id} rows={led.data}
+          columns={[
+            { id: 'when', header: 'When', rowHeader: true, cell: (l) => dt(l.at) },
+            { id: 'entry', header: 'Entry', cell: (l) => l.note ?? l.kind },
+            { id: 'party', header: 'Party', cell: (l) => l.party },
+            { id: 'amount', header: 'Amount', numeric: true, cell: (l) => <Amt v={l.amount} c={l.currency} /> },
+            { id: 'inr', header: 'INR', numeric: true, cell: (l) => (l.amountInr ? <Amt v={l.amountInr} c="INR" /> : '') },
+          ]} />
       )}
-    </div>
+    </Panel>
   );
-}
-
-/** Header bell with unread count, linking to the notification centre. */
-export function NotificationBell() {
-  const q = useQuery({ queryKey: ['notifications'], queryFn: async () => (await api.GET('/api/v1/notifications', { params: { query: {} } })).data, refetchInterval: 15_000 });
-  const n = q.data?.unread ?? 0;
-  return <Link to="/notifications" aria-label={`Notifications, ${n} unread`} className="bell">🔔{n > 0 && <span className="badge">{n}</span>}</Link>;
 }
 
 export function NotificationsPage() {
@@ -155,76 +149,67 @@ export function NotificationsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
   return (
-    <section>
-      <h2>{t('Notifications')}</h2>
-      <p className="filters"><span className="hint">{q.data?.unread ?? 0} {t('unread')}</span><button className="secondary" onClick={() => mark.mutate(undefined)}>{t('Mark all read')}</button></p>
+    <>
+      <Page title={t('Notifications')} description={`${q.data?.unread ?? 0} ${t('unread')}`} actions={<Button onClick={() => mark.mutate(undefined)}>{t('Mark all read')}</Button>} />
       {(q.data?.items ?? []).map((n) => (
-        <div className="panel" key={n.id} style={{ opacity: n.read ? 0.65 : 1 }}>
-          <strong>{n.subject}</strong> <span className="hint">{when(n.createdAt)}</span>
-          <div>{n.body}</div>
-          {!n.read && <button className="link" onClick={() => mark.mutate(n.id)}>{t('Mark read')}</button>}
-        </div>
+        <Panel key={n.id} level={3} title={<>{n.subject} {!n.read && <Badge tone="info">{t('New')}</Badge>}</>} sub={dt(n.createdAt)}
+          actions={!n.read ? <Button size="sm" variant="ghost" onClick={() => mark.mutate(n.id)}>{t('Mark read')}</Button> : undefined}>
+          <p>{n.body}</p>
+        </Panel>
       ))}
-      {q.data?.items.length === 0 && <p className="muted">{t('No notifications yet.')}</p>}
-    </section>
+      {q.data?.items.length === 0 && noRows(t('No notifications yet.'))}
+    </>
   );
 }
 
 /** Platform admin control room: virtual clock, fault injection, payer simulator, calendars. */
 export function ControlRoomPage() {
   const qc = useQueryClient();
-  const [msg, setMsg] = useState<string | null>(null);
+  const [msg, setMsg] = useState<Msg>(null);
   const [invoiceNumber, setInvoiceNumber] = useState(''); const [amount, setAmount] = useState(''); const [via, setVia] = useState<'both' | 'callback' | 'statement'>('both');
   const clock = useQuery({ queryKey: ['clock'], queryFn: async () => (await api.GET('/api/v1/admin/clock')).data });
   const faults = useQuery({ queryKey: ['faults'], queryFn: async () => (await api.GET('/api/v1/admin/sim-settings')).data });
   const cal = useQuery({ queryKey: ['calendars'], queryFn: async () => (await api.GET('/api/v1/admin/calendars')).data });
   const run = (f: () => Promise<{ response: Response }>, ok: string) => async () => {
-    try { const r = await f(); await ensureOk(r); setMsg(ok); qc.invalidateQueries(); } catch (e) { setMsg((e as Error).message); }
+    try { const r = await f(); await ensureOk(r); setMsg({ ok: true, text: ok }); qc.invalidateQueries(); } catch (e) { setMsg({ ok: false, text: (e as Error).message }); }
   };
   const move = (b: { advanceHours?: number; advanceDays?: number; reset?: boolean }) => run(() => api.POST('/api/v1/admin/clock', { body: b }), 'Clock moved.');
   return (
-    <section>
-      <h2>Control room</h2>
-      <p className="hint">Simulation controls for demos and tests. Not available in production.</p>
-      {msg && <p className="ok" role="status">{msg}</p>}
-      <div className="row">
-        <div className="panel">
-          <h3>Platform time</h3>
-          <p>{clock.data ? when(clock.data.now) : '…'} {clock.data?.virtual ? '(virtual)' : '(real time)'}</p>
-          <p className="filters">
-            <button className="secondary" onClick={move({ advanceHours: 1 })}>+1 hour</button><button className="secondary" onClick={move({ advanceHours: 25 })}>+25 hours</button>
-            <button className="secondary" onClick={move({ advanceDays: 1 })}>+1 day</button><button className="secondary" onClick={move({ advanceDays: 30 })}>+30 days</button>
-            <button className="secondary" onClick={move({ reset: true })}>Reset</button>
-          </p>
-          <p className="hint">Background jobs run every few seconds, so effects appear shortly after you move time.</p>
-        </div>
-        <div className="panel">
-          <h3>Bank behaviour</h3>
-          <label>Payout faults
-            <select value={faults.data?.disbursement ?? 'none'} onChange={(e) => run(() => api.PUT('/api/v1/admin/sim-settings', { body: { disbursement: e.target.value as any } }), 'Fault mode saved.')()}>
-              {['none', 'reject', 'timeout', 'mismatch', 'return', 'random'].map((m) => <option key={m}>{m}</option>)}
-            </select>
-          </label>
-          <p className="hint">reject: bank refuses (retried 3×, then reversed) · timeout: no answer for 24 h · mismatch: credits ₹100 short · return: funds come back · random: seeded mix.</p>
-        </div>
+    <>
+      <Page title="Control room" description="Simulation controls for demos and tests. Not available in production." />
+      <Notice msg={msg} />
+      <div className="split">
+        <Panel title="Platform time">
+          <p>{clock.data ? dt(clock.data.now) : '…'} {clock.data?.virtual ? '(virtual)' : '(real time)'}</p>
+          <div className="row-actions">
+            <Button onClick={move({ advanceHours: 1 })}>+1 hour</Button><Button onClick={move({ advanceHours: 25 })}>+25 hours</Button>
+            <Button onClick={move({ advanceDays: 1 })}>+1 day</Button><Button onClick={move({ advanceDays: 30 })}>+30 days</Button>
+            <Button variant="ghost" onClick={move({ reset: true })}>Reset</Button>
+          </div>
+          <Hint>Background jobs run every few seconds, so effects appear shortly after you move time.</Hint>
+        </Panel>
+        <Panel title="Bank behaviour">
+          <SelectField label="Payout faults" value={faults.data?.disbursement ?? 'none'} onChange={(e) => run(() => api.PUT('/api/v1/admin/sim-settings', { body: { disbursement: e.target.value as any } }), 'Fault mode saved.')()}
+            help="reject: bank refuses (retried 3×, then reversed) · timeout: no answer for 24 h · mismatch: credits ₹100 short · return: funds come back · random: seeded mix.">
+            {['none', 'reject', 'timeout', 'mismatch', 'return', 'random'].map((m) => <option key={m}>{m}</option>)}
+          </SelectField>
+        </Panel>
       </div>
-      <div className="panel">
-        <h3>Simulate the buyer paying</h3>
-        <p className="filters">
-          <input placeholder="Invoice number, e.g. INV-1001" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
-          <input placeholder="Amount (blank = exact)" value={amount} onChange={(e) => setAmount(e.target.value)} />
-          <select value={via} onChange={(e) => setVia(e.target.value as any)}><option value="both">callback + statement</option><option value="callback">callback only</option><option value="statement">statement only</option></select>
-          <button onClick={run(() => api.POST('/api/v1/sim/pay', { body: { invoiceNumber, amount: amount || undefined, via } }), 'Payment simulated.')}>Pay</button>
-        </p>
-      </div>
-      <div className="panel">
-        <h3>Holiday calendars</h3>
-        {cal.data?.verifyBeforeProduction && <p className="hint">Seed dates — verify with the authorised dealer bank before production use.</p>}
-        <div className="row">{Object.entries(cal.data?.calendars ?? {}).map(([c, days]) => (
-          <div key={c}><strong>{c}</strong><ul>{days.map((d) => <li key={d.date}>{d.date} — {d.name}</li>)}</ul></div>
+      <Panel title="Simulate the buyer paying">
+        <div className="toolbar-fields">
+          <TextField label="Invoice number" placeholder="e.g. INV-1001" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} />
+          <TextField label="Amount (blank = exact)" value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" />
+          <SelectField label="Delivered by" value={via} onChange={(e) => setVia(e.target.value as any)}><option value="both">callback + statement</option><option value="callback">callback only</option><option value="statement">statement only</option></SelectField>
+          <Button variant="primary" onClick={run(() => api.POST('/api/v1/sim/pay', { body: { invoiceNumber, amount: amount || undefined, via } }), 'Payment simulated.')}>Pay</Button>
+        </div>
+      </Panel>
+      <Panel title="Holiday calendars">
+        {cal.data?.verifyBeforeProduction && <Hint>Seed dates — verify with the authorised dealer bank before production use.</Hint>}
+        <div className="split">{Object.entries(cal.data?.calendars ?? {}).map(([c, days]) => (
+          <div key={c}><h3 className="bv-heading-xs">{c}</h3><ul>{days.map((d) => <li key={d.date}>{dd(d.date)} — {d.name}</li>)}</ul></div>
         ))}</div>
-      </div>
-    </section>
+      </Panel>
+    </>
   );
 }
 
@@ -232,13 +217,17 @@ export function IntegrationInspectorPage() {
   const [adapter, setAdapter] = useState('');
   const q = useQuery({ queryKey: ['integration', adapter], queryFn: async () => (await api.GET('/api/v1/admin/integration-messages', { params: { query: adapter ? { adapter } : {} } })).data?.items ?? [] });
   return (
-    <section>
-      <h2>Integration inspector</h2>
-      <p className="filters"><select value={adapter} onChange={(e) => setAdapter(e.target.value)}><option value="">All</option><option>payments</option><option>notify</option><option>insurer</option><option>fx</option></select></p>
-      <table>
-        <thead><tr><th>When</th><th>Adapter</th><th>Direction</th><th>Reference</th><th>Payload</th></tr></thead>
-        <tbody>{(q.data ?? []).map((m) => <tr key={m.id}><td>{when(m.createdAt)}</td><td>{m.adapter}</td><td>{m.direction}</td><td>{m.reference}</td><td><code>{typeof m.payload === 'string' ? m.payload : JSON.stringify(m.payload)}</code></td></tr>)}</tbody>
-      </table>
-    </section>
+    <>
+      <Page title="Integration inspector" description="The messages the simulated bank, insurer, FX and notification adapters sent and received." />
+      <DataTable aria-label="Integration messages" noun="messages" density="compact" loading={q.isLoading} rowKey={(m) => m.id} rows={q.data ?? []} empty={noRows('No messages yet')}
+        toolbar={<SelectField label="Adapter" value={adapter} onChange={(e) => setAdapter(e.target.value)}><option value="">All</option><option>payments</option><option>notify</option><option>insurer</option><option>fx</option></SelectField>}
+        columns={[
+          { id: 'when', header: 'When', rowHeader: true, cell: (m) => dt(m.createdAt) },
+          { id: 'adapter', header: 'Adapter', cell: (m) => m.adapter },
+          { id: 'dir', header: 'Direction', cell: (m) => m.direction },
+          { id: 'ref', header: 'Reference', cell: (m) => m.reference },
+          { id: 'payload', header: 'Payload', cell: (m) => <span className="mono">{typeof m.payload === 'string' ? m.payload : JSON.stringify(m.payload)}</span> },
+        ]} />
+    </>
   );
 }

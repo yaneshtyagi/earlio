@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, ensureOk, problemOf } from '../api/client';
+import { Badge, Button, DataTable, DescriptionList, Drawer, TextField } from '@yaneshtyagi/design-system';
+import { api, ensureOk } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { formatMoney, type Currency } from '../shared/money';
+import { Amt, ErrorNote, Hint, Page, Panel, StatusChip, dd, dt, noRows } from '../ui';
 
 /** INS-02: the underwriter's queue of cover requests with an approve / reduce / decline form. */
 export function InsuranceRequestsPage() {
@@ -21,39 +22,36 @@ export function InsuranceRequestsPage() {
     onSuccess: () => { setErr(null); setOpen(null); setPct(''); setReason(''); qc.invalidateQueries({ queryKey: ['cover-requests'] }); },
     onError: (e: Error) => setErr(e.message),
   });
+  const current = (q.data ?? []).find((c) => c.id === open);
   return (
-    <section>
-      <h2>Cover requests</h2>
-      <p className="hint">Requests arrive when a buyer accepts an invoice. Decisions are due within 24 hours.</p>
-      {err && <p className="alert" role="alert">{err}</p>}
-      <table>
-        <thead><tr><th>Invoice</th><th>Supplier</th><th>Buyer</th><th className="num">Amount</th><th>Asked</th><th>Status</th><th>SLA</th><th /></tr></thead>
-        <tbody>
-          {(q.data ?? []).map((c) => (
-            <>
-              <tr key={c.id}>
-                <td>{c.invoiceNumber}</td><td>{c.supplierName}</td><td>{c.buyer.name} <span className="chip">{c.buyer.tier}</span></td>
-                <td className="num">{formatMoney(c.invoiceAmount, c.currency as Currency)}</td><td>{c.requestedCoverPct}%</td>
-                <td><span className={`chip ${c.status}`}>{c.status}{c.coverPct != null ? ` ${c.coverPct}%` : ''}</span></td>
-                <td>{c.status === 'requested' ? (c.slaBreached ? <span className="chip Overdue">overdue</span> : `by ${new Date(c.slaDueAt!).toLocaleString()}`) : ''}</td>
-                <td>{canDecide && c.status === 'requested' && <button className="link" onClick={() => setOpen(open === c.id ? null : c.id)}>Decide</button>}</td>
-              </tr>
-              {open === c.id && (
-                <tr key={c.id + 'f'}><td colSpan={8}>
-                  <div className="panel">
-                    <label>Cover % (leave blank for {c.requestedCoverPct}%)<input inputMode="decimal" value={pct} onChange={(e) => setPct(e.target.value)} /></label>
-                    <label>Reason (required to decline)<input value={reason} onChange={(e) => setReason(e.target.value)} /></label>
-                    <button disabled={decide.isPending} onClick={() => decide.mutate({ id: c.id, decision: 'approve' })}>Approve</button>{' '}
-                    <button className="danger" disabled={decide.isPending} onClick={() => decide.mutate({ id: c.id, decision: 'decline' })}>Decline</button>
-                  </div>
-                </td></tr>
-              )}
-            </>
-          ))}
-          {q.data?.length === 0 && <tr><td colSpan={8} className="muted">No requests yet.</td></tr>}
-        </tbody>
-      </table>
-    </section>
+    <>
+      <Page title="Cover requests" description="Requests arrive when a buyer accepts an invoice. Decisions are due within 24 hours." />
+      <ErrorNote>{err}</ErrorNote>
+      <DataTable aria-label="Cover requests" noun="requests" loading={q.isLoading} rowKey={(c) => c.id} rows={q.data ?? []} empty={noRows('No requests yet')}
+        columns={[
+          { id: 'invoice', header: 'Invoice', rowHeader: true, cell: (c) => c.invoiceNumber },
+          { id: 'supplier', header: 'Supplier', cell: (c) => c.supplierName },
+          { id: 'buyer', header: 'Buyer', cell: (c) => <>{c.buyer.name} <Badge tone="neutral">{c.buyer.tier}</Badge></> },
+          { id: 'amount', header: 'Amount', numeric: true, cell: (c) => <Amt v={c.invoiceAmount} c={c.currency} /> },
+          { id: 'asked', header: 'Asked', numeric: true, cell: (c) => `${c.requestedCoverPct}%` },
+          { id: 'status', header: 'Status', cell: (c) => <StatusChip status={c.status}>{c.status}{c.coverPct != null ? ` ${c.coverPct}%` : ''}</StatusChip> },
+          { id: 'sla', header: 'SLA', cell: (c) => c.status === 'requested' ? (c.slaBreached ? <StatusChip status="overdue">overdue</StatusChip> : `by ${dt(c.slaDueAt)}`) : '' },
+          { id: 'act', header: <span className="bv-sr-only">Action</span>, cell: (c) => canDecide && c.status === 'requested' ? <Button size="sm" onClick={() => { setOpen(c.id); setPct(''); setReason(''); }}>Decide</Button> : null },
+        ]} />
+      <Drawer open={!!current} onClose={() => setOpen(null)} title={current ? `Decide on ${current.invoiceNumber}` : ''}
+        footer={current ? <>
+          <Button variant="ghost" onClick={() => setOpen(null)}>Cancel</Button>
+          <Button variant="danger" disabled={decide.isPending} onClick={() => decide.mutate({ id: current.id, decision: 'decline' })}>Decline</Button>
+          <Button variant="primary" disabled={decide.isPending} onClick={() => decide.mutate({ id: current.id, decision: 'approve' })}>Approve</Button>
+        </> : undefined}>
+        {current && (
+          <div className="stack-3">
+            <TextField label={`Cover % (leave blank for ${current.requestedCoverPct}%)`} inputMode="decimal" value={pct} onChange={(e) => setPct(e.target.value)} />
+            <TextField label="Reason (required to decline)" value={reason} onChange={(e) => setReason(e.target.value)} />
+          </div>
+        )}
+      </Drawer>
+    </>
   );
 }
 
@@ -74,23 +72,21 @@ export function InsuranceLimitsPage() {
     onSuccess: () => { setErr(null); qc.invalidateQueries({ queryKey: ['ins-limits'] }); }, onError: (e: Error) => setErr(e.message),
   });
   return (
-    <section>
-      <h2>Buyer limits (USD)</h2>
-      {err && <p className="alert" role="alert">{err}</p>}
-      <table>
-        <thead><tr><th>Buyer</th><th>Policy</th><th className="num">Limit</th><th className="num">Reserved</th><th className="num">Used</th><th className="num">Available</th><th>Expires</th><th /></tr></thead>
-        <tbody>
-          {(q.data ?? []).map((l) => (
-            <tr key={l.buyer.id}>
-              <td>{l.buyer.name}</td><td>{l.policyNumber}</td><td className="num">{formatMoney(l.limitUsd, 'USD')}</td><td className="num">{formatMoney(l.reservedUsd, 'USD')}</td>
-              <td className="num">{formatMoney(l.usedUsd, 'USD')}</td><td className="num">{formatMoney(l.availableUsd, 'USD')}</td>
-              <td>{new Date(l.expiresAt).toLocaleDateString()} {l.expired && <span className="chip Overdue">expired</span>}</td>
-              <td>{canManage && <button className="link" onClick={() => edit.mutate(l)}>Edit</button>}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
+    <>
+      <Page title="Buyer limits" description="Amounts in US dollars." />
+      <ErrorNote>{err}</ErrorNote>
+      <DataTable aria-label="Buyer limits" noun="buyers" loading={q.isLoading} rowKey={(l) => l.buyer.id} rows={q.data ?? []} empty={noRows('No limits set')}
+        columns={[
+          { id: 'buyer', header: 'Buyer', rowHeader: true, cell: (l) => l.buyer.name },
+          { id: 'policy', header: 'Policy', cell: (l) => <span className="mono">{l.policyNumber}</span> },
+          { id: 'limit', header: 'Limit (USD)', numeric: true, cell: (l) => <Amt v={l.limitUsd} c="USD" /> },
+          { id: 'reserved', header: 'Reserved (USD)', numeric: true, cell: (l) => <Amt v={l.reservedUsd} c="USD" /> },
+          { id: 'used', header: 'Used (USD)', numeric: true, cell: (l) => <Amt v={l.usedUsd} c="USD" /> },
+          { id: 'available', header: 'Available (USD)', numeric: true, cell: (l) => <Amt v={l.availableUsd} c="USD" /> },
+          { id: 'expires', header: 'Expires', cell: (l) => <>{dd(l.expiresAt)} {l.expired && <StatusChip status="expired">expired</StatusChip>}</> },
+          { id: 'act', header: <span className="bv-sr-only">Action</span>, cell: (l) => canManage ? <Button size="sm" variant="ghost" icon="pencil" onClick={() => edit.mutate(l)}>Edit</Button> : null },
+        ]} />
+    </>
   );
 }
 
@@ -103,13 +99,14 @@ export function CoverPanel({ invoiceId }: { invoiceId: string }) {
   const c = q.data;
   if (!c) return null;
   return (
-    <div className="panel">
-      <h3>Insurance cover <span className={`chip ${c.status}`}>{c.status}</span></h3>
-      {c.insurerName && <p>Insurer: {c.insurerName}{c.policyNumber ? ` (policy ${c.policyNumber})` : ''}</p>}
-      {c.coverPct != null && <p>Cover {c.coverPct}% — insured {formatMoney(c.insuredAmount ?? '0', c.currency as Currency)}</p>}
-      {c.status === 'requested' && <p className="hint">Awaiting the insurer’s decision{c.slaDueAt ? ` (due ${new Date(c.slaDueAt).toLocaleString()})` : ''}. Early payment does not need cover.</p>}
-      {(c.status === 'declined' || c.status === 'uninsured') && <p className="hint">Bank financing is not available for this invoice. Early payment from the buyer remains possible.</p>}
-      {c.reason && <p className="hint">{c.reason}</p>}
-    </div>
+    <Panel title="Insurance cover" actions={<StatusChip status={c.status} />}>
+      <DescriptionList columns={2} items={[
+        ...(c.insurerName ? [{ label: 'Insurer', value: `${c.insurerName}${c.policyNumber ? ` (policy ${c.policyNumber})` : ''}` }] : []),
+        ...(c.coverPct != null ? [{ label: 'Cover', value: <>{c.coverPct}% — insured <Amt v={c.insuredAmount ?? '0'} c={c.currency} /></> }] : []),
+      ]} />
+      {c.status === 'requested' && <Hint>Awaiting the insurer’s decision{c.slaDueAt ? ` (due ${dt(c.slaDueAt)})` : ''}. Early payment does not need cover.</Hint>}
+      {(c.status === 'declined' || c.status === 'uninsured') && <Hint>Bank financing is not available for this invoice. Early payment from the buyer remains possible.</Hint>}
+      {c.reason && <Hint>{c.reason}</Hint>}
+    </Panel>
   );
 }

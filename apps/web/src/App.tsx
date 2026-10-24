@@ -24,7 +24,7 @@ import { InsuranceLimitsPage, InsuranceRequestsPage } from './pages/InsurancePag
 
 export function App() {
   const { me, loading } = useAuth();
-  if (loading) return <p className="center">Loading…</p>;
+  if (loading) return <p className="center-note" role="status">Loading…</p>;
   if (!me?.mfaVerified) return window.location.pathname === '/register' ? <RegisterPage /> : <LoginPage />;
   return (
     <Routes>
