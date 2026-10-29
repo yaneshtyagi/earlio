@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, AppShell, Avatar, Button, Menu, type MenuEntry, type NavGroup } from '@yaneshtyagi/design-system';
+import { Alert, AppShell, Avatar, Button, Menu, initialsOf, type MenuEntry, type NavGroup } from '@yaneshtyagi/design-system';
 import { setLang, type Lang } from '../i18n';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
@@ -89,7 +89,8 @@ export function Layout() {
         onNotifications: () => nav('/notifications'),
         user: (
           <Menu aria-label={t('Account')} align="end" items={menu}
-            trigger={<Button variant="ghost" aria-label={`${t('Account')}: ${me.user.name}`}><Avatar name={me.user.name} size="sm" decorative /></Button>} />
+            // The name starts with the initials the avatar shows, so the visible label is part of it (WCAG 2.5.3, axe label-content-name-mismatch).
+            trigger={<Button variant="ghost" aria-label={`${initialsOf(me.user.name)}, ${t('Account')}: ${me.user.name}`}><Avatar name={me.user.name} size="sm" decorative /></Button>} />
         ),
       }}
     >

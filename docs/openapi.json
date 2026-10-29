@@ -13496,6 +13496,171 @@
         }
       }
     },
+    "/api/v1/admin/network": {
+      "get": {
+        "summary": "The network: every supplier, buyer, bank and insurer, and the relationships, limits, preferred banks and funding between them (platform staff; the read is audited)",
+        "tags": [
+          "analytics"
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asOf": {
+                      "type": "string"
+                    },
+                    "nodes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "supplier",
+                              "buyer",
+                              "bank",
+                              "insurer"
+                            ]
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "country": {
+                            "type": "string"
+                          },
+                          "kycStatus": {
+                            "type": "string"
+                          },
+                          "sanctionsStatus": {
+                            "type": "string"
+                          },
+                          "blocked": {
+                            "type": "boolean"
+                          },
+                          "ratingTier": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "msme": {
+                            "type": "boolean"
+                          },
+                          "partner": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type",
+                          "name",
+                          "country",
+                          "kycStatus",
+                          "sanctionsStatus",
+                          "blocked",
+                          "ratingTier",
+                          "msme",
+                          "partner"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "edges": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "trade",
+                              "bank_limit",
+                              "cover_limit",
+                              "preferred_bank",
+                              "financed"
+                            ]
+                          },
+                          "from": {
+                            "type": "string"
+                          },
+                          "to": {
+                            "type": "string"
+                          },
+                          "status": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "detail": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "limitUsd": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "reservedUsd": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "usedUsd": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "count": {
+                            "nullable": true,
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "volumeUsd": {
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "expiresAt": {
+                            "nullable": true,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "kind",
+                          "from",
+                          "to",
+                          "status",
+                          "detail",
+                          "limitUsd",
+                          "reservedUsd",
+                          "usedUsd",
+                          "count",
+                          "volumeUsd",
+                          "expiresAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "asOf",
+                    "nodes",
+                    "edges"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/bank/api-keys": {
       "get": {
         "summary": "API keys of my bank (secrets are never shown again)",

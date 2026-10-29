@@ -165,3 +165,56 @@ export async function scorecard(c: Ctx2) {
     network: net,
   };
 }
+
+/**
+ * The whole network for platform staff: every organisation except the platform itself, and every link between them.
+ * Live, not a projection: limits and relationships change one at a time and staff expect to see the change at once.
+ */
+export async function network(c: Ctx2) {
+  const nodes = await c.tx.query<any>(
+    `select id, type, legal_name, country, kyc_status, sanctions_status, blocked, rating_tier, msme, is_partner
+       from identity.organisations where type <> 'platform' order by type, legal_name`);
+  const trade = await c.tx.query<any>(
+    `select r.id, r.supplier_org_id, r.buyer_org_id, r.status, r.insurer_org_id,
+            count(i.id)::int as invoices, ${money(toUsd(face))} as usd
+       from identity.relationships r
+       left join invoicing.invoices i on i.supplier_org_id = r.supplier_org_id and i.buyer_org_id = r.buyer_org_id and i.status not in ('Draft','Cancelled')
+      group by r.id order by r.created_at`, [c.sgd]);
+  const bankLimits = await c.tx.query<any>('select id, bank_org_id, subject_org_id, kind, limit_usd, reserved_usd, used_usd from identity.bank_limits order by bank_org_id, subject_org_id');
+  const coverLimits = await c.tx.query<any>('select id, insurer_org_id, buyer_org_id, policy_number, limit_usd, reserved_usd, used_usd, expires_at from insurance.buyer_limits order by insurer_org_id, buyer_org_id');
+  const preferred = await c.tx.query<any>('select org_id, bank_org_id from identity.org_preferred_banks order by org_id, bank_org_id');
+  const financed = await c.tx.query<any>(
+    `select fr.bank_org_id, fr.supplier_org_id, count(*)::int as n, ${money(toUsd(face))} as usd
+       from marketplace.financing_requests fr join invoicing.invoices i on i.id = fr.invoice_id
+      where fr.status = 'Funded' group by 1, 2 order by 1, 2`, [c.sgd]);
+  const edge = (e: Partial<NetworkEdge> & Pick<NetworkEdge, 'id' | 'kind' | 'from' | 'to'>): NetworkEdge =>
+    ({ status: null, detail: null, limitUsd: null, reservedUsd: null, usedUsd: null, count: null, volumeUsd: null, expiresAt: null, ...e });
+  return {
+    asOf: c.now.toISOString(),
+    nodes: nodes.map((o) => ({ id: o.id as string, type: o.type as string, name: o.legal_name as string, country: o.country as string, kycStatus: o.kyc_status as string,
+      sanctionsStatus: o.sanctions_status as string, blocked: o.blocked as boolean, ratingTier: o.rating_tier as string | null, msme: o.msme as boolean, partner: o.is_partner as boolean })),
+    edges: [
+      ...trade.map((r) => edge({ id: `trade:${r.id}`, kind: 'trade', from: r.supplier_org_id, to: r.buyer_org_id, status: r.status, detail: r.insurer_org_id, count: r.invoices, volumeUsd: r.usd })),
+      ...bankLimits.map((l) => edge({ id: `bank_limit:${l.id}`, kind: 'bank_limit', from: l.bank_org_id, to: l.subject_org_id, detail: l.kind, limitUsd: l.limit_usd, reservedUsd: l.reserved_usd, usedUsd: l.used_usd })),
+      ...coverLimits.map((l) => edge({ id: `cover_limit:${l.id}`, kind: 'cover_limit', from: l.insurer_org_id, to: l.buyer_org_id, detail: l.policy_number, limitUsd: l.limit_usd, reservedUsd: l.reserved_usd, usedUsd: l.used_usd, expiresAt: (l.expires_at as Date).toISOString() })),
+      ...preferred.map((p) => edge({ id: `preferred_bank:${p.org_id}:${p.bank_org_id}`, kind: 'preferred_bank', from: p.org_id, to: p.bank_org_id })),
+      ...financed.map((f) => edge({ id: `financed:${f.bank_org_id}:${f.supplier_org_id}`, kind: 'financed', from: f.bank_org_id, to: f.supplier_org_id, count: f.n, volumeUsd: f.usd })),
+    ],
+  };
+}
+
+export interface NetworkEdge {
+  id: string;
+  kind: 'trade' | 'bank_limit' | 'cover_limit' | 'preferred_bank' | 'financed';
+  from: string;
+  to: string;
+  status: string | null;
+  /** trade: the insurer org id on the relationship; bank_limit: 'buyer' or 'supplier'; cover_limit: the policy number. */
+  detail: string | null;
+  limitUsd: string | null;
+  reservedUsd: string | null;
+  usedUsd: string | null;
+  count: number | null;
+  volumeUsd: string | null;
+  expiresAt: string | null;
+}

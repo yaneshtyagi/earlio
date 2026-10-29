@@ -7888,6 +7888,72 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/network": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The network: every supplier, buyer, bank and insurer, and the relationships, limits, preferred banks and funding between them (platform staff; the read is audited) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Default Response */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            asOf: string;
+                            nodes: {
+                                id: string;
+                                /** @enum {string} */
+                                type: "supplier" | "buyer" | "bank" | "insurer";
+                                name: string;
+                                country: string;
+                                kycStatus: string;
+                                sanctionsStatus: string;
+                                blocked: boolean;
+                                ratingTier: string | null;
+                                msme: boolean;
+                                partner: boolean;
+                            }[];
+                            edges: {
+                                id: string;
+                                /** @enum {string} */
+                                kind: "trade" | "bank_limit" | "cover_limit" | "preferred_bank" | "financed";
+                                from: string;
+                                to: string;
+                                status: string | null;
+                                detail: string | null;
+                                limitUsd: string | null;
+                                reservedUsd: string | null;
+                                usedUsd: string | null;
+                                count: number | null;
+                                volumeUsd: string | null;
+                                expiresAt: string | null;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/bank/api-keys": {
         parameters: {
             query?: never;

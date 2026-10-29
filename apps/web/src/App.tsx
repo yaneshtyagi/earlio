@@ -19,6 +19,7 @@ import { ClaimsPage, DisputeDetailPage, DisputesPage, ExportProceedsPage, Recove
 import { ApprovalsPage, BankConsolePage, GuardrailConsolePage } from './pages/GovernancePages';
 import { BankIntegrationPage } from './pages/IntegrationPages';
 import { ScorecardPage } from './pages/DashboardPages';
+import { NetworkPage } from './pages/NetworkPage';
 import { TermsSetPage, TermsStudioPage } from './pages/TermsPages';
 import { InsuranceLimitsPage, InsuranceRequestsPage } from './pages/InsurancePages';
 
@@ -54,6 +55,7 @@ export function App() {
         <Route path="bank/console" element={<BankConsolePage />} />
         <Route path="bank/integration" element={<BankIntegrationPage />} />
         <Route path="admin/scorecard" element={<ScorecardPage />} />
+        <Route path="admin/network" element={<NetworkPage />} />
         <Route path="admin/guardrails" element={<GuardrailConsolePage />} />
         <Route path="payments" element={<BuyerPaymentsPage />} />
         <Route path="settlement" element={<SettlementConsolePage />} />
