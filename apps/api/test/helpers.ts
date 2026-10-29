@@ -12,7 +12,9 @@ import { totpAt } from '../src/kernel/totp';
 import { runWorkOnce } from '../src/worker';
 import type { Role } from '../src/modules/identity/permissions';
 
-const port = () => Number(process.env.EARLIO_TEST_PG_PORT);
+const adminBase = () => process.env.EARLIO_TEST_ADMIN_URL!;
+const appBase = () => process.env.EARLIO_TEST_APP_URL!;
+const withDb = (url: string, db: string) => { const u = new URL(url); u.pathname = '/' + db; return u.toString(); };
 
 export interface TestEnv {
   app: FastifyInstance;
@@ -30,12 +32,12 @@ export interface TestEnv {
 
 export async function createTestEnv(opts: { seed?: boolean } = {}): Promise<TestEnv> {
   const name = 'earlio_t_' + randomBytes(6).toString('hex');
-  const admin = new pg.Client({ connectionString: `postgres://postgres@127.0.0.1:${port()}/postgres` });
+  const admin = new pg.Client({ connectionString: withDb(adminBase(), 'postgres') });
   await admin.connect();
   await admin.query(`create database ${name} template earlio_template`);
   await admin.end();
-  const adminUrl = `postgres://postgres@127.0.0.1:${port()}/${name}`;
-  const appUrl = `postgres://earlio_app:earlio_app@127.0.0.1:${port()}/${name}`;
+  const adminUrl = withDb(adminBase(), name);
+  const appUrl = withDb(appBase(), name);
   const clock = new VirtualClock();
   clock.setTo(new Date('2026-11-02T04:00:00.000Z')); // fixed: deterministic runs
   const config = loadConfig({ env: 'test', databaseUrl: appUrl, migrateDatabaseUrl: adminUrl });
@@ -50,7 +52,7 @@ export async function createTestEnv(opts: { seed?: boolean } = {}): Promise<Test
     close: async () => {
       await app.close();
       await db.close();
-      const a = new pg.Client({ connectionString: `postgres://postgres@127.0.0.1:${port()}/postgres` });
+      const a = new pg.Client({ connectionString: withDb(adminBase(), 'postgres') });
       await a.connect();
       await a.query(`drop database if exists ${name} with (force)`);
       await a.end();

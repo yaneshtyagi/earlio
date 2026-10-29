@@ -1,3 +1,4 @@
+import { loadEnv } from './env';
 import { envSecrets, requireSecret } from './secrets';
 export type EarlioEnv = 'development' | 'demo' | 'test' | 'production';
 
@@ -21,6 +22,7 @@ export interface Config {
 }
 
 export function loadConfig(overrides: Partial<Config> = {}): Config {
+  loadEnv();
   const env = (process.env.EARLIO_ENV ?? 'development') as EarlioEnv;
   const databaseUrl = process.env.DATABASE_URL ?? '';
   return {

@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs';
+import { loadEnv } from '../kernel/env';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
@@ -57,6 +58,7 @@ export async function migrate(adminUrl: string, opts: MigrateOptions = {}): Prom
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
+  loadEnv();
   const url = process.env.MIGRATE_DATABASE_URL ?? process.env.DATABASE_URL;
   if (!url) throw new Error('Set MIGRATE_DATABASE_URL');
   migrate(url).then((a) => console.log('applied:', a.join(', ') || 'none'));
