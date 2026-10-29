@@ -1,0 +1,11 @@
+name: Messages sent to and received from simulated external systems
+url: ${BASE_URL}/api/v1/admin/integration-messages
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+params:
+  - name: adapter
+    value: ""
+    enabled: false

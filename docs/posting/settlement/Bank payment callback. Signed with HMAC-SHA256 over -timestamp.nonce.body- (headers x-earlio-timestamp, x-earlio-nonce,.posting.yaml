@@ -1,0 +1,11 @@
+name: Bank payment callback. Signed with HMAC-SHA256 over "timestamp.nonce.body" (headers x-earlio-timestamp, x-earlio-nonce, x-earlio-signature); replays are rejected.
+method: POST
+url: ${BASE_URL}/api/v1/webhooks/bank/:bankId
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: bankId
+    value: ""

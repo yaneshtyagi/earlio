@@ -1,0 +1,10 @@
+name: 'Offers side by side (supplier: all live offers; bank: my own offers) with the early-payment option'
+url: ${BASE_URL}/api/v1/invoices/:id/offers
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: id
+    value: ""

@@ -1,0 +1,16 @@
+name: Approve or reject a proposed platform setting (a different administrator from the proposer)
+method: POST
+url: ${BASE_URL}/api/v1/approvals/settings/:id/decision
+body:
+  content: '{}'
+  content_type: application/json
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: id
+    value: ""
+options:
+  substitute_body_variables: false

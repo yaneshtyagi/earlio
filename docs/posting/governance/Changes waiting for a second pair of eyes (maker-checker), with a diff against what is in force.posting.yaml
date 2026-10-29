@@ -1,0 +1,7 @@
+name: Changes waiting for a second pair of eyes (maker-checker), with a diff against what is in force
+url: ${BASE_URL}/api/v1/approvals
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}

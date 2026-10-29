@@ -1,0 +1,11 @@
+name: Cover requests addressed to me (INS-02)
+url: ${BASE_URL}/api/v1/insurance/requests
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+params:
+  - name: status
+    value: ""
+    enabled: false

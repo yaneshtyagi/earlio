@@ -1,0 +1,14 @@
+name: Export a terms version as a portable JSON document (CT-11)
+url: ${BASE_URL}/api/v1/terms/sets/:id/export
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+params:
+  - name: version
+    value: ""
+    enabled: false
+path_params:
+  - name: id
+    value: ""

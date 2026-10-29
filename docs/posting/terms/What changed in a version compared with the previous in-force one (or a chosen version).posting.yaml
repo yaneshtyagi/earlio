@@ -1,0 +1,14 @@
+name: What changed in a version compared with the previous in-force one (or a chosen version)
+url: ${BASE_URL}/api/v1/terms/versions/:id/diff
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+params:
+  - name: against
+    value: ""
+    enabled: false
+path_params:
+  - name: id
+    value: ""

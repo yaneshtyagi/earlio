@@ -1,0 +1,16 @@
+name: Set fault injection for the simulated bank
+method: PUT
+url: ${BASE_URL}/api/v1/admin/sim-settings
+body:
+  content: |-
+    {
+      "disbursement": "none"
+    }
+  content_type: application/json
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+options:
+  substitute_body_variables: false

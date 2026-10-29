@@ -1,0 +1,8 @@
+name: Submit an offer. Signed (HMAC over "timestamp.nonce.body"); send Idempotency-Key to make retries safe.
+method: POST
+url: ${BASE_URL}/api/v1/machine/offers
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}

@@ -1,0 +1,16 @@
+name: Propose a new value; it takes effect when a different administrator approves it
+method: PUT
+url: ${BASE_URL}/api/v1/admin/settings/:key
+body:
+  content: '{}'
+  content_type: application/json
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: key
+    value: ""
+options:
+  substitute_body_variables: false

@@ -1,0 +1,19 @@
+name: Bank records a recovery from the buyer; net of costs it is shared pro rata to losses
+method: POST
+url: ${BASE_URL}/api/v1/claims/:id/recoveries
+body:
+  content: |-
+    {
+      "costs": "0.00"
+    }
+  content_type: application/json
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: id
+    value: ""
+options:
+  substitute_body_variables: false

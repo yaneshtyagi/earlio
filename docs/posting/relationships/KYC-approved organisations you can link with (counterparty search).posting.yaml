@@ -1,0 +1,13 @@
+name: KYC-approved organisations you can link with (counterparty search)
+url: ${BASE_URL}/api/v1/directory/organisations
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+params:
+  - name: q
+    value: ""
+    enabled: false
+  - name: type
+    value: supplier

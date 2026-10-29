@@ -1,0 +1,23 @@
+name: Terms in force (and which layer supplied each parameter)
+url: ${BASE_URL}/api/v1/terms/resolve
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+params:
+  - name: ownerOrgId
+    value: ""
+    enabled: false
+  - name: buyerOrgId
+    value: ""
+    enabled: false
+  - name: supplierOrgId
+    value: ""
+    enabled: false
+  - name: corridor
+    value: ""
+    enabled: false
+  - name: at
+    value: ""
+    enabled: false

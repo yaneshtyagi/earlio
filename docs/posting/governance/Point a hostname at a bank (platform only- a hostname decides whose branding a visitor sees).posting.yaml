@@ -1,0 +1,16 @@
+name: 'Point a hostname at a bank (platform only: a hostname decides whose branding a visitor sees)'
+method: PUT
+url: ${BASE_URL}/api/v1/admin/banks/:id/hostname
+body:
+  content: '{}'
+  content_type: application/json
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: id
+    value: ""
+options:
+  substitute_body_variables: false

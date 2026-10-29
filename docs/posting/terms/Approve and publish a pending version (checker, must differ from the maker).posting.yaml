@@ -1,0 +1,11 @@
+name: Approve and publish a pending version (checker, must differ from the maker)
+method: POST
+url: ${BASE_URL}/api/v1/terms/versions/:id/approve
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: id
+    value: ""

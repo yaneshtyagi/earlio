@@ -1,0 +1,7 @@
+name: Holiday calendars used for value dates
+url: ${BASE_URL}/api/v1/admin/calendars
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}

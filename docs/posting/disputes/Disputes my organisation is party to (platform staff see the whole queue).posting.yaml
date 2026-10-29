@@ -1,0 +1,10 @@
+name: Disputes my organisation is party to (platform staff see the whole queue)
+url: ${BASE_URL}/api/v1/disputes
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+params:
+  - name: status
+    value: open

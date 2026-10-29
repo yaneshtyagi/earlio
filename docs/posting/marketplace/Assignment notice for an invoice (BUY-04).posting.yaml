@@ -1,0 +1,10 @@
+name: Assignment notice for an invoice (BUY-04)
+url: ${BASE_URL}/api/v1/invoices/:id/assignment-notice
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: id
+    value: ""
