@@ -133,10 +133,12 @@ export function NetworkPage() {
             const p = pos.get(n.id)!;
             const on = n.id === selected, near = neighbours.has(n.id), dim = selected && !on && !near;
             const pending = n.kycStatus !== 'approved';
-            const state = [n.blocked ? 'blocked' : null, pending ? `KYC ${label(n.kycStatus)}` : null, n.partner ? 'partner bank' : null].filter(Boolean).join(', ');
+            const state = [pending ? `KYC ${label(n.kycStatus)}` : null, n.partner ? 'partner bank' : null].filter(Boolean).join(', ');
+            // The name starts with the visible text in order (name, then "Blocked"): WCAG 2.5.3, axe label-content-name-mismatch.
+            const shown = `${n.name}${n.blocked ? ' Blocked' : ''}`;
             return (
               <g key={n.id} className="network-node" role="button" tabIndex={0} aria-pressed={on}
-                aria-label={`${n.name}, ${n.type}, ${n.country}${state ? `, ${state}` : ''}`}
+                aria-label={`${shown}, ${n.type}, ${n.country}${state ? `, ${state}` : ''}`}
                 onClick={() => pick(n.id)} onKeyDown={onKey(n.id)} opacity={dim ? 0.3 : 1}>
                 <circle cx={p.x} cy={p.y} r={on ? 17 : 13}
                   fill={on ? 'var(--brand-500)' : 'var(--surface-raised)'}
@@ -145,9 +147,10 @@ export function NetworkPage() {
                 {n.blocked && <path d={`M${p.x - 6},${p.y - 6} L${p.x + 6},${p.y + 6}`} stroke="var(--danger)" strokeWidth={2.5} />}
                 <text x={p.lx} y={p.ly} textAnchor={p.anchor} style={{ fontSize: 18, fill: 'var(--ink-primary)', fontWeight: on ? 700 : 500 }}>
                   {n.name}
+                  {/* One text element with a real space, so the visible text reads "… Ltd Blocked" and matches the label. */}
+                  {n.blocked && <tspan x={p.lx} dy={20} style={{ fontSize: 14, fill: 'var(--danger-ink)', fontWeight: 600 }}>{' '}Blocked</tspan>}
                 </text>
-                {n.blocked && <text x={p.lx} y={p.ly + 20} textAnchor={p.anchor} style={{ fontSize: 14, fill: 'var(--danger-ink)', fontWeight: 600 }}>Blocked</text>}
-                <title>{`${n.name} · ${n.country}${state ? ` · ${state}` : ''}`}</title>
+                <title>{`${shown} · ${n.country}${state ? ` · ${state}` : ''}`}</title>
               </g>
             );
           })}
