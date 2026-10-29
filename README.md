@@ -7,8 +7,8 @@ Tri-party receivables financing platform: suppliers get cash within days of buye
 
 ```
 npm install
-npm run dev:api      # http://localhost:4000  (embedded Postgres, seeded demo cast)
+npm run dev:api      # http://localhost:4000  (needs Postgres per apps/api/.env; seeded demo cast)
 npm run dev:web      # http://localhost:5173
-npm test             # API tests against a real Postgres (no Docker needed)
+npm test             # API tests against the Postgres in apps/api/.env
 ```
 Demo login: `admin@shree.demo` / `Earlio!Demo1` (use "Use demo code" on the MFA step in development).

@@ -11,17 +11,10 @@ export interface Bootstrapped {
   clock: Clock;
 }
 
-/** Build services from config. In dev/demo without DATABASE_URL an embedded Postgres is started. */
+/** Build services from config. Requires DATABASE_URL (apps/api/.env, else the environment) pointing at a running Postgres. */
 export async function bootstrap(overrides: Partial<Config> = {}): Promise<Bootstrapped & { stop: () => Promise<void> }> {
-  let config = loadConfig(overrides);
-  let stopPg: () => Promise<void> = async () => {};
-  if (!config.databaseUrl) {
-    if (!isDevLike(config)) throw new Error('DATABASE_URL is required outside development');
-    const { startPostgres } = await import('./testing/pgserver');
-    const pg = await startPostgres({ persistentDir: process.env.EARLIO_PGDATA ?? '.pgdata' });
-    stopPg = pg.stop;
-    config = { ...config, migrateDatabaseUrl: pg.adminUrl, databaseUrl: pg.appUrl };
-  }
+  const config = loadConfig(overrides);
+  if (!config.databaseUrl) throw new Error('DATABASE_URL is not set. Define it in apps/api/.env or as an environment variable.');
   await migrate(config.migrateDatabaseUrl || config.databaseUrl);
   const clock = isDevLike(config) ? new VirtualClock() : new SystemClock();
   const db = new Db(config.databaseUrl);
@@ -29,5 +22,5 @@ export async function bootstrap(overrides: Partial<Config> = {}): Promise<Bootst
   if (isDevLike(config) && config.env !== 'test') {
     await db.system((tx) => seedDemo(tx, svc, { platform: true, correlationId: 'seed' }));
   }
-  return { svc, clock, stop: async () => { await db.close(); await stopPg(); } };
+  return { svc, clock, stop: async () => { await db.close(); } };
 }

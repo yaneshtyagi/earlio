@@ -10,12 +10,11 @@ Earlio is a tri-party receivables financing platform (supplier, buyer, bank, ins
 
 ## Commands
 - `npm install` (root, workspaces)
-- `npm run dev:api` — starts the API on :4000. With no `DATABASE_URL` in development it starts an embedded Postgres (data in `.pgdata`, or `EARLIO_PGDATA`), migrates and seeds the demo cast.
+- `npm run dev:api` — starts the API on :4000. Reads config from `apps/api/.env` first, then from environment variables (`DATABASE_URL`, `MIGRATE_DATABASE_URL`, …); requires a running PostgreSQL server. Migrates and seeds the demo cast on start.
 - `npm run dev:web` — Vite on :5173, proxying `/api` to the API.
-- `npm test` — API tests (real Postgres started by `test/global-setup.ts`; no Docker needed). `npm test -w @earlio/web` for web unit tests.
+- `npm test` — API tests (run against the Postgres from `apps/api/.env`; `MIGRATE_DATABASE_URL` must be a superuser — the suite creates and drops its own `earlio_template` and `earlio_t_*` databases). `npm test -w @earlio/web` for web unit tests.
 - `npm run typecheck`, `npm run openapi`, `npm run gen:client`.
 - Demo logins: any `<role>@<slug>.demo` (e.g. `admin@shree.demo`, `approver@northwind.demo`, `credit@aurelia.demo`), password `Earlio!Demo1`; the dev-only `GET /api/v1/dev/totp?email=` returns the current MFA code.
-- Running as root (containers): Postgres cannot run as root; the launcher uses `runuser -u pgrun` (create user `pgrun`, make the repo readable by it).
 
 ## Architecture rules (non-negotiable)
 1. **Modular monolith.** `apps/api/src/modules/<name>` owns its schema (`identity`, `compliance`, `invoicing`, `terms`, `insurance`, `marketplace`, `settlement`, `notify`). Modules call each other through exported service functions and the outbox, never by reaching into another module's tables for writes.
