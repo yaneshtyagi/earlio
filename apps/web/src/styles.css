@@ -69,3 +69,9 @@
 .brand-preview__bar { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle); }
 .brand-preview__body { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); align-items: flex-start; }
 .brand-preview__button { color: #fff; padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm); font-weight: 600; }
+
+/* Network map (platform staff) */
+.network-kinds { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); margin-bottom: var(--space-4); }
+.network-map { display: block; width: 100%; height: auto; }
+.network-node { cursor: pointer; outline: none; }
+.network-node:focus-visible circle { stroke: var(--brand-500); stroke-width: 4; }

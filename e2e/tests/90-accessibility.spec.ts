@@ -8,7 +8,7 @@ const PAGES: Array<{ who: string; email: string; paths: string[] }> = [
   { who: 'buyer', email: user('northwind', 'FinanceUser'), paths: ['/', '/invoices?status=Submitted', '/payments'] },
   { who: 'bank', email: user('kestrel', 'CreditOfficer'), paths: ['/', '/bank/invitations', '/limits'] },
   { who: 'insurer', email: user('sentinel', 'Underwriter'), paths: ['/', '/insurance/requests'] },
-  { who: 'platform', email: user('earlio', 'PlatformAdmin'), paths: ['/', '/admin/scorecard', '/audit'] },
+  { who: 'platform', email: user('earlio', 'PlatformAdmin'), paths: ['/', '/admin/scorecard', '/admin/network', '/audit'] },
 ];
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
 

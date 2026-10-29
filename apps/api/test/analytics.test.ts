@@ -76,4 +76,26 @@ describe('dashboards and scorecard', () => {
     expect(bank.json.funded.count).toBe(1); expect(bank.json.funded.outstandingUsd).toBe('45000.00');
     expect((await shree.req('GET', '/api/v1/admin/scorecard')).status).toBe(403);
   });
+
+  it('shows platform staff the whole network, live, and records the read', async () => {
+    const r = await admin.req('GET', '/api/v1/admin/network'); expect(r.status, JSON.stringify(r.json)).toBe(200);
+    const { nodes, edges } = r.json as { nodes: any[]; edges: any[] };
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    expect(nodes.some((n) => n.type === 'platform')).toBe(false);
+    expect(new Set(nodes.map((n) => n.type))).toEqual(new Set(['supplier', 'buyer', 'bank', 'insurer']));
+    expect(byId.get(env.ids.zarnitsa)).toMatchObject({ blocked: true, sanctionsStatus: 'confirmed' });
+    for (const e of edges) { expect(byId.has(e.from), e.id).toBe(true); expect(byId.has(e.to), e.id).toBe(true); }
+    expect(new Set(edges.map((e) => e.kind))).toEqual(new Set(['trade', 'bank_limit', 'cover_limit', 'preferred_bank', 'financed']));
+    // The invoices from the previous test: one funded by Aurelia, one only accepted.
+    expect(edges.find((e) => e.kind === 'trade' && e.from === env.ids.shree && e.to === env.ids.northwind)).toMatchObject({ status: 'active', count: 2, volumeUsd: '70000.00' });
+    expect(edges.filter((e) => e.kind === 'financed')).toEqual([expect.objectContaining({ from: env.ids.aurelia, to: env.ids.shree, count: 1, volumeUsd: '50000.00' })]);
+    const limit = edges.find((e) => e.kind === 'bank_limit' && e.from === env.ids.aurelia && e.to === env.ids.northwind);
+    expect(limit).toMatchObject({ detail: 'buyer' }); expect(Number(limit.usedUsd)).toBeGreaterThan(0);
+    expect(edges.find((e) => e.kind === 'cover_limit' && e.from === env.ids.exportshield && e.to === env.ids.northwind)?.detail).toBeTruthy();
+    expect((await q("select count(*)::int as n from audit.events where action = 'platform.cross_tenant_read' and entity_type = 'network'"))[0].n).toBe(1);
+  });
+  it('keeps the network to platform staff', async () => {
+    expect((await (await loginAs(env, 'auditor@earlio.demo')).req('GET', '/api/v1/admin/network')).status).toBe(200);
+    for (const s of [shree, nw, aurelia, uw]) expect((await s.req('GET', '/api/v1/admin/network')).status).toBe(403);
+  });
 });
