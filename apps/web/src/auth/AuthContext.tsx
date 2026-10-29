@@ -33,7 +33,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     me: q.data ?? null,
     loading: q.isLoading,
     refresh: async () => { await qc.invalidateQueries({ queryKey: ['me'] }); },
-    signOut: async () => { await api.POST('/api/v1/auth/logout'); setCsrfToken(''); qc.clear(); await qc.invalidateQueries({ queryKey: ['me'] }); },
+    signOut: async () => {
+      try { await api.POST('/api/v1/auth/logout'); } catch { /* the session cookie is cleared below either way */ }
+      setCsrfToken('');
+      qc.clear();
+      qc.setQueryData(['me'], null);
+      // Hard redirect: drops every in-memory cache and lands on the login page from any route.
+      window.location.assign('/');
+    },
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

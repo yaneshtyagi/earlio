@@ -1,0 +1,16 @@
+name: 'Audit log (platform staff: cross-tenant, and the read itself is audited)'
+url: ${BASE_URL}/api/v1/audit/events
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+params:
+  - name: limit
+    value: "100"
+  - name: orgId
+    value: ""
+    enabled: false
+  - name: entityType
+    value: ""
+    enabled: false

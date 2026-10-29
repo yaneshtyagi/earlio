@@ -1,0 +1,7 @@
+name: What a supplier owes its bank, in plain terms (or what a bank is owed)
+url: ${BASE_URL}/api/v1/recovery/recourse
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}

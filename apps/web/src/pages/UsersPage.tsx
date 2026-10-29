@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Button, DataTable, FormGrid, SelectField, TextField } from '@yaneshtyagi/design-system';
 import { api, ensureOk } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import type { OrgType } from '../shared/nav';
+import { Notice, Page, Panel, StatusChip, noRows, type Msg } from '../ui';
 
 const ROLES: Record<OrgType, string[]> = {
   supplier: ['Admin', 'FinanceUser', 'Approver', 'Viewer'], buyer: ['Admin', 'FinanceUser', 'Approver', 'Viewer'],
@@ -15,7 +17,7 @@ export function UsersPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['org-users'], queryFn: async () => (await api.GET('/api/v1/org/users')).data ?? [] });
   const [f, setF] = useState({ email: '', name: '', role: '', password: '' });
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [msg, setMsg] = useState<Msg>(null);
   const roles = ROLES[me?.activeOrg?.type ?? 'supplier'];
   const role = f.role || roles[0]!;
   async function add(e: React.FormEvent) {
@@ -27,24 +29,27 @@ export function UsersPage() {
     } catch (err) { setMsg({ ok: false, text: (err as Error).message }); }
   }
   return (
-    <section>
-      <h2>Users</h2>
-      <table>
-        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>MFA</th></tr></thead>
-        <tbody>{(q.data ?? []).map((u) => <tr key={u.userId}><td>{u.name}</td><td>{u.email}</td><td>{u.role}</td><td>{u.mfaEnabled ? 'on' : 'off'}</td></tr>)}</tbody>
-      </table>
-      <form className="panel" onSubmit={add}>
-        <h3>Add a user</h3>
-        <p className="hint">Give each person the role they need: the person who proposes a change cannot be the one who approves it.</p>
-        {msg && <p className={msg.ok ? 'ok' : 'alert'} role={msg.ok ? 'status' : 'alert'}>{msg.text}</p>}
-        <div className="grid2">
-          <label>Name<input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} required /></label>
-          <label>Work email<input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} required /></label>
-          <label>Role<select value={role} onChange={(e) => setF({ ...f, role: e.target.value })}>{roles.map((r) => <option key={r}>{r}</option>)}</select></label>
-          <label>Starting password<input type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} required autoComplete="new-password" /></label>
-        </div>
-        <button>Add user</button>
-      </form>
-    </section>
+    <>
+      <Page title="Users" />
+      <DataTable aria-label="Users" noun="users" loading={q.isLoading} rowKey={(u) => u.userId} rows={q.data ?? []} empty={noRows('No users yet')}
+        columns={[
+          { id: 'name', header: 'Name', rowHeader: true, cell: (u) => u.name },
+          { id: 'email', header: 'Email', cell: (u) => u.email },
+          { id: 'role', header: 'Role', cell: (u) => u.role },
+          { id: 'mfa', header: 'MFA', cell: (u) => <StatusChip status={u.mfaEnabled ? 'on' : 'off'}>{u.mfaEnabled ? 'on' : 'off'}</StatusChip> },
+        ]} />
+      <Panel title="Add a user" sub="Give each person the role they need: the person who proposes a change cannot be the one who approves it.">
+        <form className="stack-3" onSubmit={add}>
+          <Notice msg={msg} />
+          <FormGrid>
+            <TextField label="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} required />
+            <TextField label="Work email" type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} required />
+            <SelectField label="Role" value={role} onChange={(e) => setF({ ...f, role: e.target.value })}>{roles.map((r) => <option key={r}>{r}</option>)}</SelectField>
+            <TextField label="Starting password" type="password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} required autoComplete="new-password" />
+          </FormGrid>
+          <div><Button type="submit" variant="primary">Add user</Button></div>
+        </form>
+      </Panel>
+    </>
   );
 }

@@ -1,0 +1,7 @@
+name: Webhook endpoints and recent deliveries
+url: ${BASE_URL}/api/v1/bank/webhooks
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}

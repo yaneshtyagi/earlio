@@ -1,0 +1,11 @@
+name: 'Pilot scorecard: the six success metrics from the PRD'
+url: ${BASE_URL}/api/v1/admin/scorecard
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+params:
+  - name: fresh
+    value: ""
+    enabled: false

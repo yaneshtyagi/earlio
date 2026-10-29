@@ -1,0 +1,10 @@
+name: Settlement ledger for one invoice
+url: ${BASE_URL}/api/v1/settlement/ledger/:invoiceId
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: invoiceId
+    value: ""

@@ -1,13 +1,10 @@
-import { useRef, useState } from 'react';
+import { Fragment, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Alert, Badge, Button, DataTable, DescriptionList, FilterChip, SelectField, TextareaField, TextField } from '@yaneshtyagi/design-system';
 import { api, ensureOk } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { formatMoney, type Currency } from '../shared/money';
-
-const when = (s: string | null) => (s ? new Date(s).toLocaleString() : '—');
-const cur = (a: string, c: string) => formatMoney(a, c as Currency);
-const label = (s: string) => s.replace(/_/g, ' ');
+import { Amt, Hint, Loading, Notice, Page, Panel, Section, StatusChip, TimelineList, dd, dt, label, noRows, type Msg } from '../ui';
 
 function useUpload() {
   const { me } = useAuth();
@@ -21,13 +18,12 @@ function useUpload() {
 }
 function useAct() {
   const qc = useQueryClient();
-  const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const [msg, setMsg] = useState<Msg>(null);
   const act = async (fn: () => Promise<{ response: Response }>, ok: string) => {
     setMsg(null);
-    try { await ensureOk(await fn()); setMsg({ kind: 'ok', text: ok }); await qc.invalidateQueries(); } catch (e) { setMsg({ kind: 'err', text: (e as Error).message }); }
+    try { await ensureOk(await fn()); setMsg({ ok: true, text: ok }); await qc.invalidateQueries(); } catch (e) { setMsg({ ok: false, text: (e as Error).message }); }
   };
-  const banner = msg && <p className={msg.kind === 'ok' ? 'ok' : 'alert'} role={msg.kind === 'ok' ? 'status' : 'alert'}>{msg.text}</p>;
-  return { act, banner, setMsg };
+  return { act, banner: <Notice msg={msg} />, setMsg };
 }
 
 // ================================================================ disputes
@@ -37,27 +33,20 @@ export function DisputesPage() {
   const q = useQuery({ queryKey: ['disputes', filter], queryFn: async () => (await api.GET('/api/v1/disputes', { params: { query: filter ? { status: filter } : {} } })).data?.items ?? [] });
   const isAdmin = me?.permissions.includes('platform:admin');
   return (
-    <section>
-      <h2>Disputes</h2>
-      <div className="filters">
-        {([['open', 'Open'], ['resolved', 'Resolved'], [undefined, 'All']] as const).map(([v, l]) => <button key={l} className={filter === v ? 'on' : ''} onClick={() => setFilter(v)}>{l}</button>)}
-      </div>
-      <table>
-        <thead><tr><th>Invoice</th><th>Raised by</th><th>Reason</th><th>Status</th><th>Next deadline</th><th /></tr></thead>
-        <tbody>
-          {(q.data ?? []).map((d) => (
-            <tr key={d.id}>
-              <td><Link to={`/invoices/${d.invoiceId}`}>{d.invoiceNumber}</Link>{d.financed && <span className="chip"> financed</span>}</td><td>{d.raisedByName}</td><td>{d.reason}</td>
-              <td><span className={`chip ${d.status}`}>{label(d.status)}</span>{d.cause && <div className="hint">{label(d.cause)}</div>}</td>
-              <td>{['Open', 'UnderReview', 'Escalated'].includes(d.status) ? (d.status === 'Open' ? `escalates ${when(d.escalateAt)}` : `times out ${when(d.timeoutAt)}`) : when(d.resolvedAt)}</td>
-              <td><Link to={`/disputes/${d.id}`}>Open case</Link></td>
-            </tr>
-          ))}
-          {q.data?.length === 0 && <tr><td colSpan={6} className="muted">No disputes.</td></tr>}
-        </tbody>
-      </table>
-      {isAdmin && <p className="hint">Timers are set in the <Link to="/admin/guardrails">platform defaults</Link> and need a second administrator.</p>}
-    </section>
+    <>
+      <Page title="Disputes" />
+      <DataTable aria-label="Disputes" noun="disputes" loading={q.isLoading} rowKey={(d) => d.id} rows={q.data ?? []} empty={noRows('No disputes')}
+        toolbar={([['open', 'Open'], ['resolved', 'Resolved'], [undefined, 'All']] as const).map(([v, l]) => <FilterChip key={l} pressed={filter === v} onClick={() => setFilter(v)}>{l}</FilterChip>)}
+        columns={[
+          { id: 'invoice', header: 'Invoice', rowHeader: true, cell: (d) => <><Link to={`/invoices/${d.invoiceId}`}>{d.invoiceNumber}</Link>{d.financed && <> <Badge tone="neutral">financed</Badge></>}</> },
+          { id: 'by', header: 'Raised by', cell: (d) => d.raisedByName },
+          { id: 'reason', header: 'Reason', cell: (d) => d.reason },
+          { id: 'status', header: 'Status', cell: (d) => <><StatusChip status={d.status}>{label(d.status)}</StatusChip>{d.cause && <div className="hint">{label(d.cause)}</div>}</> },
+          { id: 'next', header: 'Next deadline', cell: (d) => ['Open', 'UnderReview', 'Escalated'].includes(d.status) ? (d.status === 'Open' ? `escalates ${dt(d.escalateAt)}` : `times out ${dt(d.timeoutAt)}`) : dt(d.resolvedAt) },
+          { id: 'act', header: <span className="bv-sr-only">Case</span>, cell: (d) => <Link to={`/disputes/${d.id}`}>Open case</Link> },
+        ]} />
+      {isAdmin && <Hint>Timers are set in the <Link to="/admin/guardrails">platform defaults</Link> and need a second administrator.</Hint>}
+    </>
   );
 }
 
@@ -72,7 +61,7 @@ export function DisputeDetailPage() {
   const [outcome, setOutcome] = useState<'buyer' | 'supplier'>('supplier');
   const [cause, setCause] = useState(''); const [credit, setCredit] = useState(''); const [note, setNote] = useState('');
   const q = useQuery({ queryKey: ['dispute', id], queryFn: async () => (await api.GET('/api/v1/disputes/{id}', { params: { path: { id } } })).data });
-  if (!q.data) return <p>Loading…</p>;
+  if (!q.data) return <Loading />;
   const { dispute: d, messages, causes } = q.data;
   const open = ['Open', 'UnderReview', 'Escalated'].includes(d.status);
   const isPlatform = me?.activeOrg?.type === 'platform';
@@ -80,64 +69,59 @@ export function DisputeDetailPage() {
   const path = { params: { path: { id } } };
   const mine = me?.activeOrg?.id === d.raisedByOrg;
   return (
-    <section>
-      <p><Link to="/disputes">← Disputes</Link></p>
-      <h2>Dispute on {d.invoiceNumber} <span className={`chip ${d.status}`}>{label(d.status)}</span></h2>
+    <>
+      <Page title={<>Dispute on {d.invoiceNumber} <StatusChip status={d.status}>{label(d.status)}</StatusChip></>}
+        breadcrumbs={[{ label: 'Disputes', href: '/disputes' }, { label: d.invoiceNumber }]}
+        actions={open && mine ? <Button onClick={() => act(() => api.POST('/api/v1/disputes/{id}/withdraw', path), 'Dispute withdrawn.')}>Withdraw dispute</Button> : undefined} />
       {banner}
-      <div className="row">
-        <div className="panel">
-          <table><tbody>
-            <tr><td>Raised by</td><td>{d.raisedByName} on {when(d.createdAt)}</td></tr>
-            <tr><td>Parties</td><td>{d.supplierName} (supplier) · {d.buyerName} (buyer){d.financed && ' · financed'}</td></tr>
-            <tr><td>Reason</td><td>{d.reason}{d.amount && ` — disputing ${d.amount}`}</td></tr>
-            <tr><td>Response due</td><td>{when(d.responseDueAt)}</td></tr>
-            <tr><td>Escalates</td><td>{when(d.escalateAt)}</td></tr>
-            <tr><td>Times out</td><td>{when(d.timeoutAt)}</td></tr>
-            {d.decisionNote && <tr><td>Decision</td><td>{d.decisionNote}{d.cause && ` (cause: ${label(d.cause)})`}{d.creditAmount && ` · credit ${d.creditAmount}`}</td></tr>}
-          </tbody></table>
-          {open && mine && <button className="secondary" onClick={() => act(() => api.POST('/api/v1/disputes/{id}/withdraw', path), 'Dispute withdrawn.')}>Withdraw dispute</button>}
-        </div>
-        <div className="panel">
-          <h3>Case thread</h3>
-          <ul className="timeline">
-            {messages.map((m) => (
-              <li key={m.id}><strong>{m.authorName}</strong> · {when(m.createdAt)}{m.kind === 'evidence' && ' · evidence'}
-                <div>{m.body}</div>{m.fileId && <a href={`/api/v1/files/${m.fileId}`}>Download attachment</a>}</li>
-            ))}
-          </ul>
+      <div className="split">
+        <Panel title="Case">
+          <DescriptionList columns={1} layout="inline" items={[
+            { label: 'Raised by', value: `${d.raisedByName} on ${dt(d.createdAt)}` },
+            { label: 'Parties', value: `${d.supplierName} (supplier) · ${d.buyerName} (buyer)${d.financed ? ' · financed' : ''}` },
+            { label: 'Reason', value: `${d.reason}${d.amount ? ` — disputing ${d.amount}` : ''}` },
+            { label: 'Response due', value: dt(d.responseDueAt) },
+            { label: 'Escalates', value: dt(d.escalateAt) },
+            { label: 'Times out', value: dt(d.timeoutAt) },
+            ...(d.decisionNote ? [{ label: 'Decision', value: `${d.decisionNote}${d.cause ? ` (cause: ${label(d.cause)})` : ''}${d.creditAmount ? ` · credit ${d.creditAmount}` : ''}` }] : []),
+          ]} />
+        </Panel>
+        <Panel title="Case thread">
+          <TimelineList aria-label="Case thread"
+            events={[...messages].reverse().map((m) => ({ id: m.id, title: <>{m.authorName}{m.kind === 'evidence' && ' · evidence'}</>, at: m.createdAt,
+              meta: <>{m.body}{m.fileId && <> <a href={`/api/v1/files/${m.fileId}`}>Download attachment</a></>}</> }))} />
           {open && (
             <>
-              <textarea aria-label="Message" value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write to the other parties and Earlio…" />
-              <p className="filters">
-                <button disabled={!body.trim()} onClick={async () => { await act(() => api.POST('/api/v1/disputes/{id}/messages', { ...path, body: { body, kind: 'message' } }), 'Message sent.'); setBody(''); }}>Send</button>
-                <button className="secondary" onClick={() => fileRef.current?.click()}>Attach evidence</button>
-                <input ref={fileRef} type="file" hidden onChange={async (e) => {
+              <TextareaField label="Message" value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write to the other parties and Earlio…" />
+              <div className="row-actions">
+                <Button variant="primary" disabled={!body.trim()} onClick={async () => { await act(() => api.POST('/api/v1/disputes/{id}/messages', { ...path, body: { body, kind: 'message' } }), 'Message sent.'); setBody(''); }}>Send</Button>
+                <Button onClick={() => fileRef.current?.click()}>Attach evidence</Button>
+                <input ref={fileRef} type="file" hidden aria-label="Evidence file" onChange={async (e) => {
                   const f = e.target.files?.[0]; e.target.value = '';
                   if (!f) return;
-                  try { const fileId = await upload(f); await act(() => api.POST('/api/v1/disputes/{id}/messages', { ...path, body: { body: body.trim() || `Evidence: ${f.name}`, kind: 'evidence', fileId } }), 'Evidence attached.'); setBody(''); } catch (err) { setMsg({ kind: 'err', text: (err as Error).message }); }
+                  try { const fileId = await upload(f); await act(() => api.POST('/api/v1/disputes/{id}/messages', { ...path, body: { body: body.trim() || `Evidence: ${f.name}`, kind: 'evidence', fileId } }), 'Evidence attached.'); setBody(''); } catch (err) { setMsg({ ok: false, text: (err as Error).message }); }
                 }} />
-              </p>
+              </div>
             </>
           )}
-        </div>
+        </Panel>
       </div>
       {canDecide && open && (
-        <div className="panel">
-          <h3>Decision</h3>
-          {d.status !== 'UnderReview' && <button className="secondary" onClick={() => act(() => api.POST('/api/v1/disputes/{id}/review', path), 'Review started.')}>Start review</button>}
-          <div className="filters">
-            <label>In favour of<select value={outcome} onChange={(e) => setOutcome(e.target.value as 'buyer' | 'supplier')}><option value="supplier">The supplier</option><option value="buyer">The buyer</option></select></label>
+        <Panel title="Decision">
+          {d.status !== 'UnderReview' && <div><Button onClick={() => act(() => api.POST('/api/v1/disputes/{id}/review', path), 'Review started.')}>Start review</Button></div>}
+          <div className="toolbar-fields">
+            <SelectField label="In favour of" value={outcome} onChange={(e) => setOutcome(e.target.value as 'buyer' | 'supplier')}><option value="supplier">The supplier</option><option value="buyer">The buyer</option></SelectField>
             {outcome === 'buyer' && <>
-              <label>Cause<select value={cause} onChange={(e) => setCause(e.target.value)}><option value="">—</option>{causes.map((c) => <option key={c} value={c}>{label(c)}</option>)}</select></label>
-              <label>Credit note amount<input value={credit} onChange={(e) => setCredit(e.target.value)} placeholder="optional" /></label>
+              <SelectField label="Cause" value={cause} onChange={(e) => setCause(e.target.value)}><option value="">—</option>{causes.map((c) => <option key={c} value={c}>{label(c)}</option>)}</SelectField>
+              <TextField label="Credit note amount" inputMode="decimal" value={credit} onChange={(e) => setCredit(e.target.value)} placeholder="optional" />
             </>}
           </div>
-          <label>Reasons<textarea value={note} onChange={(e) => setNote(e.target.value)} /></label>
-          <p className="hint">A supplier-caused cause on a financed invoice with no credit note creates recourse to the bank (small suppliers repay by 20% offset or a 90-day plan). A credit note reduces the invoice; if it is financed, the advance is cut pro rata and the supplier owes the difference.</p>
-          <button onClick={() => act(() => api.POST('/api/v1/disputes/{id}/decision', { ...path, body: { outcome, cause: cause || undefined, creditAmount: credit || undefined, note } }), 'Decision recorded and applied.')}>Record decision</button>
-        </div>
+          <TextareaField label="Reasons" value={note} onChange={(e) => setNote(e.target.value)} />
+          <Hint>A supplier-caused cause on a financed invoice with no credit note creates recourse to the bank (small suppliers repay by 20% offset or a 90-day plan). A credit note reduces the invoice; if it is financed, the advance is cut pro rata and the supplier owes the difference.</Hint>
+          <div><Button variant="primary" onClick={() => act(() => api.POST('/api/v1/disputes/{id}/decision', { ...path, body: { outcome, cause: cause || undefined, creditAmount: credit || undefined, note } }), 'Decision recorded and applied.')}>Record decision</Button></div>
+        </Panel>
       )}
-    </section>
+    </>
   );
 }
 
@@ -156,36 +140,33 @@ export function InvoiceExceptionsPanel({ invoiceId, status, currency, supplierId
   const d = def.data;
   if (!canDispute && !canCredit && !d && !notes.data?.length) return null;
   return (
-    <div className="panel">
-      <h3>Disputes, credit notes and overdue</h3>
+    <Panel title="Disputes, credit notes and overdue">
       {banner}
       {d && (
         <p>
-          <span className={`chip ${d.status}`}>{d.status}</span> {d.overdueDays} days past due · late interest so far <strong>{cur(d.lateInterest, d.currency)}</strong> (charged to the buyer at the financing rate + 2 points{d.frozenDays > 0 ? `, paused for ${d.frozenDays} days while disputed` : ''}).
-          {' '}Waiting period ends {d.waitingEndsOn}{d.claimDeadlineOn && `; claim deadline ${d.claimDeadlineOn}`}.
+          <StatusChip status={d.status} /> {d.overdueDays} days past due · late interest so far <Amt v={d.lateInterest} c={d.currency} strong /> (charged to the buyer at the financing rate + 2 points{d.frozenDays > 0 ? `, paused for ${d.frozenDays} days while disputed` : ''}).
+          {' '}Waiting period ends {dd(d.waitingEndsOn)}{d.claimDeadlineOn && `; claim deadline ${dd(d.claimDeadlineOn)}`}.
         </p>
       )}
-      {notes.data?.map((n) => <p key={n.id}><strong>{n.number}</strong>: {cur(n.amount, n.currency)} off ({n.stage === 'post_funding' ? 'after funding' : 'before funding'}) → {cur(n.newAmount, n.currency)}. {Number(n.supplierOwes) > 0 && `The supplier owes the bank ${cur(n.supplierOwes, n.currency)}. `}<span className="hint">{n.reason}</span></p>)}
-      <div className="row">
+      {notes.data?.map((n) => <p key={n.id}><strong>{n.number}</strong>: <Amt v={n.amount} c={n.currency} /> off ({n.stage === 'post_funding' ? 'after funding' : 'before funding'}) → <Amt v={n.newAmount} c={n.currency} />. {Number(n.supplierOwes) > 0 && <>The supplier owes the bank <Amt v={n.supplierOwes} c={n.currency} />. </>}<span className="hint">{n.reason}</span></p>)}
+      <div className="split">
         {canDispute && (
-          <div>
-            <h4>Raise a dispute</h4>
-            <textarea aria-label="Dispute reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="What is wrong?" />
-            <label>Disputed amount (optional)<input value={amount} onChange={(e) => setAmount(e.target.value)} /></label>
-            <button className="secondary" disabled={reason.trim().length < 3} onClick={async () => { await act(() => api.POST('/api/v1/invoices/{id}/disputes', { params: { path: { id: invoiceId } }, body: { reason, amount: amount || undefined } }), 'Dispute raised. The invoice, late interest and dunning are frozen.'); setReason(''); }}>Raise dispute</button>
-          </div>
+          <Section title="Raise a dispute" level={4}>
+            <TextareaField label="Dispute reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="What is wrong?" />
+            <TextField label="Disputed amount (optional)" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
+            <div><Button disabled={reason.trim().length < 3} onClick={async () => { await act(() => api.POST('/api/v1/invoices/{id}/disputes', { params: { path: { id: invoiceId } }, body: { reason, amount: amount || undefined } }), 'Dispute raised. The invoice, late interest and dunning are frozen.'); setReason(''); }}>Raise dispute</Button></div>
+          </Section>
         )}
         {canCredit && (
-          <div>
-            <h4>Issue a credit note</h4>
-            <label>Amount ({currency})<input value={cnAmount} onChange={(e) => setCnAmount(e.target.value)} /></label>
-            <label>Reason<input value={cnReason} onChange={(e) => setCnReason(e.target.value)} /></label>
-            <p className="hint">{['Funded', 'Overdue'].includes(status) ? 'The invoice is financed: the bank’s advance is reduced pro rata and the supplier owes the difference.' : 'Before funding this reduces the invoice and withdraws any offers made on the old amount.'}</p>
-            <button className="secondary" disabled={!cnAmount || cnReason.trim().length < 3} onClick={async () => { await act(() => api.POST('/api/v1/invoices/{id}/credit-notes', { params: { path: { id: invoiceId } }, body: { amount: cnAmount, reason: cnReason } }), 'Credit note issued.'); setCnAmount(''); setCnReason(''); }}>Issue credit note</button>
-          </div>
+          <Section title="Issue a credit note" level={4}>
+            <TextField label={`Amount (${currency})`} inputMode="decimal" value={cnAmount} onChange={(e) => setCnAmount(e.target.value)} />
+            <TextField label="Reason" value={cnReason} onChange={(e) => setCnReason(e.target.value)} />
+            <Hint>{['Funded', 'Overdue'].includes(status) ? 'The invoice is financed: the bank’s advance is reduced pro rata and the supplier owes the difference.' : 'Before funding this reduces the invoice and withdraws any offers made on the old amount.'}</Hint>
+            <div><Button disabled={!cnAmount || cnReason.trim().length < 3} onClick={async () => { await act(() => api.POST('/api/v1/invoices/{id}/credit-notes', { params: { path: { id: invoiceId } }, body: { amount: cnAmount, reason: cnReason } }), 'Credit note issued.'); setCnAmount(''); setCnReason(''); }}>Issue credit note</Button></div>
+          </Section>
         )}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -202,35 +183,36 @@ export function RecoveryPage() {
   const DOCS = ['invoice', 'acceptance', 'delivery_proof', 'statement'] as const;
   const [extra, setExtra] = useState<Record<string, Record<string, string>>>({});
   return (
-    <section>
-      <h2>Overdue and defaults</h2>
-      <p className="hint">Financed invoices that were not paid on the due date. Late interest runs from the due date (financing rate + 2 points, paid by the buyer, never the supplier) and stops while a dispute is open.</p>
+    <>
+      <Page title="Overdue and defaults" description="Financed invoices that were not paid on the due date. Late interest runs from the due date (financing rate + 2 points, paid by the buyer, never the supplier) and stops while a dispute is open." />
       {banner}
+      {q.isLoading && <Loading />}
       {(q.data ?? []).map((d) => (
-        <div className="panel" key={d.invoiceId}>
-          <h3><Link to={`/invoices/${d.invoiceId}`}>{d.invoiceNumber}</Link> <span className={`chip ${d.status}`}>{label(d.status)}</span></h3>
-          <p>{d.buyerName} owes {cur(d.principal, d.currency)} principal · {d.overdueDays} days overdue · late interest <strong>{cur(d.lateInterest, d.currency)}</strong> · reminder {d.dunningLevel} of 3 sent{d.frozenDays > 0 && ` · ${d.frozenDays} days paused by a dispute`}</p>
-          <p>{d.insured ? <>Waiting period {d.waitingDays} days, ends <strong>{d.waitingEndsOn}</strong>{d.insolvency && ' (waived: buyer insolvency)'}{d.claimDeadlineOn && <> · claim deadline <strong>{d.claimDeadlineOn}</strong></>}</> : 'Not insured: no claim is possible.'}</p>
+        <Panel key={d.invoiceId} level={3} title={<><Link to={`/invoices/${d.invoiceId}`}>{d.invoiceNumber}</Link> <StatusChip status={d.status}>{label(d.status)}</StatusChip></>}>
+          <p>{d.buyerName} owes <Amt v={d.principal} c={d.currency} /> principal · {d.overdueDays} days overdue · late interest <Amt v={d.lateInterest} c={d.currency} strong /> · reminder {d.dunningLevel} of 3 sent{d.frozenDays > 0 && ` · ${d.frozenDays} days paused by a dispute`}</p>
+          <p>{d.insured ? <>Waiting period {d.waitingDays} days, ends <strong>{dd(d.waitingEndsOn)}</strong>{d.insolvency && ' (waived: buyer insolvency)'}{d.claimDeadlineOn && <> · claim deadline <strong>{dd(d.claimDeadlineOn)}</strong></>}</> : 'Not insured: no claim is possible.'}</p>
           {canFile && d.status === 'Overdue' && (
-            <p className="filters"><input placeholder="Insolvency case reference" value={ref[d.invoiceId] ?? ''} onChange={(e) => setRef({ ...ref, [d.invoiceId]: e.target.value })} />
-              <button className="secondary" onClick={() => act(() => api.POST('/api/v1/recovery/defaults/{invoiceId}/insolvency', { params: { path: { invoiceId: d.invoiceId } }, body: { reference: ref[d.invoiceId] ?? '' } }), 'Insolvency recorded: the waiting period is waived.')}>Report buyer insolvency</button></p>
+            <div className="toolbar-fields">
+              <TextField label="Insolvency case reference" value={ref[d.invoiceId] ?? ''} onChange={(e) => setRef({ ...ref, [d.invoiceId]: e.target.value })} />
+              <Button onClick={() => act(() => api.POST('/api/v1/recovery/defaults/{invoiceId}/insolvency', { params: { path: { invoiceId: d.invoiceId } }, body: { reference: ref[d.invoiceId] ?? '' } }), 'Insolvency recorded: the waiting period is waived.')}>Report buyer insolvency</Button>
+            </div>
           )}
           {canFile && d.status === 'ClaimEligible' && (
             <ClaimForm invoiceId={d.invoiceId} extra={extra[d.invoiceId] ?? {}} setExtra={(v) => setExtra({ ...extra, [d.invoiceId]: v })}>
-              <p className="filters">{DOCS.map((t) => (
-                <label key={t}>{label(t)}<input type="file" onChange={async (e) => {
+              <div className="toolbar-fields">{DOCS.map((t) => (
+                <TextField key={t} label={label(t)} type="file" onChange={async (e) => {
                   const f = e.target.files?.[0]; if (!f) return;
-                  try { const fileId = await upload(f); setDocs({ ...docs, [d.invoiceId]: { ...(docs[d.invoiceId] ?? {}), [t]: fileId } }); } catch (err) { setMsg({ kind: 'err', text: (err as Error).message }); }
-                }} />{docs[d.invoiceId]?.[t] && <span className="chip Credited">attached</span>}</label>
-              ))}</p>
-              <button onClick={() => act(() => api.POST('/api/v1/invoices/{id}/claims', { params: { path: { id: d.invoiceId } }, body: { documents: Object.entries(docs[d.invoiceId] ?? {}).map(([docType, fileId]) => ({ docType: docType as typeof DOCS[number], fileId })), extra: extra[d.invoiceId] } }), 'Claim filed with the insurer.')}>File claim for {cur(d.principal, d.currency)}</button>
-              <p className="hint">Missing documents do not stop you filing, but the insurer treats them as a documentation defect.</p>
+                  try { const fileId = await upload(f); setDocs({ ...docs, [d.invoiceId]: { ...(docs[d.invoiceId] ?? {}), [t]: fileId } }); } catch (err) { setMsg({ ok: false, text: (err as Error).message }); }
+                }} help={docs[d.invoiceId]?.[t] ? 'attached' : undefined} />
+              ))}</div>
+              <div><Button variant="primary" onClick={() => act(() => api.POST('/api/v1/invoices/{id}/claims', { params: { path: { id: d.invoiceId } }, body: { documents: Object.entries(docs[d.invoiceId] ?? {}).map(([docType, fileId]) => ({ docType: docType as typeof DOCS[number], fileId })), extra: extra[d.invoiceId] } }), 'Claim filed with the insurer.')}>File claim for <Amt v={d.principal} c={d.currency} /></Button></div>
+              <Hint>Missing documents do not stop you filing, but the insurer treats them as a documentation defect.</Hint>
             </ClaimForm>
           )}
-        </div>
+        </Panel>
       ))}
-      {q.data?.length === 0 && <p className="muted">Nothing overdue.</p>}
-    </section>
+      {q.data?.length === 0 && noRows('Nothing overdue')}
+    </>
   );
 }
 
@@ -245,58 +227,64 @@ export function ClaimsPage() {
   const desk = type === 'insurer' && me?.permissions.includes('claim:decide');
   const bank = type === 'bank' && me?.permissions.includes('claim:file');
   return (
-    <section>
-      <h2>{desk ? 'Claims desk' : 'Claims'}</h2>
+    <>
+      <Page title={desk ? 'Claims desk' : 'Claims'} />
       {banner}
+      {q.isLoading && <Loading />}
       {(q.data ?? []).map((c) => {
         const path = { params: { path: { id: c.id } } };
         return (
-          <div className="panel" key={c.id}>
-            <h3><Link to={`/invoices/${c.invoiceId}`}>{c.invoiceNumber}</Link> <span className={`chip ${c.status}`}>{label(c.status)}</span></h3>
-            <p>{c.bankName} claims <strong>{cur(c.claimedAmount, c.currency)}</strong> on {cur(c.faceAmount, c.currency)} (cover {c.coverPct}%) · filed {when(c.filedAt)}</p>
-            <p className="hint">Documents: {c.documents.map((d) => d.docType).join(', ') || 'none'}</p>
-            {c.exclusions.length > 0 && <div className="alert"><strong>Policy exclusions</strong><ul>{c.exclusions.map((e) => <li key={e.code}>{label(e.code)} — {e.detail}</li>)}</ul></div>}
+          <Panel key={c.id} level={3} title={<><Link to={`/invoices/${c.invoiceId}`}>{c.invoiceNumber}</Link> <StatusChip status={c.status}>{label(c.status)}</StatusChip></>}>
+            <p>{c.bankName} claims <Amt v={c.claimedAmount} c={c.currency} strong /> on <Amt v={c.faceAmount} c={c.currency} /> (cover {c.coverPct}%) · filed {dt(c.filedAt)}</p>
+            <Hint>Documents: {c.documents.map((d) => d.docType).join(', ') || 'none'}</Hint>
+            {c.exclusions.length > 0 && <Alert tone="warning" title="Policy exclusions"><ul>{c.exclusions.map((e) => <li key={e.code}>{label(e.code)} — {e.detail}</li>)}</ul></Alert>}
             {c.waterfall && (
-              <table><tbody>
-                <tr><td>Insurer pays</td><td className="num">{cur(c.waterfall.payout, c.currency)}</td></tr>
-                <tr><td>To the bank (principal and charges first)</td><td className="num">{cur(c.waterfall.toBank, c.currency)}</td></tr>
-                <tr><td>To the supplier’s retention</td><td className="num">{cur(c.waterfall.toSupplier, c.currency)}</td></tr>
-                <tr><td>Bank shortfall</td><td className="num">{cur(c.waterfall.bankShortfall, c.currency)}</td></tr>
-                <tr><td>Supplier retention lost</td><td className="num">{cur(c.waterfall.supplierLoss, c.currency)}</td></tr>
-              </tbody></table>
+              <DescriptionList columns={1} layout="inline" items={[
+                { label: 'Insurer pays', value: <Amt v={c.waterfall.payout} c={c.currency} />, num: true },
+                { label: 'To the bank (principal and charges first)', value: <Amt v={c.waterfall.toBank} c={c.currency} />, num: true },
+                { label: 'To the supplier’s retention', value: <Amt v={c.waterfall.toSupplier} c={c.currency} />, num: true },
+                { label: 'Bank shortfall', value: <Amt v={c.waterfall.bankShortfall} c={c.currency} />, num: true },
+                { label: 'Supplier retention lost', value: <Amt v={c.waterfall.supplierLoss} c={c.currency} />, num: true },
+              ]} />
             )}
-            {c.decisionReason && <p className="hint">Insurer’s reason: {c.decisionReason}</p>}
+            {c.decisionReason && <Hint>Insurer’s reason: {c.decisionReason}</Hint>}
             {desk && ['Filed', 'UnderReview'].includes(c.status) && (
-              <div>
-                {c.status === 'Filed' && <button className="secondary" onClick={() => act(() => api.POST('/api/v1/claims/{id}/review', path), 'Review started: exclusions re-checked.')}>Start review</button>}
-                <p className="filters">
-                  <input placeholder="Amount (partial)" value={amt[c.id] ?? ''} onChange={(e) => setAmt({ ...amt, [c.id]: e.target.value })} />
-                  <input placeholder="Reason" value={reason[c.id] ?? ''} onChange={(e) => setReason({ ...reason, [c.id]: e.target.value })} />
-                  <button onClick={() => act(() => api.POST('/api/v1/claims/{id}/decision', { ...path, body: { decision: 'approve' } }), 'Claim approved.')}>Approve in full</button>
-                  <button className="secondary" onClick={() => act(() => api.POST('/api/v1/claims/{id}/decision', { ...path, body: { decision: 'partial', approvedAmount: amt[c.id], reason: reason[c.id] } }), 'Claim partly approved.')}>Approve less</button>
-                  <button className="danger" onClick={() => act(() => api.POST('/api/v1/claims/{id}/decision', { ...path, body: { decision: 'reject', reason: reason[c.id] } }), 'Claim rejected.')}>Reject</button>
-                </p>
-              </div>
+              <>
+                {c.status === 'Filed' && <div><Button onClick={() => act(() => api.POST('/api/v1/claims/{id}/review', path), 'Review started: exclusions re-checked.')}>Start review</Button></div>}
+                <div className="toolbar-fields">
+                  <TextField label="Amount (partial)" inputMode="decimal" value={amt[c.id] ?? ''} onChange={(e) => setAmt({ ...amt, [c.id]: e.target.value })} />
+                  <TextField label="Reason" value={reason[c.id] ?? ''} onChange={(e) => setReason({ ...reason, [c.id]: e.target.value })} />
+                </div>
+                <div className="row-actions">
+                  <Button variant="primary" onClick={() => act(() => api.POST('/api/v1/claims/{id}/decision', { ...path, body: { decision: 'approve' } }), 'Claim approved.')}>Approve in full</Button>
+                  <Button onClick={() => act(() => api.POST('/api/v1/claims/{id}/decision', { ...path, body: { decision: 'partial', approvedAmount: amt[c.id], reason: reason[c.id] } }), 'Claim partly approved.')}>Approve less</Button>
+                  <Button variant="danger" onClick={() => act(() => api.POST('/api/v1/claims/{id}/decision', { ...path, body: { decision: 'reject', reason: reason[c.id] } }), 'Claim rejected.')}>Reject</Button>
+                </div>
+              </>
             )}
-            {desk && ['Approved', 'PartiallyApproved'].includes(c.status) && <button onClick={() => act(() => api.POST('/api/v1/claims/{id}/pay', path), 'Payout recorded and distributed.')}>Record payout of {cur(c.approvedAmount ?? '0', c.currency)}</button>}
+            {desk && ['Approved', 'PartiallyApproved'].includes(c.status) && <div><Button variant="primary" onClick={() => act(() => api.POST('/api/v1/claims/{id}/pay', path), 'Payout recorded and distributed.')}>Record payout of <Amt v={c.approvedAmount ?? '0'} c={c.currency} /></Button></div>}
             {c.recoveries.length > 0 && (
-              <table>
-                <thead><tr><th>Recovery</th><th className="num">Gross</th><th className="num">Costs</th><th className="num">Net</th><th>Shared (insurer / bank / supplier)</th></tr></thead>
-                <tbody>{c.recoveries.map((r) => <tr key={r.id}><td>{when(r.at)}</td><td className="num">{cur(r.gross, c.currency)}</td><td className="num">{cur(r.costs, c.currency)}</td><td className="num">{cur(r.net, c.currency)}</td><td>{cur(r.shares.insurer ?? '0', c.currency)} / {cur(r.shares.bank ?? '0', c.currency)} / {cur(r.shares.supplier ?? '0', c.currency)}</td></tr>)}</tbody>
-              </table>
+              <DataTable aria-label="Recoveries" noun="recoveries" density="compact" rowKey={(r) => r.id} rows={c.recoveries}
+                columns={[
+                  { id: 'when', header: 'Recovery', rowHeader: true, cell: (r) => dt(r.at) },
+                  { id: 'gross', header: 'Gross', numeric: true, cell: (r) => <Amt v={r.gross} c={c.currency} /> },
+                  { id: 'costs', header: 'Costs', numeric: true, cell: (r) => <Amt v={r.costs} c={c.currency} /> },
+                  { id: 'net', header: 'Net', numeric: true, cell: (r) => <Amt v={r.net} c={c.currency} /> },
+                  { id: 'shared', header: 'Shared (insurer / bank / supplier)', cell: (r) => <><Amt v={r.shares.insurer ?? '0'} c={c.currency} /> / <Amt v={r.shares.bank ?? '0'} c={c.currency} /> / <Amt v={r.shares.supplier ?? '0'} c={c.currency} /></> },
+                ]} />
             )}
             {bank && ['Paid', 'Rejected'].includes(c.status) && (
-              <p className="filters">
-                <input placeholder="Recovered" value={gross[c.id] ?? ''} onChange={(e) => setGross({ ...gross, [c.id]: e.target.value })} />
-                <input placeholder="Costs" value={costs[c.id] ?? ''} onChange={(e) => setCosts({ ...costs, [c.id]: e.target.value })} />
-                <button className="secondary" onClick={() => act(() => api.POST('/api/v1/claims/{id}/recoveries', { ...path, body: { gross: gross[c.id] ?? '', costs: costs[c.id] || '0.00' } }), 'Recovery recorded and shared pro rata to losses.')}>Record recovery</button>
-              </p>
+              <div className="toolbar-fields">
+                <TextField label="Recovered" inputMode="decimal" value={gross[c.id] ?? ''} onChange={(e) => setGross({ ...gross, [c.id]: e.target.value })} />
+                <TextField label="Costs" inputMode="decimal" value={costs[c.id] ?? ''} onChange={(e) => setCosts({ ...costs, [c.id]: e.target.value })} />
+                <Button onClick={() => act(() => api.POST('/api/v1/claims/{id}/recoveries', { ...path, body: { gross: gross[c.id] ?? '', costs: costs[c.id] || '0.00' } }), 'Recovery recorded and shared pro rata to losses.')}>Record recovery</Button>
+              </div>
             )}
-          </div>
+          </Panel>
         );
       })}
-      {q.data?.length === 0 && <p className="muted">No claims.</p>}
-    </section>
+      {q.data?.length === 0 && noRows('No claims')}
+    </>
   );
 }
 
@@ -308,32 +296,42 @@ export function RecoursePage() {
   const type = me?.activeOrg?.type;
   const q = useQuery({ queryKey: ['recourse'], queryFn: async () => (await api.GET('/api/v1/recovery/recourse')).data?.items ?? [] });
   return (
-    <section>
-      <h2>{type === 'bank' ? 'Recourse receivable' : 'What you owe your bank'}</h2>
-      <p className="hint">Financing is without recourse, except where a dispute is caused by the supplier (and decided by Earlio) or a credit note reduces the invoice after the advance. There is no penalty interest.</p>
+    <>
+      <Page title={type === 'bank' ? 'Recourse receivable' : 'What you owe your bank'} description="Financing is without recourse, except where a dispute is caused by the supplier (and decided by Earlio) or a credit note reduces the invoice after the advance. There is no penalty interest." />
       {banner}
+      {q.isLoading && <Loading />}
       {(q.data ?? []).map((r) => (
-        <div className="panel" key={r.id}>
-          <h3><Link to={`/invoices/${r.invoiceId}`}>{r.invoiceNumber}</Link> · {label(r.cause)} <span className={`chip ${r.status === 'open' ? 'Overdue' : 'Settled'}`}>{r.status}</span></h3>
-          <p>{type === 'bank' ? r.supplierName : 'You'} owe{type === 'bank' ? 's' : ''} <strong>{cur(r.outstanding, r.currency)}</strong> of {cur(r.amountOwed, r.currency)}.</p>
+        <Panel key={r.id} level={3} title={<><Link to={`/invoices/${r.invoiceId}`}>{r.invoiceNumber}</Link> · {label(r.cause)} <StatusChip status={r.status === 'open' ? 'Overdue' : 'Settled'}>{r.status}</StatusChip></>}>
+          <p>{type === 'bank' ? r.supplierName : 'You'} owe{type === 'bank' ? 's' : ''} <Amt v={r.outstanding} c={r.currency} strong /> of <Amt v={r.amountOwed} c={r.currency} />.</p>
           {r.smallSupplier && r.status === 'open' && (
             <>
               <p>Repayment: <strong>{r.mode === 'plan_90d' ? '90-day plan' : 'automatic offset'}</strong>. {r.mode === 'offset_20pct' ? 'At most 20% of each future payout is withheld until this is repaid.' : 'Three equal monthly instalments.'}</p>
               {type === 'supplier' && me?.permissions.includes('financing:consent') && (
-                <button className="secondary" onClick={() => act(() => api.POST('/api/v1/recovery/recourse/{id}/mode', { params: { path: { id: r.id } }, body: { mode: r.mode === 'plan_90d' ? 'offset_20pct' : 'plan_90d' } }), 'Repayment method changed.')}>Switch to {r.mode === 'plan_90d' ? 'offset' : 'a 90-day plan'}</button>
+                <div><Button onClick={() => act(() => api.POST('/api/v1/recovery/recourse/{id}/mode', { params: { path: { id: r.id } }, body: { mode: r.mode === 'plan_90d' ? 'offset_20pct' : 'plan_90d' } }), 'Repayment method changed.')}>Switch to {r.mode === 'plan_90d' ? 'offset' : 'a 90-day plan'}</Button></div>
               )}
             </>
           )}
-          {r.plan && <table><thead><tr><th>Due</th><th className="num">Amount</th><th /></tr></thead><tbody>{r.plan.map((p) => <tr key={p.dueOn}><td>{p.dueOn}</td><td className="num">{cur(p.amount, r.currency)}</td><td>{p.paid ? <span className="chip Credited">paid</span> : ''}</td></tr>)}</tbody></table>}
-          {r.payments.length > 0 && <ul className="timeline">{r.payments.map((p, i) => <li key={i}>{cur(p.amount, r.currency)} · {p.source} · {when(p.at)}</li>)}</ul>}
-          {type === 'bank' && me?.permissions.includes('claim:file') && r.status === 'open' && (
-            <p className="filters"><input placeholder="Amount received" value={pay[r.id] ?? ''} onChange={(e) => setPay({ ...pay, [r.id]: e.target.value })} />
-              <button className="secondary" onClick={() => act(() => api.POST('/api/v1/recovery/recourse/{id}/payments', { params: { path: { id: r.id } }, body: { amount: pay[r.id] ?? '' } }), 'Repayment recorded.')}>Record repayment</button></p>
+          {r.plan && (
+            <DataTable aria-label="Repayment plan" noun="instalments" density="compact" rowKey={(p) => p.dueOn} rows={r.plan}
+              columns={[
+                { id: 'due', header: 'Due', rowHeader: true, cell: (p) => dd(p.dueOn) },
+                { id: 'amount', header: 'Amount', numeric: true, cell: (p) => <Amt v={p.amount} c={r.currency} /> },
+                { id: 'paid', header: 'Paid', cell: (p) => (p.paid ? <Badge tone="success">paid</Badge> : '') },
+              ]} />
           )}
-        </div>
+          {r.payments.length > 0 && (
+            <TimelineList aria-label="Repayments" events={[...r.payments].reverse().map((p, i) => ({ id: String(i), title: <><Amt v={p.amount} c={r.currency} /> · {p.source}</>, at: p.at }))} />
+          )}
+          {type === 'bank' && me?.permissions.includes('claim:file') && r.status === 'open' && (
+            <div className="toolbar-fields">
+              <TextField label="Amount received" inputMode="decimal" value={pay[r.id] ?? ''} onChange={(e) => setPay({ ...pay, [r.id]: e.target.value })} />
+              <Button onClick={() => act(() => api.POST('/api/v1/recovery/recourse/{id}/payments', { params: { path: { id: r.id } }, body: { amount: pay[r.id] ?? '' } }), 'Repayment recorded.')}>Record repayment</Button>
+            </div>
+          )}
+        </Panel>
       ))}
-      {q.data?.length === 0 && <p className="muted">{type === 'bank' ? 'No recourse is owed to you.' : 'You owe nothing.'}</p>}
-    </section>
+      {q.data?.length === 0 && noRows(type === 'bank' ? 'No recourse is owed to you' : 'You owe nothing')}
+    </>
   );
 }
 
@@ -345,30 +343,24 @@ export function ExportProceedsPage() {
   const q = useQuery({ queryKey: ['proceeds'], queryFn: async () => (await api.GET('/api/v1/export-proceeds')).data?.items ?? [] });
   const bank = me?.activeOrg?.type === 'bank' && me?.permissions.includes('settlement:operate');
   return (
-    <section>
-      <h2>Export proceeds</h2>
-      <p className="hint">Export proceeds must normally be realised within 9 months of shipment (confirm the period for your case with your authorised dealer bank or counsel).</p>
+    <>
+      <Page title="Export proceeds" description="Export proceeds must normally be realised within 9 months of shipment (confirm the period for your case with your authorised dealer bank or counsel)." />
       {banner}
-      <table>
-        <thead><tr><th>Invoice</th><th className="num">Amount</th><th>Shipped</th><th>Realise by</th><th>Status</th><th className="num">Rupees received</th><th /></tr></thead>
-        <tbody>
-          {(q.data ?? []).map((p) => (
-            <>
-              <tr key={p.id}>
-                <td><Link to={`/invoices/${p.invoiceId}`}>{p.invoiceNumber}</Link></td><td className="num">{cur(p.amountForeign, p.currency)}</td><td>{p.shipmentDate}</td>
-                <td>{p.realisationDeadline} <span className="hint">({p.daysLeft >= 0 ? `${p.daysLeft} days left` : `${-p.daysLeft} days late`})</span></td>
-                <td><span className={`chip ${p.status === 'Overdue' ? 'Overdue' : p.status === 'Pending' ? '' : 'Credited'}`}>{p.status}</span></td>
-                <td className="num">{formatMoney(p.realisedInr, 'INR')}</td>
-                <td>{bank && p.status === 'Realised' && <><input aria-label="Reference" placeholder="Report reference" value={ref[p.id] ?? ''} onChange={(e) => setRef({ ...ref, [p.id]: e.target.value })} style={{ width: 130 }} />
-                  <button className="link" onClick={() => act(() => api.POST('/api/v1/export-proceeds/{id}/report', { params: { path: { id: p.id } }, body: { reference: ref[p.id] ?? '' } }), 'Marked as reported.')}>Mark reported</button></>}</td>
-              </tr>
-              {p.chainBroken && p.chainNote && <tr key={p.id + 'n'}><td colSpan={7} className="hint">⚠ {p.chainNote}</td></tr>}
-            </>
-          ))}
-          {q.data?.length === 0 && <tr><td colSpan={7} className="muted">No export invoices yet.</td></tr>}
-        </tbody>
-      </table>
-    </section>
+      <DataTable aria-label="Export proceeds" noun="export invoices" loading={q.isLoading} rowKey={(p) => p.id} rows={q.data ?? []} empty={noRows('No export invoices yet')}
+        columns={[
+          { id: 'invoice', header: 'Invoice', rowHeader: true, cell: (p) => <><Link to={`/invoices/${p.invoiceId}`}>{p.invoiceNumber}</Link>{p.chainBroken && p.chainNote && <div className="hint"><Badge tone="warning" icon="triangle-alert">Check</Badge> {p.chainNote}</div>}</> },
+          { id: 'amount', header: 'Amount', numeric: true, cell: (p) => <Amt v={p.amountForeign} c={p.currency} /> },
+          { id: 'shipped', header: 'Shipped', cell: (p) => dd(p.shipmentDate) },
+          { id: 'by', header: 'Realise by', cell: (p) => <>{dd(p.realisationDeadline)} <span className="hint">({p.daysLeft >= 0 ? `${p.daysLeft} days left` : `${-p.daysLeft} days late`})</span></> },
+          { id: 'status', header: 'Status', cell: (p) => <StatusChip status={p.status === 'Overdue' ? 'Overdue' : p.status === 'Pending' ? 'Pending' : 'Credited'}>{p.status}</StatusChip> },
+          { id: 'inr', header: 'Rupees received', numeric: true, cell: (p) => <Amt v={p.realisedInr} c="INR" /> },
+          { id: 'act', header: <span className="bv-sr-only">Action</span>, cell: (p) => bank && p.status === 'Realised' ? (
+            <div className="row-actions">
+              <TextField label="Report reference" value={ref[p.id] ?? ''} onChange={(e) => setRef({ ...ref, [p.id]: e.target.value })} />
+              <Button size="sm" onClick={() => act(() => api.POST('/api/v1/export-proceeds/{id}/report', { params: { path: { id: p.id } }, body: { reference: ref[p.id] ?? '' } }), 'Marked as reported.')}>Mark reported</Button>
+            </div>) : null },
+        ]} />
+    </>
   );
 }
 
@@ -376,16 +368,16 @@ export function ExportProceedsPage() {
 function ClaimForm({ invoiceId, extra, setExtra, children }: { invoiceId: string; extra: Record<string, string>; setExtra: (v: Record<string, string>) => void; children: React.ReactNode }) {
   const q = useQuery({ queryKey: ['claim-req', invoiceId], queryFn: async () => (await api.GET('/api/v1/requirements/claim/{invoiceId}', { params: { path: { invoiceId } } })).data });
   return (
-    <div>
-      <h4>File the insurance claim</h4>
-      {q.data && <p className="hint">This insurer requires: {q.data.documents.map(label).join(', ')}.</p>}
+    <Section title="File the insurance claim" level={4}>
+      {q.data && <Hint>This insurer requires: {q.data.documents.map(label).join(', ')}.</Hint>}
       {q.data?.customFields.map((f) => (
-        <label key={f.key}>{f.label}{f.required && ' *'}
-          {f.type === 'select' ? <select value={extra[f.key] ?? ''} onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}><option value="">—</option>{f.options?.map((o) => <option key={o}>{o}</option>)}</select>
-            : <input type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} step="any" value={extra[f.key] ?? ''} onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })} />}
-        </label>
+        <Fragment key={f.key}>
+          {f.type === 'select'
+            ? <SelectField label={`${f.label}${f.required ? ' *' : ''}`} value={extra[f.key] ?? ''} onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })}><option value="">—</option>{f.options?.map((o) => <option key={o}>{o}</option>)}</SelectField>
+            : <TextField label={`${f.label}${f.required ? ' *' : ''}`} type={f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'} step="any" value={extra[f.key] ?? ''} onChange={(e) => setExtra({ ...extra, [f.key]: e.target.value })} />}
+        </Fragment>
       ))}
       {children}
-    </div>
+    </Section>
   );
 }

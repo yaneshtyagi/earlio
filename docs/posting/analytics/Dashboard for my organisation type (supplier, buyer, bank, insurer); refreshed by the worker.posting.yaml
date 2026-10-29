@@ -1,0 +1,11 @@
+name: Dashboard for my organisation type (supplier, buyer, bank, insurer); refreshed by the worker
+url: ${BASE_URL}/api/v1/dashboard
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+params:
+  - name: fresh
+    value: ""
+    enabled: false

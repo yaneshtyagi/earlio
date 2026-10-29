@@ -1,0 +1,10 @@
+name: Cover record for an invoice (404 until the invoice is accepted, or if you are not a party)
+url: ${BASE_URL}/api/v1/invoices/:id/cover
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: id
+    value: ""

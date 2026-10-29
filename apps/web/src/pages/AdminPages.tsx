@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, ensureOk, problemOf } from '../api/client';
+import { Button, DataTable } from '@yaneshtyagi/design-system';
+import { api, ensureOk } from '../api/client';
+import { ErrorNote, Page, StatusChip, label, noRows } from '../ui';
 
 export function AdminKycPage() {
   const qc = useQueryClient();
@@ -16,22 +18,24 @@ export function AdminKycPage() {
     onSuccess: () => { setErr(null); qc.invalidateQueries({ queryKey: ['kyc-queue'] }); }, onError: (e: Error) => setErr(e.message),
   });
   return (
-    <section>
-      <h2>KYC queue</h2>
-      {err && <p className="alert">{err}</p>}
-      <table>
-        <thead><tr><th>Organisation</th><th>Type</th><th>Country</th><th>Status</th><th>Sanctions</th><th /></tr></thead>
-        <tbody>
-          {(q.data ?? []).map((k) => (
-            <tr key={k.id}>
-              <td>{k.orgName}</td><td>{k.orgType}</td><td>{k.country}</td><td>{k.status}</td><td>{k.sanctionsStatus}</td>
-              <td>{['in_review', 'referred'].includes(k.status) && <><button className="link" onClick={() => decide.mutate({ id: k.id, decision: 'approve' })}>Approve</button>
-                <button className="link" onClick={() => decide.mutate({ id: k.id, decision: 'reject' })}>Reject</button></>}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
+    <>
+      <Page title="KYC queue" />
+      <ErrorNote>{err}</ErrorNote>
+      <DataTable aria-label="KYC cases" noun="cases" loading={q.isLoading} rowKey={(k) => k.id} rows={q.data ?? []} empty={noRows('Nothing to review', 'Applications appear here once an organisation submits its documents.')}
+        columns={[
+          { id: 'org', header: 'Organisation', rowHeader: true, cell: (k) => k.orgName },
+          { id: 'type', header: 'Type', cell: (k) => k.orgType },
+          { id: 'country', header: 'Country', cell: (k) => k.country },
+          { id: 'status', header: 'Status', cell: (k) => <StatusChip status={k.status} /> },
+          { id: 'sanctions', header: 'Sanctions', cell: (k) => <StatusChip status={k.sanctionsStatus} /> },
+          { id: 'act', header: <span className="bv-sr-only">Actions</span>, cell: (k) => ['in_review', 'referred'].includes(k.status) ? (
+            <div className="row-actions">
+              <Button size="sm" onClick={() => decide.mutate({ id: k.id, decision: 'approve' })}>Approve</Button>
+              <Button size="sm" variant="ghost" onClick={() => decide.mutate({ id: k.id, decision: 'reject' })}>Reject</Button>
+            </div>
+          ) : null },
+        ]} />
+    </>
   );
 }
 
@@ -49,21 +53,22 @@ export function AdminSanctionsPage() {
     onSuccess: () => { setErr(null); qc.invalidateQueries({ queryKey: ['screenings'] }); }, onError: (e: Error) => setErr(e.message),
   });
   return (
-    <section>
-      <h2>Sanctions review</h2>
-      {err && <p className="alert">{err}</p>}
-      <table>
-        <thead><tr><th>Name screened</th><th>Outcome</th><th>Closest match</th><th>Score</th><th /></tr></thead>
-        <tbody>
-          {(q.data ?? []).map((s) => (
-            <tr key={s.id}>
-              <td>{s.subjectName}</td><td>{s.outcome}</td><td>{s.matches[0]?.entry ?? '—'} <span className="hint">{s.matches[0]?.list}</span></td><td>{Number(s.topScore).toFixed(3)}</td>
-              <td>{s.outcome === 'hit' && <><button className="link" onClick={() => decide.mutate({ id: s.id, decision: 'false_positive' })}>False positive</button>
-                <button className="link" onClick={() => decide.mutate({ id: s.id, decision: 'confirmed' })}>Confirm</button></>}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
+    <>
+      <Page title="Sanctions review" description="A name that closely matches a watch-list entry stops funding until someone decides it is a false positive or a confirmed match." />
+      <ErrorNote>{err}</ErrorNote>
+      <DataTable aria-label="Sanctions screenings" noun="screenings" loading={q.isLoading} rowKey={(s) => s.id} rows={q.data ?? []} empty={noRows('No screenings yet')}
+        columns={[
+          { id: 'name', header: 'Name screened', rowHeader: true, cell: (s) => s.subjectName },
+          { id: 'outcome', header: 'Outcome', cell: (s) => <StatusChip status={s.outcome}>{label(s.outcome)}</StatusChip> },
+          { id: 'match', header: 'Closest match', cell: (s) => <>{s.matches[0]?.entry ?? '—'} <span className="hint">{s.matches[0]?.list}</span></> },
+          { id: 'score', header: 'Score', numeric: true, cell: (s) => Number(s.topScore).toFixed(3) },
+          { id: 'act', header: <span className="bv-sr-only">Actions</span>, cell: (s) => s.outcome === 'hit' ? (
+            <div className="row-actions">
+              <Button size="sm" onClick={() => decide.mutate({ id: s.id, decision: 'false_positive' })}>False positive</Button>
+              <Button size="sm" variant="ghost" onClick={() => decide.mutate({ id: s.id, decision: 'confirmed' })}>Confirm</Button>
+            </div>
+          ) : null },
+        ]} />
+    </>
   );
 }

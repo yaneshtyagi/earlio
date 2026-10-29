@@ -1,0 +1,16 @@
+name: 'Report a buyer insolvency event: the waiting period is waived (A-14)'
+method: POST
+url: ${BASE_URL}/api/v1/recovery/defaults/:invoiceId/insolvency
+body:
+  content: '{}'
+  content_type: application/json
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: invoiceId
+    value: ""
+options:
+  substitute_body_variables: false

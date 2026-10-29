@@ -1,0 +1,7 @@
+name: Invoices open for offers from my bank (Bearer API key)
+url: ${BASE_URL}/api/v1/machine/invitations
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}

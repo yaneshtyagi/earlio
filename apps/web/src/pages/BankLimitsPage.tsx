@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, ensureOk, problemOf } from '../api/client';
+import { Button, DataTable } from '@yaneshtyagi/design-system';
+import { api, ensureOk } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { formatMoney } from '../shared/money';
+import { Amt, ErrorNote, Page, noRows } from '../ui';
 
 export function BankLimitsPage() {
   const { me } = useAuth();
@@ -20,20 +21,19 @@ export function BankLimitsPage() {
     onSuccess: () => { setErr(null); qc.invalidateQueries({ queryKey: ['limits'] }); }, onError: (e: Error) => setErr(e.message),
   });
   return (
-    <section>
-      <h2>Exposure limits (USD)</h2>
-      {err && <p className="alert">{err}</p>}
-      <table>
-        <thead><tr><th>Name</th><th>Kind</th><th>Limit</th><th>Reserved</th><th>Used</th><th>Available</th><th /></tr></thead>
-        <tbody>
-          {(q.data ?? []).map((l) => (
-            <tr key={l.subjectOrgId + l.kind}>
-              <td>{l.subjectName}</td><td>{l.kind}</td><td>{formatMoney(l.limitUsd, 'USD')}</td><td>{formatMoney(l.reservedUsd, 'USD')}</td><td>{formatMoney(l.usedUsd, 'USD')}</td><td>{formatMoney(l.availableUsd, 'USD')}</td>
-              <td>{canManage && <button className="link" onClick={() => save.mutate({ subjectOrgId: l.subjectOrgId, kind: l.kind, current: l.limitUsd })}>Edit</button>}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
+    <>
+      <Page title="Exposure limits" description="Amounts in US dollars. A limit is reserved when an offer is chosen, used once the invoice is funded, and released on settlement." />
+      <ErrorNote>{err}</ErrorNote>
+      <DataTable aria-label="Exposure limits" noun="limits" loading={q.isLoading} rowKey={(l) => l.subjectOrgId + l.kind} rows={q.data ?? []} empty={noRows('No limits set')}
+        columns={[
+          { id: 'name', header: 'Name', rowHeader: true, cell: (l) => l.subjectName },
+          { id: 'kind', header: 'Kind', cell: (l) => l.kind },
+          { id: 'limit', header: 'Limit (USD)', numeric: true, cell: (l) => <Amt v={l.limitUsd} c="USD" /> },
+          { id: 'reserved', header: 'Reserved (USD)', numeric: true, cell: (l) => <Amt v={l.reservedUsd} c="USD" /> },
+          { id: 'used', header: 'Used (USD)', numeric: true, cell: (l) => <Amt v={l.usedUsd} c="USD" /> },
+          { id: 'available', header: 'Available (USD)', numeric: true, cell: (l) => <Amt v={l.availableUsd} c="USD" /> },
+          { id: 'act', header: <span className="bv-sr-only">Action</span>, cell: (l) => canManage ? <Button size="sm" variant="ghost" icon="pencil" onClick={() => save.mutate({ subjectOrgId: l.subjectOrgId, kind: l.kind, current: l.limitUsd })}>Edit</Button> : null },
+        ]} />
+    </>
   );
 }

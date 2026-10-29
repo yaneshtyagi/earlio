@@ -1,0 +1,23 @@
+name: Create (and by default send) an offer. Send an Idempotency-Key header to make retries safe (API offers).
+method: POST
+url: ${BASE_URL}/api/v1/invoices/:id/offers
+body:
+  content: |-
+    {
+      "mode": "manual",
+      "submit": true
+    }
+  content_type: application/json
+headers:
+  - name: idempotency-key
+    value: ""
+    enabled: false
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: id
+    value: ""
+options:
+  substitute_body_variables: false

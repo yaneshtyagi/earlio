@@ -1,0 +1,19 @@
+name: Draft a new version (validated against the schema and the platform guardrails)
+method: POST
+url: ${BASE_URL}/api/v1/terms/sets/:id/versions
+body:
+  content: |-
+    {
+      "body": {}
+    }
+  content_type: application/json
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: id
+    value: ""
+options:
+  substitute_body_variables: false

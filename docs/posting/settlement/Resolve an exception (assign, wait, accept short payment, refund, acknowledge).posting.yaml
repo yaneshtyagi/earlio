@@ -1,0 +1,19 @@
+name: Resolve an exception (assign, wait, accept short payment, refund, acknowledge)
+method: POST
+url: ${BASE_URL}/api/v1/settlement/exceptions/:id/resolve
+body:
+  content: |-
+    {
+      "action": "assign"
+    }
+  content_type: application/json
+headers:
+  - name: Cookie
+    value: earlio_sid=${OPENAPI_COOKIEAUTH_0a94b44d_KEY}
+  - name: x-csrf-token
+    value: ${OPENAPI_CSRF_7ce12ba8_KEY}
+path_params:
+  - name: id
+    value: ""
+options:
+  substitute_body_variables: false
