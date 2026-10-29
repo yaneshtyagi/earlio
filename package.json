@@ -10,6 +10,7 @@
     "dev:api": "npm run dev -w @earlio/api",
     "dev:web": "npm run dev -w @earlio/web",
     "test": "npm test -w @earlio/api",
+    "test:coverage": "npm run test:coverage -w @earlio/api",
     "typecheck": "npm run typecheck -w @earlio/api && npm run typecheck -w @earlio/web",
     "openapi": "npm run openapi -w @earlio/api",
     "gen:client": "npm run gen:client -w @earlio/web",

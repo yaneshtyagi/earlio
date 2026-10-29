@@ -8,5 +8,12 @@ export default defineConfig({
     hookTimeout: 120_000,
     pool: 'forks',
     include: ['test/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      exclude: ['src/server.ts', 'src/openapi-export.ts'],
+      reporter: ['text-summary', 'html', 'lcov'],
+      reportsDirectory: './coverage',
+    },
   },
 });
