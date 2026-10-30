@@ -12,6 +12,23 @@ User manuals for every kind of organisation on Earlio, with screenshots, step-by
 | 5 | [Platform manual](05-platform.md) | Earlio staff | KYC, sanctions, dispute decisions, settlement, guardrails and governed settings, tenant domains, scorecard, network, audit, control room |
 | — | [Index](index.md) | Everyone | Subject index A–Z, task index by organisation, index of figures |
 
+## PDF editions
+
+Printable A4 PDFs are in [`pdf/`](pdf), generated from these Markdown files (the Markdown is the source; regenerate the PDFs after editing it):
+
+| PDF | Contents |
+| --- | --- |
+| [earlio-user-manual.pdf](pdf/earlio-user-manual.pdf) | Complete edition: every manual and the index in one book, with bookmarks and working cross-references between manuals |
+| [earlio-getting-started.pdf](pdf/earlio-getting-started.pdf) | Getting started |
+| [earlio-supplier.pdf](pdf/earlio-supplier.pdf) | Supplier manual |
+| [earlio-buyer.pdf](pdf/earlio-buyer.pdf) | Buyer manual |
+| [earlio-bank.pdf](pdf/earlio-bank.pdf) | Bank manual |
+| [earlio-insurer.pdf](pdf/earlio-insurer.pdf) | Insurer manual |
+| [earlio-platform.pdf](pdf/earlio-platform.pdf) | Platform manual |
+| [earlio-index.pdf](pdf/earlio-index.pdf) | Index |
+
+In the single-manual PDFs, references to another manual (such as "S §4.1") are plain text; links within the manual work. Give an organisation's users *Getting started* together with their own manual, or the complete edition.
+
 ## Which manual do I need?
 
 - **Everyone** reads *Getting started* first.
