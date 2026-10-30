@@ -80,7 +80,9 @@ export function Layout() {
         logo: brand.logo ? <img src={brand.logo} alt="" height={28} />
           : brand.whiteLabel ? undefined
           : <AppIdentity name={brand.displayName} subtitle="Developed by BrainVault" version={APP_VERSION} logo={<EarlioMark size={28} />} />,
-        collapsedMark: brand.displayName.slice(0, 2).toUpperCase(),
+        // The design system types collapsedMark as a string but renders it as a child, so the network can show its mark.
+        collapsedMark: brand.logo || brand.whiteLabel ? brand.displayName.slice(0, 2).toUpperCase()
+          : (<><EarlioMark size={28} /><span className="bv-sr-only">{brand.displayName}</span></>) as unknown as string,
         groups,
         linkComponent: routerLink,
         user: { name: me.user.name, role: `${org.legalName} · ${me.role ?? org.type}` },
