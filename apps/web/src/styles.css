@@ -75,3 +75,9 @@
 .network-map { display: block; width: 100%; height: auto; }
 .network-node { cursor: pointer; outline: none; }
 .network-node:focus-visible circle { stroke: var(--brand-500); stroke-width: 4; }
+
+/* Earlio mark: teal and amber on light surfaces, the reversed palette on dark */
+.earlio-mark { display: block; fill: #0F766E; }
+.earlio-mark__coin { fill: #D97706; }
+[data-theme="dark"] .earlio-mark { fill: #2DD4BF; }
+[data-theme="dark"] .earlio-mark__coin { fill: #F5A524; }

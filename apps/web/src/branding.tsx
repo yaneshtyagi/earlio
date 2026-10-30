@@ -9,6 +9,25 @@ const Ctx = createContext<Brand>(DEFAULT);
 export const useBrand = () => useContext(Ctx);
 
 export const APP_VERSION = '0.1';
+
+/** The Earlio mark (an E whose middle bar pays out a coin); its colours follow the theme via .earlio-mark. */
+export function EarlioMark({ size = 28 }: { size?: number }) {
+  return (
+    <svg className="earlio-mark" viewBox="0 0 64 64" width={size} height={size} aria-hidden="true" focusable="false">
+      <rect className="earlio-mark__coin" x="8" y="26" width="38" height="12" rx="6" />
+      <rect x="8" y="8" width="12" height="48" rx="6" />
+      <rect x="8" y="8" width="36" height="12" rx="6" />
+      <rect x="8" y="44" width="36" height="12" rx="6" />
+      <circle className="earlio-mark__coin" cx="53" cy="32" r="7.5" />
+    </svg>
+  );
+}
+
+/** A white-label bank's uploaded logo, else the Earlio mark on the network (a bank without a logo shows none). */
+export function brandLogo(b: Brand, size: number) {
+  if (b.logo) return <img src={b.logo} alt="" height={size} />;
+  return b.whiteLabel ? undefined : <EarlioMark size={size} />;
+}
 const BRAND_TOKENS = ['--brand-50', '--brand-100', '--brand-500', '--brand-600', '--brand-700', '--accent'] as const;
 
 /**

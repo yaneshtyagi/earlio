@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <style>.i{fill:#0F766E}.c{fill:#D97706}@media (prefers-color-scheme:dark){.i{fill:#2DD4BF}.c{fill:#F5A524}}</style>
+  <rect x="8" y="26" width="38" height="12" rx="6" class="c"/>
+  <rect x="8" y="8" width="12" height="48" rx="6" class="i"/>
+  <rect x="8" y="8" width="36" height="12" rx="6" class="i"/>
+  <rect x="8" y="44" width="36" height="12" rx="6" class="i"/>
+  <circle cx="53" cy="32" r="7.5" class="c"/>
+</svg>
