@@ -2,9 +2,9 @@ import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api/client';
 
-export interface Brand { displayName: string; primary: string; accent: string; logo: string | null; welcome: string | null; whiteLabel: boolean; mode: 'network' | 'white-label'; orgId: string | null }
+export interface Brand { displayName: string; primary: string; accent: string; logo: string | null; welcome: string | null; whiteLabel: boolean; mode: 'network' | 'white-label'; orgId: string | null; tenant: string | null }
 /** The network (Earlio itself) uses the design system's own blue; only a white-label bank overrides it. */
-const DEFAULT: Brand = { displayName: 'Earlio', primary: '', accent: '', logo: null, welcome: null, whiteLabel: false, mode: 'network', orgId: null };
+const DEFAULT: Brand = { displayName: 'Earlio', primary: '', accent: '', logo: null, welcome: null, whiteLabel: false, mode: 'network', orgId: null, tenant: null };
 const Ctx = createContext<Brand>(DEFAULT);
 export const useBrand = () => useContext(Ctx);
 
@@ -53,7 +53,7 @@ export function applyBrand(b: { primary?: string; accent?: string; displayName: 
 
 export function BrandProvider({ children }: { children: ReactNode }) {
   const q = useQuery({ queryKey: ['branding'], staleTime: 60_000, queryFn: async () => (await api.GET('/api/v1/branding')).data });
-  const brand: Brand = q.data ? { ...DEFAULT, ...q.data, orgId: q.data.orgId ?? null } : DEFAULT;
+  const brand: Brand = q.data ? { ...DEFAULT, ...q.data, orgId: q.data.orgId ?? null, tenant: q.data.tenant ?? null } : DEFAULT;
   useEffect(() => { applyBrand(brand); }, [brand.primary, brand.accent, brand.displayName, brand.whiteLabel]);
   return <Ctx.Provider value={brand}>{children}</Ctx.Provider>;
 }

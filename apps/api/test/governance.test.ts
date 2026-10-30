@@ -174,11 +174,13 @@ describe('platform settings and the guardrail console (ADM-07)', () => {
 });
 
 describe('white-label branding (WL-1)', () => {
-  it('the hostname decides whose branding the SPA gets; unknown hosts get Earlio', async () => {
-    const a = (await host('bank1.localtest.me')).json(); const k = (await host('Bank2.localtest.me:5173')).json(); const u = (await host('portal.example.com')).json();
-    expect(a).toMatchObject({ matched: true, displayName: 'Aurelia Bank', primary: '#0b5d3b', whiteLabel: true });
-    expect(k).toMatchObject({ matched: true, displayName: 'Kestrel Capital', primary: '#1d4ed8' });
+  it('the tenant name (first label of the host) decides whose branding the SPA gets; unknown hosts get Earlio', async () => {
+    const a = (await host('aurelia.localhost')).json(); const k = (await host('Kestrel.localhost:5173')).json(); const u = (await host('portal.example.com')).json();
+    expect(a).toMatchObject({ matched: true, displayName: 'Aurelia Bank', primary: '#0b5d3b', whiteLabel: true, tenant: 'aurelia' });
+    expect(k).toMatchObject({ matched: true, displayName: 'Kestrel Capital', primary: '#1d4ed8', tenant: 'kestrel' });
+    expect((await host('kestrel.earlio.example.com')).json()).toMatchObject({ matched: true, orgId: env.ids.kestrel });
     expect(u).toMatchObject({ matched: false, displayName: 'Earlio', whiteLabel: false });
+    expect((await host('localhost:5173')).json()).toMatchObject({ matched: false, displayName: 'Earlio' });
     expect(a.orgId).toBe(env.ids.aurelia);
   });
 
@@ -189,20 +191,46 @@ describe('white-label branding (WL-1)', () => {
     expect((await shree.req('PUT', '/api/v1/bank/branding', { displayName: 'Hack' })).status).toBe(403);
     const ok = await bankAdmin.req('PUT', '/api/v1/bank/branding', { displayName: 'Aurelia Trade Finance', primary: '#14532d', welcome: 'Welcome to Aurelia.' });
     expect(ok.status, JSON.stringify(ok.json)).toBe(200);
-    expect((await host('bank1.localtest.me')).json()).toMatchObject({ displayName: 'Aurelia Trade Finance', primary: '#14532d', welcome: 'Welcome to Aurelia.' });
-    expect((await host('bank2.localtest.me')).json().displayName).toBe('Kestrel Capital');
-    expect((await bankAdmin.req('GET', '/api/v1/bank/branding')).json).toMatchObject({ displayName: 'Aurelia Trade Finance', hostname: 'bank1.localtest.me' });
+    expect((await host('aurelia.localhost')).json()).toMatchObject({ displayName: 'Aurelia Trade Finance', primary: '#14532d', welcome: 'Welcome to Aurelia.' });
+    expect((await host('kestrel.localhost')).json().displayName).toBe('Kestrel Capital');
+    expect((await bankAdmin.req('GET', '/api/v1/bank/branding')).json).toMatchObject({ displayName: 'Aurelia Trade Finance', tenant: 'aurelia', hostname: null });
     expect((await q("select 1 from audit.events where action = 'branding.updated'")).length).toBeGreaterThan(0);
   });
 
-  it('only the platform can point a hostname at a bank, and a hostname belongs to one bank', async () => {
+  it('only the platform can point a custom domain at a bank, and a domain belongs to one bank', async () => {
     expect((await bankAdmin.req('PUT', `/api/v1/admin/banks/${env.ids.aurelia}/hostname`, { hostname: 'evil.example.com' })).status).toBe(403);
-    expect((await admin.req('PUT', `/api/v1/admin/banks/${env.ids.aurelia}/hostname`, { hostname: 'bank2.localtest.me' })).status).toBe(409);
+    expect((await admin.req('PUT', `/api/v1/admin/banks/${env.ids.kestrel}/hostname`, { hostname: 'finance.kestrel.example.com' })).status).toBe(204);
+    expect((await admin.req('PUT', `/api/v1/admin/banks/${env.ids.aurelia}/hostname`, { hostname: 'finance.kestrel.example.com' })).status).toBe(409);
     expect((await admin.req('PUT', `/api/v1/admin/banks/${env.ids.aurelia}/hostname`, { hostname: 'not a host' })).status).toBe(400);
-    expect((await admin.req('PUT', `/api/v1/admin/banks/${env.ids.aurelia}/hostname`, { hostname: 'aurelia.trade.example.com' })).status).toBe(204);
-    expect((await host('aurelia.trade.example.com')).json().matched).toBe(true);
-    expect((await host('bank1.localtest.me')).json().matched).toBe(false);
-    await admin.req('PUT', `/api/v1/admin/banks/${env.ids.aurelia}/hostname`, { hostname: 'bank1.localtest.me' });
+    // the custom domain wins over the tenant label (its first label, "finance", is no tenant anyway)
+    expect((await host('finance.kestrel.example.com')).json()).toMatchObject({ matched: true, orgId: env.ids.kestrel });
+    expect((await admin.req('PUT', `/api/v1/admin/banks/${env.ids.kestrel}/hostname`, { hostname: null })).status).toBe(204);
+    expect((await host('finance.kestrel.example.com')).json().matched).toBe(false);
+    expect((await admin.req('GET', '/api/v1/admin/banks')).json.items.find((b: any) => b.id === env.ids.aurelia)).toMatchObject({ tenant: 'aurelia', hostname: null });
+  });
+
+  it('a bank chooses its own tenant name; names are validated, unique and reserved words are refused', async () => {
+    expect((await bankAdmin.req('PUT', '/api/v1/bank/branding', { tenant: 'kestrel' })).json.code).toBe('tenant_taken');
+    expect((await bankAdmin.req('PUT', '/api/v1/bank/branding', { tenant: 'www' })).status).toBe(400);
+    expect((await bankAdmin.req('PUT', '/api/v1/bank/branding', { tenant: 'Bad Name!' })).status).toBe(400);
+    expect((await bankAdmin.req('PUT', '/api/v1/bank/branding', { tenant: '' })).status).toBe(400); // a bank cannot drop its name
+    expect((await bankAdmin.req('PUT', '/api/v1/bank/branding', { tenant: 'Aurelia-Trade' })).status).toBe(200);
+    expect((await host('aurelia-trade.localhost:5173')).json()).toMatchObject({ matched: true, orgId: env.ids.aurelia, tenant: 'aurelia-trade' });
+    expect((await host('aurelia.localhost')).json().matched).toBe(false);
+    expect((await kestrelAdmin.req('PUT', `/api/v1/admin/banks/${env.ids.aurelia}/tenant`, { tenant: 'stolen' })).status).toBe(403);
+    expect((await admin.req('PUT', `/api/v1/admin/banks/${env.ids.aurelia}/tenant`, { tenant: 'aurelia' })).status).toBe(204);
+    expect((await host('aurelia.localhost')).json().matched).toBe(true);
+    expect((await q("select after from audit.events where action = 'branding.tenant_set' order by seq"))).toHaveLength(2);
+  });
+
+  it('two banks racing for the same tenant name: exactly one gets it (unique in the database)', async () => {
+    const r = await Promise.all([
+      bankAdmin.req('PUT', '/api/v1/bank/branding', { tenant: 'contested' }),
+      kestrelAdmin.req('PUT', '/api/v1/bank/branding', { tenant: 'contested' }),
+    ]);
+    expect(r.map((x) => x.status).sort()).toEqual([200, 409]);
+    expect(await q("select id from identity.organisations where tenant = 'contested'")).toHaveLength(1);
+    await bankAdmin.req('PUT', '/api/v1/bank/branding', { tenant: 'aurelia' }); await kestrelAdmin.req('PUT', '/api/v1/bank/branding', { tenant: 'kestrel' });
   });
 
   it('switching to white-label mode (maker-checker) shows the partner bank everywhere and invites only it', async () => {

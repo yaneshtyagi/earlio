@@ -22,7 +22,7 @@ const orgPublicSchema = z.object({
 });
 const orgPrivateSchema = orgPublicSchema.extend({
   small: z.boolean(), msme: z.boolean(), dataRegion: z.string(), kycStatus: z.string(), sanctionsStatus: z.string(),
-  blocked: z.boolean(), borrowingRate: z.string().nullable(), branding: z.record(z.string(), z.unknown()), hostname: z.string().nullable(),
+  blocked: z.boolean(), borrowingRate: z.string().nullable(), branding: z.record(z.string(), z.unknown()), hostname: z.string().nullable(), tenant: z.string().nullable(),
 });
 const meSchema = z.object({
   user: z.object({ id: z.string(), email: z.string(), name: z.string() }),

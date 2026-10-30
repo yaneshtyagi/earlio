@@ -76,8 +76,8 @@ export function Layout() {
         productName: brand.displayName,
         subtitle: brand.whiteLabel ? 'Powered by Earlio' : 'Developed by BrainVault',
         version: APP_VERSION,
-        // A bank's uploaded logo replaces the type-set identity; the network keeps the name beside the Earlio mark.
-        logo: brand.logo ? <img src={brand.logo} alt="" height={28} />
+        // A bank's uploaded logo sits beside its name, as the Earlio mark does on the network.
+        logo: brand.logo ? <AppIdentity name={brand.displayName} subtitle="Powered by Earlio" version={APP_VERSION} logo={<img className="brand-logo" src={brand.logo} alt="" height={28} />} />
           : brand.whiteLabel ? undefined
           : <AppIdentity name={brand.displayName} subtitle="Developed by BrainVault" version={APP_VERSION} logo={<EarlioMark size={28} />} />,
         // The design system types collapsedMark as a string but renders it as a child, so the network can show its mark.

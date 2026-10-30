@@ -469,6 +469,7 @@ export interface paths {
                                 [key: string]: unknown;
                             };
                             hostname: string | null;
+                            tenant: string | null;
                         };
                     };
                 };
@@ -7526,6 +7527,7 @@ export interface paths {
                             matched: boolean;
                             orgId: string | null;
                             hostname: string | null;
+                            tenant: string | null;
                             whiteLabel: boolean;
                         };
                     };
@@ -7547,7 +7549,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** My bank's branding and hostname */
+        /** My bank's branding, tenant name and custom domain */
         get: {
             parameters: {
                 query?: never;
@@ -7569,13 +7571,14 @@ export interface paths {
                             accent: string;
                             logo: string | null;
                             welcome: string | null;
+                            tenant: string | null;
                             hostname: string | null;
                         };
                     };
                 };
             };
         };
-        /** Update my bank's branding (display name, colours, logo, welcome text) */
+        /** Update my bank's branding (display name, colours, logo, welcome text) and tenant name */
         put: {
             parameters: {
                 query?: never;
@@ -7591,6 +7594,7 @@ export interface paths {
                         accent?: string;
                         logo?: string | null;
                         welcome?: string | null;
+                        tenant?: string;
                     };
                 };
             };
@@ -7626,7 +7630,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Banks with their hostname and branding */
+        /** Banks with their tenant name, custom domain and branding */
         get: {
             parameters: {
                 query?: never;
@@ -7647,9 +7651,11 @@ export interface paths {
                                 id: string;
                                 name: string;
                                 isPartner: boolean;
+                                tenant: string | null;
                                 hostname: string | null;
                                 displayName: string;
                                 primary: string;
+                                logo: string | null;
                             }[];
                         };
                     };
@@ -7657,6 +7663,48 @@ export interface paths {
             };
         };
         put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/banks/{id}/tenant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set a bank's tenant name (the first label of its portal address) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        tenant: string | null;
+                    };
+                };
+            };
+            responses: {
+                /** @description Default Response */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         post?: never;
         delete?: never;
         options?: never;
@@ -7672,7 +7720,7 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Point a hostname at a bank (platform only: a hostname decides whose branding a visitor sees) */
+        /** Point a custom domain at a bank (platform only: a hostname decides whose branding a visitor sees) */
         put: {
             parameters: {
                 query?: never;

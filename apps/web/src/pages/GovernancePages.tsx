@@ -4,7 +4,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Badge, Button, DataTable, DescriptionList, SelectField, TextareaField, TextField } from '@yaneshtyagi/design-system';
 import { api, ensureOk, uploadFile } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { applyBrand } from '../branding';
+import { applyBrand, useBrand } from '../branding';
+import { TENANT_PATTERN, tenantUrl } from '../shared/tenant';
 import { show, type Change } from '../shared/diff';
 import { Hint, Loading, Notice, Page, Panel, Section, StatusChip, TimelineList, dt, noRows, type Msg } from '../ui';
 
@@ -97,11 +98,9 @@ function SettingEditor({ s }: { s: any }) {
 }
 
 export function GuardrailConsolePage() {
-  const { banner, act } = useAct();
+  const { banner } = useAct();
   const g = useQuery({ queryKey: ['guardrails'], queryFn: async () => (await api.GET('/api/v1/admin/guardrails')).data });
   const s = useQuery({ queryKey: ['settings'], queryFn: async () => (await api.GET('/api/v1/admin/settings')).data?.items ?? [] });
-  const banks = useQuery({ queryKey: ['admin-banks'], queryFn: async () => (await api.GET('/api/v1/admin/banks')).data?.items ?? [] });
-  const [hosts, setHosts] = useState<Record<string, string>>({});
   return (
     <>
       <Page title="Platform defaults and guardrails" />
@@ -112,15 +111,48 @@ export function GuardrailConsolePage() {
       </Panel>
       <h2 className="bv-heading-s">Operating settings</h2>
       {(s.data ?? []).map((x) => <SettingEditor key={x.key + JSON.stringify(x.value) + (x.pending?.id ?? '')} s={x} />)}
-      <Panel title="Bank hostnames" sub="A hostname decides whose branding a visitor sees (for local development use bank1.localtest.me). Only Earlio can change it.">
-        <DataTable aria-label="Bank hostnames" noun="banks" rowKey={(b) => b.id} rows={banks.data ?? []} empty={noRows('No banks yet')}
-          columns={[
-            { id: 'bank', header: 'Bank', rowHeader: true, cell: (b) => <>{b.name}{b.isPartner && <> <Badge tone="success">partner</Badge></>}</> },
-            { id: 'brand', header: 'Branding', cell: (b) => <><span className="swatch" style={{ background: b.primary }} /> {b.displayName}</> },
-            { id: 'host', header: 'Hostname', cell: (b) => <TextField label={`Hostname for ${b.name}`} value={hosts[b.id] ?? b.hostname ?? ''} onChange={(e) => setHosts({ ...hosts, [b.id]: e.target.value })} /> },
-            { id: 'act', header: <span className="bv-sr-only">Action</span>, cell: (b) => <Button size="sm" onClick={() => act(() => api.PUT('/api/v1/admin/banks/{id}/hostname', { params: { path: { id: b.id } }, body: { hostname: (hosts[b.id] ?? b.hostname ?? '').trim() || null } }), 'Hostname saved.')}>Save</Button> },
-          ]} />
-      </Panel>
+      <p>Bank portal addresses (tenant names and custom domains) are managed under <Link to="/admin/tenants">Tenant domains</Link>.</p>
+    </>
+  );
+}
+
+// ================================================================ tenant domains (WL-1, platform only)
+type BankRow = { id: string; name: string; isPartner: boolean; tenant: string | null; hostname: string | null; displayName: string; primary: string; logo: string | null };
+function TenantRow({ b, act }: { b: BankRow; act: ReturnType<typeof useAct>['act'] }) {
+  const brand = useBrand();
+  const [tenant, setTenant] = useState(b.tenant ?? '');
+  const [host, setHost] = useState(b.hostname ?? '');
+  const t = tenant.trim().toLowerCase();
+  const changed = t !== (b.tenant ?? '') || host.trim().toLowerCase() !== (b.hostname ?? '');
+  const save = () => act(async () => {
+    if (t !== (b.tenant ?? '')) { const r = await api.PUT('/api/v1/admin/banks/{id}/tenant', { params: { path: { id: b.id } }, body: { tenant: t || null } }); if (!r.response.ok) return r; }
+    return api.PUT('/api/v1/admin/banks/{id}/hostname', { params: { path: { id: b.id } }, body: { hostname: host.trim().toLowerCase() || null } });
+  }, `Saved the portal address for ${b.name}.`);
+  return (
+    <Panel level={3} title={<span className="tenant-title">{b.logo ? <img className="logo-thumb logo-thumb--sm" src={b.logo} alt={`${b.displayName} logo`} /> : <span className="swatch" style={{ background: b.primary }} />} {b.name}{b.isPartner && <> <Badge tone="success">partner</Badge></>}</span>}
+      sub={b.displayName !== b.name ? <>Shown as {b.displayName}</> : undefined}>
+      <div className="field-grid">
+        <TextField label="Tenant name" value={tenant} onChange={(e) => setTenant(e.target.value)}
+          error={t && !TENANT_PATTERN.test(t) ? 'Use 2 to 32 lower-case letters, digits or hyphens, not starting or ending with a hyphen (for example kestrel).' : undefined}
+          help={t && TENANT_PATTERN.test(t) ? <>Portal: <a href={tenantUrl(t, brand.tenant)} target="_blank" rel="noreferrer">{tenantUrl(t, brand.tenant)}</a></> : 'Leave empty to take the bank off its portal address.'} />
+        <TextField label="Custom domain (optional)" placeholder="portal.yourbank.com" value={host} onChange={(e) => setHost(e.target.value)}
+          help="Only once the bank's DNS points this name at Earlio." />
+      </div>
+      <div><Button variant="primary" size="sm" disabled={!changed} onClick={save}>Save</Button></div>
+    </Panel>
+  );
+}
+
+export function TenantDomainsPage() {
+  const { act, banner } = useAct();
+  const banks = useQuery({ queryKey: ['admin-banks'], queryFn: async () => (await api.GET('/api/v1/admin/banks')).data?.items ?? [] });
+  return (
+    <>
+      <Page title="Tenant domains" description="Where each bank's suppliers and buyers sign in. The tenant name is the first part of the address on whichever domain Earlio is running on; a custom domain is optional. The address decides whose branding a visitor sees." />
+      {banner}
+      {banks.isLoading && <Loading />}
+      {(banks.data ?? []).map((b) => <TenantRow key={b.id + (b.tenant ?? '') + (b.hostname ?? '')} b={b} act={act} />)}
+      {banks.data?.length === 0 && noRows('No banks yet')}
     </>
   );
 }
@@ -129,42 +161,57 @@ export function GuardrailConsolePage() {
 const MAX_LOGO = 150_000;
 export function BankConsolePage() {
   const { me } = useAuth();
+  const brand = useBrand();
   const { act, banner, setMsg } = useAct();
   const b = useQuery({ queryKey: ['bank-branding'], queryFn: async () => (await api.GET('/api/v1/bank/branding')).data });
   const sets = useQuery({ queryKey: ['terms-sets'], queryFn: async () => (await api.GET('/api/v1/terms/sets')).data?.items ?? [] });
-  const [f, setF] = useState<{ displayName: string; primary: string; accent: string; logo: string | null; welcome: string } | null>(null);
-  const cur = f ?? (b.data ? { displayName: b.data.displayName, primary: b.data.primary, accent: b.data.accent, logo: b.data.logo, welcome: b.data.welcome ?? '' } : null);
+  const [f, setF] = useState<{ displayName: string; primary: string; accent: string; logo: string | null; welcome: string; tenant: string } | null>(null);
+  const cur = f ?? (b.data ? { displayName: b.data.displayName, primary: b.data.primary, accent: b.data.accent, logo: b.data.logo, welcome: b.data.welcome ?? '', tenant: b.data.tenant ?? '' } : null);
   if (!cur) return <Loading />;
   const canEdit = me?.permissions.includes('org:settings');
   const def = (sets.data ?? []).find((s) => Object.keys(s.scope).length === 0);
   const fee = def?.activeVersion?.body as any;
+  const tenant = cur.tenant.trim().toLowerCase();
+  const tenantOk = TENANT_PATTERN.test(tenant);
+  const portal = tenantOk ? tenantUrl(tenant, brand.tenant) : null;
+  const savedPortal = b.data?.tenant ? tenantUrl(b.data.tenant, brand.tenant) : null;
   const set = (k: keyof typeof cur) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => { setF({ ...cur, [k]: e.target.value }); if (k === 'primary' || k === 'accent') applyBrand({ displayName: cur.displayName, primary: k === 'primary' ? e.target.value : cur.primary, accent: k === 'accent' ? e.target.value : cur.accent }); };
   return (
     <>
       <Page title="Bank console" />
       {banner}
       <div className="split">
-        <Panel title="Branding" sub={<>Shown to your suppliers and buyers when they arrive at <strong>{b.data?.hostname ?? 'your hostname (ask Earlio to set one)'}</strong>.</>}>
+        <Panel title="Branding" sub={<>Shown to your suppliers and buyers when they arrive at {savedPortal ? <a href={savedPortal} target="_blank" rel="noreferrer">{savedPortal}</a> : 'your portal address'}{b.data?.hostname && <> or <strong>{b.data.hostname}</strong></>}.</>}>
           <TextField label="Display name" value={cur.displayName} onChange={set('displayName')} disabled={!canEdit} />
+          <TextField label="Tenant name" value={cur.tenant} onChange={set('tenant')} disabled={!canEdit}
+            error={!tenantOk ? 'Use 2 to 32 lower-case letters, digits or hyphens, not starting or ending with a hyphen (for example kestrel).' : undefined}
+            help={portal ? <>Your portal address: <strong>{portal}</strong></> : undefined} />
           <div className="field-grid">
             <TextField label="Primary colour" type="color" value={cur.primary} onChange={set('primary')} disabled={!canEdit} />
             <TextField label="Accent colour" type="color" value={cur.accent} onChange={set('accent')} disabled={!canEdit} />
           </div>
-          <TextField label="Logo (PNG, JPEG or SVG, up to 150 KB)" type="file" accept="image/png,image/jpeg,image/svg+xml" disabled={!canEdit} onChange={async (e) => {
-            const file = e.target.files?.[0]; if (!file) return;
-            if (file.size > MAX_LOGO) return setMsg({ ok: false, text: 'That logo is larger than 150 KB.' });
-            const url = await new Promise<string>((res) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.readAsDataURL(file); });
-            setF({ ...cur, logo: url });
+          <div className="logo-field">
+            <span className="bv-label">Logo</span>
+            {cur.logo
+              ? <div className="row-actions"><img className="logo-thumb" src={cur.logo} alt={`${cur.displayName} logo`} />{canEdit && <Button size="sm" variant="ghost" onClick={() => setF({ ...cur, logo: null })}>Remove</Button>}{cur.logo !== b.data?.logo && <Badge tone="warning">not saved yet</Badge>}</div>
+              : <Hint>No logo yet: the display name is shown instead.</Hint>}
+          </div>
+          <TextField label={cur.logo ? 'Replace the logo (PNG, JPEG or SVG, up to 150 KB)' : 'Upload a logo (PNG, JPEG or SVG, up to 150 KB)'} type="file" accept="image/png,image/jpeg,image/svg+xml" disabled={!canEdit} onChange={async (e) => {
+            const input = e.target; const file = input.files?.[0]; if (!file) return;
+            if (file.size > MAX_LOGO) { input.value = ''; return setMsg({ ok: false, text: 'That logo is larger than 150 KB.' }); }
+            const url = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(r.error); r.readAsDataURL(file); }).catch(() => null);
+            input.value = '';
+            if (!url) return setMsg({ ok: false, text: 'That file could not be read. Try another image.' });
+            setMsg(null); setF({ ...cur, logo: url });
           }} />
-          {cur.logo && <div className="row-actions"><img src={cur.logo} alt="Logo preview" height={40} /> <Button size="sm" variant="ghost" onClick={() => setF({ ...cur, logo: null })}>Remove</Button></div>}
           <TextareaField label="Welcome text" value={cur.welcome} onChange={set('welcome')} disabled={!canEdit} maxLength={400} />
-          <div><Button variant="primary" disabled={!canEdit} onClick={() => act(() => api.PUT('/api/v1/bank/branding', { body: { displayName: cur.displayName, primary: cur.primary, accent: cur.accent, logo: cur.logo, welcome: cur.welcome || null } }), 'Branding saved.')}>Save branding</Button></div>
+          <div className="row-actions"><Button variant="primary" disabled={!canEdit || !tenantOk} onClick={() => act(() => api.PUT('/api/v1/bank/branding', { body: { displayName: cur.displayName, primary: cur.primary, accent: cur.accent, logo: cur.logo, welcome: cur.welcome || null, tenant } }), 'Branding saved.')}>Save branding</Button>{savedPortal && <> <a href={savedPortal} target="_blank" rel="noreferrer">Open your portal</a></>}</div>
           <Hint>White text must stay readable on your primary colour (contrast at least 4.5 : 1); the server rejects colours that fail.</Hint>
         </Panel>
-        <Panel title="Preview">
+        <Panel title="Preview" sub={portal ?? undefined}>
           <div className="brand-preview">
             <div className="brand-preview__bar">
-              {cur.logo && <img src={cur.logo} alt="" height={26} />}<strong style={{ color: cur.primary }}>{cur.displayName}</strong>
+              {cur.logo && <img className="logo-thumb logo-thumb--bar" src={cur.logo} alt="" />}<strong style={{ color: cur.primary }}>{cur.displayName}</strong>
             </div>
             <div className="brand-preview__body">
               <p>{cur.welcome || 'Welcome text appears here.'}</p>
