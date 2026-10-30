@@ -14,6 +14,12 @@ export interface AuditInput {
 }
 
 /**
+ * The value as jsonb will hold it, so the hash covers exactly what is stored: a Date becomes its ISO string,
+ * a Decimal its string (toJSON), undefined fields disappear. Hashing the raw object would let them diverge.
+ */
+const asStored = (v: unknown): unknown => (v === undefined ? null : JSON.parse(JSON.stringify(v)));
+
+/**
  * Append an audit event. Serialised through the chain-head row lock, so concurrent writers
  * cannot fork the chain (verified by a concurrency test).
  */
@@ -27,8 +33,8 @@ export async function audit(tx: Tx, ctx: Ctx, now: Date, e: AuditInput): Promise
     action: e.action,
     entity_type: e.entityType,
     entity_id: e.entityId ?? null,
-    before: e.before ?? null,
-    after: e.after ?? null,
+    before: asStored(e.before),
+    after: asStored(e.after),
     correlation_id: ctx.correlationId,
     occurred_at: now.toISOString(),
   };
