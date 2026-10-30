@@ -4,6 +4,9 @@ BPMN-style process diagrams for the main workflows, drawn from the code (service
 `apps/api/src/modules/invoicing/state.ts`, the outbox handlers and background jobs in `apps/api/src/worker.ts`, and the
 status constraints in `apps/api/migrations`). Companion to [er-diagrams.md](er-diagrams.md).
 
+The invoice-to-cash flow (workflows 3 to 8) is also available as a standard BPMN 2.0 file with pools, lanes and layout,
+[bpmn/invoice-to-cash.bpmn](bpmn/invoice-to-cash.bpmn). Open it in [demo.bpmn.io](https://demo.bpmn.io) or Camunda Modeler.
+
 ## How to read the diagrams
 
 - **Lanes** are the boxes titled with an organisation and role, for example *Supplier · FinanceUser*. A lane named
