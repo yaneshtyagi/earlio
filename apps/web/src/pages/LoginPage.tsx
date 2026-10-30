@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { Alert, AppIdentity, Button, Card, CardBody, TextField } from '@yaneshtyagi/design-system';
 import { api, problemOf, setCsrfToken } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { APP_VERSION, useBrand } from '../branding';
+import { APP_VERSION, brandLogo, useBrand } from '../branding';
 
 type Step = 'password' | 'mfa' | 'enroll' | 'recovery';
 
@@ -16,7 +16,7 @@ export function AuthFrame({ children }: { children: React.ReactNode }) {
         <CardBody>
           <div className="auth__form">
             <AppIdentity as="h1" layout="stacked" size="lg" name={brand.displayName} subtitle={brand.whiteLabel ? 'Powered by Earlio' : 'Developed by BrainVault'} version={APP_VERSION}
-              logo={brand.logo ? <img src={brand.logo} alt="" height={32} /> : undefined} />
+              logo={brandLogo(brand, 40)} />
             {children}
           </div>
         </CardBody>

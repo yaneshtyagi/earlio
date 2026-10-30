@@ -2,12 +2,12 @@ import { useEffect, useMemo } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Alert, AppShell, Avatar, Button, Menu, initialsOf, type MenuEntry, type NavGroup } from '@yaneshtyagi/design-system';
+import { Alert, AppIdentity, AppShell, Avatar, Button, Menu, initialsOf, type MenuEntry, type NavGroup } from '@yaneshtyagi/design-system';
 import { setLang, type Lang } from '../i18n';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { navFor } from '../shared/nav';
-import { APP_VERSION, useBrand } from '../branding';
+import { APP_VERSION, EarlioMark, useBrand } from '../branding';
 import { routerLink } from '../ui';
 
 /** Wide tables scroll sideways on a phone; a scrollable region must be reachable from the keyboard. */
@@ -76,8 +76,13 @@ export function Layout() {
         productName: brand.displayName,
         subtitle: brand.whiteLabel ? 'Powered by Earlio' : 'Developed by BrainVault',
         version: APP_VERSION,
-        logo: brand.logo ? <img src={brand.logo} alt="" height={28} /> : undefined,
-        collapsedMark: brand.displayName.slice(0, 2).toUpperCase(),
+        // A bank's uploaded logo replaces the type-set identity; the network keeps the name beside the Earlio mark.
+        logo: brand.logo ? <img src={brand.logo} alt="" height={28} />
+          : brand.whiteLabel ? undefined
+          : <AppIdentity name={brand.displayName} subtitle="Developed by BrainVault" version={APP_VERSION} logo={<EarlioMark size={28} />} />,
+        // The design system types collapsedMark as a string but renders it as a child, so the network can show its mark.
+        collapsedMark: brand.logo || brand.whiteLabel ? brand.displayName.slice(0, 2).toUpperCase()
+          : (<><EarlioMark size={28} /><span className="bv-sr-only">{brand.displayName}</span></>) as unknown as string,
         groups,
         linkComponent: routerLink,
         user: { name: me.user.name, role: `${org.legalName} · ${me.role ?? org.type}` },
