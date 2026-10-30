@@ -2222,9 +2222,12 @@ export interface paths {
                                 number: string;
                                 buyerName: string;
                                 buyerOrgId: string;
+                                supplierName: string;
+                                supplierOrgId: string;
                                 currency: string;
                                 amount: string;
                                 description: string | null;
+                                createdAt: string;
                             }[];
                         };
                     };

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, DatePicker, FormGrid, MoneyField, SelectField, TextField, TextareaField } from '@yaneshtyagi/design-system';
 import { api, ensureOk, problemOf } from '../api/client';
-import { ErrorNote, Page, Panel } from '../ui';
+import { ErrorNote, Hint, Page, Panel } from '../ui';
 
 type Report = { created: { row: number; humanId: string }[]; errors: { row: number; message: string }[] };
 
@@ -51,6 +51,7 @@ export function InvoiceNewPage() {
             <SelectField label="Purchase order" value={f.poNumber} onChange={set('poNumber')}>
               <option value="">None (flagged)</option>{buyerPos.map((p) => <option key={p.id} value={p.number}>{p.number}</option>)}
             </SelectField>
+            <Hint>Missing a PO? <Link to="/purchase-orders/new">Record a purchase order</Link> first.</Hint>
             <FormGrid>
               <SelectField label="Currency" value={f.currency} onChange={set('currency')}><option>USD</option><option>SGD</option></SelectField>
               <MoneyField label="Amount" currency={f.currency} value={f.amount} onValueChange={(v) => setF({ ...f, amount: v })} required />

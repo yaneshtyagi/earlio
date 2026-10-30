@@ -167,11 +167,14 @@ export function invoicingRoutes(app: FastifyInstance) {
   r.get('/api/v1/purchase-orders', {
     preHandler: requirePerm('read'),
     schema: { tags: ['invoices'], summary: 'Purchase orders', response: { 200: z.object({ items: z.array(z.object({
-      id: z.string(), number: z.string(), buyerName: z.string(), buyerOrgId: z.string(), currency: z.string(), amount: z.string(), description: z.string().nullable() })) }) } },
+      id: z.string(), number: z.string(), buyerName: z.string(), buyerOrgId: z.string(), supplierName: z.string(), supplierOrgId: z.string(),
+      currency: z.string(), amount: z.string(), description: z.string().nullable(), createdAt: z.string() })) }) } },
   }, async (req) => {
     const rows = await svc.db.tx(ctxFor(req), (tx) => tx.query<any>(
-      `select p.*, b.legal_name as buyer_name from invoicing.purchase_orders p join identity.organisations b on b.id = p.buyer_org_id order by p.created_at desc`));
-    return { items: rows.map((p) => ({ id: p.id, number: p.number, buyerName: p.buyer_name, buyerOrgId: p.buyer_org_id, currency: p.currency, amount: p.amount, description: p.description })) };
+      `select p.*, b.legal_name as buyer_name, s.legal_name as supplier_name from invoicing.purchase_orders p
+       join identity.organisations b on b.id = p.buyer_org_id join identity.organisations s on s.id = p.supplier_org_id order by p.created_at desc`));
+    return { items: rows.map((p) => ({ id: p.id, number: p.number, buyerName: p.buyer_name, buyerOrgId: p.buyer_org_id, supplierName: p.supplier_name, supplierOrgId: p.supplier_org_id,
+      currency: p.currency, amount: p.amount, description: p.description, createdAt: iso(p.created_at)! })) };
   });
 
   r.post('/api/v1/purchase-orders', {
