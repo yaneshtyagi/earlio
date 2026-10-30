@@ -271,6 +271,28 @@ describe('purchase orders and cancel', () => {
     expect(mine.map((p: any) => p.number)).toContain('PO-NW-2201');
     expect(mine.map((p: any) => p.number)).not.toContain('PO-ML-0815');
   });
+  it('a supplier records a PO; the buyer sees it, other tenants do not', async () => {
+    const r = await fin.req('POST', '/api/v1/purchase-orders', { buyerOrgId: env.ids.northwind, number: '  PO-NW-9001 ', currency: 'USD', amount: '15000.5', description: 'Spring range' });
+    expect(r.status, JSON.stringify(r.json)).toBe(201);
+    const mine = (await fin.req('GET', '/api/v1/purchase-orders')).json.items.find((p: any) => p.id === r.json.id);
+    expect(mine).toMatchObject({ number: 'PO-NW-9001', amount: '15000.50', currency: 'USD', description: 'Spring range', buyerName: expect.any(String), supplierName: expect.any(String) });
+    expect(Date.parse(mine.createdAt)).not.toBeNaN();
+    expect((await approverB.req('GET', '/api/v1/purchase-orders')).json.items.map((p: any) => p.id)).toContain(r.json.id);
+    expect((await lakeshoreApprover.req('GET', '/api/v1/purchase-orders')).json.items.map((p: any) => p.id)).not.toContain(r.json.id);
+    const dup = await fin.req('POST', '/api/v1/purchase-orders', { buyerOrgId: env.ids.northwind, number: 'PO-NW-9001', currency: 'USD', amount: '1' });
+    expect(dup.status).toBe(409);
+    expect(dup.json.message).toMatch(/already exists/);
+  });
+  it('rejects invalid POs with plain reasons, and only suppliers can record them', async () => {
+    const po = (over: Record<string, unknown>) => fin.req('POST', '/api/v1/purchase-orders', { buyerOrgId: env.ids.northwind, number: `PO-X-${++counter}`, currency: 'USD', amount: '100', ...over });
+    for (const [over, status, reason] of [[{ amount: '0' }, 400, /greater than zero/], [{ amount: 'abc' }, 400, /not a valid number/], [{ amount: '1.005' }, 400, /two decimal places/],
+      [{ number: '   ' }, 400, /number is required/], [{ buyerOrgId: env.ids.kallang }, 400, /active relationship/]] as const) {
+      const r = await po(over);
+      expect(r.status, JSON.stringify(r.json)).toBe(status);
+      expect(r.json.message).toMatch(reason);
+    }
+    expect((await approverB.req('POST', '/api/v1/purchase-orders', { buyerOrgId: env.ids.shree, number: 'PO-B-1', currency: 'USD', amount: '100' })).status).toBe(403);
+  });
   it('a draft can be cancelled and then frees its fingerprint', async () => {
     const b = body();
     const d = (await fin.req('POST', '/api/v1/invoices', b)).json;

@@ -42,15 +42,29 @@ export function validateInvoiceFields(i: InvoiceInput): string | null {
   return null;
 }
 
-export async function createPurchaseOrder(tx: Tx, svc: Services, ctx: Ctx, supplierId: string, a: { buyerOrgId: string; number: string; currency: string; amount: string; description?: string }) {
+export interface PurchaseOrderInput { buyerOrgId: string; number: string; currency: string; amount: string; description?: string | null }
+
+export function validatePurchaseOrderFields(a: PurchaseOrderInput): string | null {
+  if (!a.number?.trim()) return 'The purchase order number is required.';
+  if (!(CURRENCIES as readonly string[]).includes(a.currency)) return 'Currency must be USD or SGD.';
+  let amt;
+  try { amt = D(a.amount); } catch { return 'The amount is not a valid number.'; }
+  if (!amt.isFinite() || amt.lte(0)) return 'The amount must be greater than zero.';
+  if (amt.decimalPlaces() > 2) return 'The amount can have at most two decimal places.';
+  return null;
+}
+
+export async function createPurchaseOrder(tx: Tx, svc: Services, ctx: Ctx, supplierId: string, input: PurchaseOrderInput) {
+  const err = validatePurchaseOrderFields(input);
+  if (err) throw invalid(err);
+  const a = { ...input, number: input.number.trim(), amount: D(input.amount).toFixed(2), description: input.description?.trim() || null };
   if (!(await activeRelationship(tx, supplierId, a.buyerOrgId))) throw invalid('You need an active relationship with this buyer first.');
-  if (!(CURRENCIES as readonly string[]).includes(a.currency)) throw invalid('Currency must be USD or SGD.');
   const now = svc.clock.now();
   const po = await tx.maybe('select 1 from invoicing.purchase_orders where supplier_org_id = $1 and buyer_org_id = $2 and number = $3', [supplierId, a.buyerOrgId, a.number]);
   if (po) throw conflict('duplicate_po', `Purchase order ${a.number} already exists for this buyer.`);
   const row = await tx.one<{ id: string }>(
     'insert into invoicing.purchase_orders (supplier_org_id, buyer_org_id, number, currency, amount, description, created_at) values ($1,$2,$3,$4,$5,$6,$7) returning id',
-    [supplierId, a.buyerOrgId, a.number, a.currency, a.amount, a.description ?? null, now]);
+    [supplierId, a.buyerOrgId, a.number, a.currency, a.amount, a.description, now]);
   await audit(tx, ctx, now, { action: 'po.created', entityType: 'purchase_order', entityId: row.id, orgId: supplierId, after: a });
   return row.id;
 }

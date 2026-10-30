@@ -12,6 +12,7 @@ import { AdminKycPage, AdminSanctionsPage } from './pages/AdminPages';
 import { InvoicesPage } from './pages/InvoicesPage';
 import { InvoiceNewPage } from './pages/InvoiceNewPage';
 import { InvoiceDetailPage } from './pages/InvoiceDetailPage';
+import { PurchaseOrderNewPage, PurchaseOrdersPage } from './pages/PurchaseOrderPages';
 import { BankLimitsPage } from './pages/BankLimitsPage';
 import { AdminLiensPage, BankInvitationsPage } from './pages/FundingPanels';
 import { BuyerPaymentsPage, ControlRoomPage, IntegrationInspectorPage, NotificationsPage, SettlementConsolePage } from './pages/SettlementPages';
@@ -38,6 +39,8 @@ export function App() {
         <Route path="invoices" element={<InvoicesPage />} />
         <Route path="invoices/new" element={<InvoiceNewPage />} />
         <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+        <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
+        <Route path="purchase-orders/new" element={<PurchaseOrderNewPage />} />
         <Route path="limits" element={<BankLimitsPage />} />
         <Route path="bank/invitations" element={<BankInvitationsPage />} />
         <Route path="admin/liens" element={<AdminLiensPage />} />

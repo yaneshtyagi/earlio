@@ -3539,6 +3539,12 @@
                           "buyerOrgId": {
                             "type": "string"
                           },
+                          "supplierName": {
+                            "type": "string"
+                          },
+                          "supplierOrgId": {
+                            "type": "string"
+                          },
                           "currency": {
                             "type": "string"
                           },
@@ -3548,6 +3554,9 @@
                           "description": {
                             "nullable": true,
                             "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
                           }
                         },
                         "required": [
@@ -3555,9 +3564,12 @@
                           "number",
                           "buyerName",
                           "buyerOrgId",
+                          "supplierName",
+                          "supplierOrgId",
                           "currency",
                           "amount",
-                          "description"
+                          "description",
+                          "createdAt"
                         ],
                         "additionalProperties": false
                       }

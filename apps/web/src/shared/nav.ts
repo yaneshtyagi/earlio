@@ -9,10 +9,11 @@ const ONBOARD = { to: '/onboarding', label: 'KYC application', icon: 'clipboard-
 const RELS = { to: '/relationships', label: 'Relationships', icon: 'link', group: 'Account' } as const;
 const HOME = { to: '/', label: 'Home', icon: 'layout-dashboard', group: 'Overview' } as const;
 const INVOICES = { to: '/invoices', label: 'Invoices', icon: 'file-text', group: 'Work' } as const;
+const POS = { to: '/purchase-orders', label: 'Purchase orders', icon: 'receipt', group: 'Work' } as const;
 const DISPUTES = { to: '/disputes', label: 'Disputes', icon: 'triangle-alert', group: 'Work' } as const;
 export const NAV: Record<OrgType, NavItem[]> = {
-  supplier: [HOME, INVOICES, DISPUTES, { to: '/recourse', label: 'What I owe', icon: 'wallet', group: 'Money' }, { to: '/export-proceeds', label: 'Export proceeds', icon: 'banknote', group: 'Money' }, ONBOARD, RELS, USERS],
-  buyer: [HOME, { to: '/invoices?status=Submitted', label: 'Acceptance inbox', icon: 'inbox', group: 'Work' }, INVOICES, DISPUTES, { to: '/payments', label: 'Payments due', icon: 'wallet', group: 'Money' }, ONBOARD, RELS, USERS],
+  supplier: [HOME, INVOICES, POS, DISPUTES, { to: '/recourse', label: 'What I owe', icon: 'wallet', group: 'Money' }, { to: '/export-proceeds', label: 'Export proceeds', icon: 'banknote', group: 'Money' }, ONBOARD, RELS, USERS],
+  buyer: [HOME, { to: '/invoices?status=Submitted', label: 'Acceptance inbox', icon: 'inbox', group: 'Work' }, INVOICES, POS, DISPUTES, { to: '/payments', label: 'Payments due', icon: 'wallet', group: 'Money' }, ONBOARD, RELS, USERS],
   bank: [HOME, { to: '/bank/invitations', label: 'Invitations', icon: 'inbox', group: 'Work' }, DISPUTES,
     { to: '/settlement', label: 'Settlement', perm: 'settlement:operate', icon: 'arrow-left-right', group: 'Money' }, { to: '/recovery', label: 'Overdue and defaults', icon: 'triangle-alert', group: 'Money' }, { to: '/claims', label: 'Claims', icon: 'shield-check', group: 'Money' },
     { to: '/recourse', label: 'Recourse', icon: 'wallet', group: 'Money' }, { to: '/export-proceeds', label: 'Export proceeds', icon: 'banknote', group: 'Money' },
