@@ -2,20 +2,10 @@ import { Fragment, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Badge, Button, DataTable, DescriptionList, FilterChip, SelectField, TextareaField, TextField } from '@yaneshtyagi/design-system';
-import { api, ensureOk } from '../api/client';
+import { api, ensureOk, uploadFile } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Amt, Hint, Loading, Notice, Page, Panel, Section, StatusChip, TimelineList, dd, dt, label, noRows, type Msg } from '../ui';
 
-function useUpload() {
-  const { me } = useAuth();
-  return async (file: File): Promise<string> => {
-    const r = await fetch(`/api/v1/files?filename=${encodeURIComponent(file.name)}`, { method: 'POST', credentials: 'include',
-      headers: { 'content-type': 'application/octet-stream', 'x-csrf-token': me?.csrfToken ?? '' }, body: await file.arrayBuffer() });
-    const j = await r.json();
-    if (!r.ok) throw new Error(j.message ?? 'Upload failed.');
-    return j.id as string;
-  };
-}
 function useAct() {
   const qc = useQueryClient();
   const [msg, setMsg] = useState<Msg>(null);
@@ -55,7 +45,6 @@ export function DisputeDetailPage() {
   const { id = '' } = useParams();
   const { me } = useAuth();
   const { act, banner, setMsg } = useAct();
-  const upload = useUpload();
   const fileRef = useRef<HTMLInputElement>(null);
   const [body, setBody] = useState('');
   const [outcome, setOutcome] = useState<'buyer' | 'supplier'>('supplier');
@@ -99,7 +88,7 @@ export function DisputeDetailPage() {
                 <input ref={fileRef} type="file" hidden aria-label="Evidence file" onChange={async (e) => {
                   const f = e.target.files?.[0]; e.target.value = '';
                   if (!f) return;
-                  try { const fileId = await upload(f); await act(() => api.POST('/api/v1/disputes/{id}/messages', { ...path, body: { body: body.trim() || `Evidence: ${f.name}`, kind: 'evidence', fileId } }), 'Evidence attached.'); setBody(''); } catch (err) { setMsg({ ok: false, text: (err as Error).message }); }
+                  try { const fileId = await uploadFile(f); await act(() => api.POST('/api/v1/disputes/{id}/messages', { ...path, body: { body: body.trim() || `Evidence: ${f.name}`, kind: 'evidence', fileId } }), 'Evidence attached.'); setBody(''); } catch (err) { setMsg({ ok: false, text: (err as Error).message }); }
                 }} />
               </div>
             </>
@@ -174,7 +163,6 @@ export function InvoiceExceptionsPanel({ invoiceId, status, currency, supplierId
 export function RecoveryPage() {
   const { me } = useAuth();
   const { act, banner, setMsg } = useAct();
-  const upload = useUpload();
   const [ref, setRef] = useState<Record<string, string>>({});
   const [docs, setDocs] = useState<Record<string, Record<string, string>>>({});
   const type = me?.activeOrg?.type;
@@ -202,7 +190,7 @@ export function RecoveryPage() {
               <div className="toolbar-fields">{DOCS.map((t) => (
                 <TextField key={t} label={label(t)} type="file" onChange={async (e) => {
                   const f = e.target.files?.[0]; if (!f) return;
-                  try { const fileId = await upload(f); setDocs({ ...docs, [d.invoiceId]: { ...(docs[d.invoiceId] ?? {}), [t]: fileId } }); } catch (err) { setMsg({ ok: false, text: (err as Error).message }); }
+                  try { const fileId = await uploadFile(f); setDocs({ ...docs, [d.invoiceId]: { ...(docs[d.invoiceId] ?? {}), [t]: fileId } }); } catch (err) { setMsg({ ok: false, text: (err as Error).message }); }
                 }} help={docs[d.invoiceId]?.[t] ? 'attached' : undefined} />
               ))}</div>
               <div><Button variant="primary" onClick={() => act(() => api.POST('/api/v1/invoices/{id}/claims', { params: { path: { id: d.invoiceId } }, body: { documents: Object.entries(docs[d.invoiceId] ?? {}).map(([docType, fileId]) => ({ docType: docType as typeof DOCS[number], fileId })), extra: extra[d.invoiceId] } }), 'Claim filed with the insurer.')}>File claim for <Amt v={d.principal} c={d.currency} /></Button></div>

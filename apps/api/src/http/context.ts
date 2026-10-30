@@ -34,7 +34,7 @@ const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 export async function requireSession(req: FastifyRequest, _reply: FastifyReply) {
   if (!req.auth) throw new DomainError('unauthenticated', 'Please sign in.', 401);
   if (MUTATING.has(req.method) && req.headers['x-csrf-token'] !== req.auth.csrfToken) {
-    throw new DomainError('csrf', 'Missing or invalid CSRF token.', 403);
+    throw new DomainError('csrf', 'Your session security token is missing or out of date. Reload the page and try again.', 403);
   }
 }
 

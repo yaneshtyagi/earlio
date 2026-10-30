@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, Badge, Button, DataTable, DescriptionList, SelectField, TextareaField, TextField } from '@yaneshtyagi/design-system';
-import { api, ensureOk } from '../api/client';
+import { api, ensureOk, uploadFile } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { applyBrand } from '../branding';
 import { show, type Change } from '../shared/diff';
@@ -192,16 +192,14 @@ export function BankConsolePage() {
 
 // ================================================================ requirements on the supplier's consent form (CT-10)
 export function RequirementsBox({ frId, invoiceId, answers, setAnswers, onChange }: { frId: string; invoiceId: string; answers: Record<string, string>; setAnswers: (a: Record<string, string>) => void; onChange: () => void }) {
-  const { me } = useAuth();
   const { act, banner, setMsg } = useAct();
   const q = useQuery({ queryKey: ['requirements', frId], queryFn: async () => (await api.GET('/api/v1/financing-requests/{id}/requirements', { params: { path: { id: frId } } })).data });
   const r = q.data;
   if (!r || (!r.customFields.length && !r.requiredDocuments.length)) return null;
   async function attach(docType: string, file: File) {
     try {
-      const up = await fetch(`/api/v1/files?filename=${encodeURIComponent(file.name)}`, { method: 'POST', credentials: 'include', headers: { 'content-type': 'application/octet-stream', 'x-csrf-token': me?.csrfToken ?? '' }, body: await file.arrayBuffer() });
-      const j = await up.json(); if (!up.ok) throw new Error(j.message ?? 'Upload failed.');
-      await act(() => api.POST('/api/v1/invoices/{id}/documents', { params: { path: { id: invoiceId } }, body: { docType: docType as 'packing_list', fileId: j.id } }), 'Document added.');
+      const fileId = await uploadFile(file);
+      await act(() => api.POST('/api/v1/invoices/{id}/documents', { params: { path: { id: invoiceId } }, body: { docType: docType as 'packing_list', fileId } }), 'Document added.');
       onChange();
     } catch (e) { setMsg({ ok: false, text: (e as Error).message }); }
   }

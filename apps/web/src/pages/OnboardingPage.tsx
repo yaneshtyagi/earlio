@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, DataTable, DescriptionList } from '@yaneshtyagi/design-system';
-import { api, ensureOk, problemOf } from '../api/client';
+import { api, ensureOk, problemOf, uploadFile } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Loading, Notice, Page, Panel, StatusChip, type Msg } from '../ui';
 
@@ -13,7 +13,6 @@ const LABELS: Record<string, string> = {
 export function OnboardingPage() {
   const qc = useQueryClient();
   const { me } = useAuth();
-  const csrfToken = me?.csrfToken;
   const q = useQuery({ queryKey: ['kyc-case'], queryFn: async () => (await api.GET('/api/v1/onboarding/case')).data });
   const [msg, setMsg] = useState<Msg>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -24,12 +23,10 @@ export function OnboardingPage() {
 
   async function upload(type: string, file: File) {
     setMsg(null);
-    const r = await fetch(`/api/v1/files?filename=${encodeURIComponent(file.name)}`, {
-      method: 'POST', credentials: 'include', headers: { 'content-type': 'application/octet-stream', 'x-csrf-token': csrfToken ?? '' }, body: await file.arrayBuffer(),
-    });
-    const j = await r.json();
-    if (!r.ok) return setMsg({ ok: false, text: j.message ?? 'Upload failed.' });
-    try { await ensureOk(await api.POST('/api/v1/onboarding/documents', { body: { docType: type, fileId: j.id } })); } catch (e) { return setMsg({ ok: false, text: (e as Error).message }); }
+    try {
+      const fileId = await uploadFile(file);
+      await ensureOk(await api.POST('/api/v1/onboarding/documents', { body: { docType: type, fileId } }));
+    } catch (e) { return setMsg({ ok: false, text: (e as Error).message }); }
     qc.invalidateQueries({ queryKey: ['kyc-case'] });
   }
   async function submit() {

@@ -131,3 +131,9 @@ The build runs in a Node-only cloud workspace (no .NET SDK, no Docker daemon). B
 - Tests: two new in `invoicing.test.ts` (create, trimming and normalising, buyer sees it, other buyer does not, duplicate → 409; each validation reason, no relationship, buyer cannot create → 403).
 - Verified: `npm test` (21 files, 253 tests), typecheck, web build, web unit tests; create and duplicate error checked in the browser against the dev stack.
 - Not run here: the Playwright e2e suite. Deviation: there is no separate "work order" entity; purchase orders are the work-order record in this domain (plan M3).
+
+## Clear error messages (30 Oct 2026)
+- **Bug** Actions using `ensureOk` (submit invoice, accept, fund, settle, admin queues, …) showed "Failed to execute 'clone' on 'Response': Response body is already used" instead of the API's reason: openapi-fetch had already read the error body. `ensureOk` now reads the parsed `r.error`.
+- **Web client** (`apps/web/src/api/client.ts`): a response middleware turns every non-2xx result without a problem body (proxy 502s, framework 404s, empty bodies) into a plain-language problem by HTTP status; a network failure becomes "Could not reach the server…" instead of "Failed to fetch". The four copies of the file-upload code are now one `uploadFile` helper, which no longer crashes on a non-JSON error body ("Unexpected token…") and reports the server's reason.
+- **API**: schema validation errors now name the fields ("Some details are missing or not valid: email is required; password: expected string, received number.") instead of "The request is not valid."; the CSRF rejection now tells the user to reload the page.
+- Tests: `apps/web/src/api/client.test.ts` (4 cases), one new in `auth.test.ts`. Verified: `npm test` (21 files, 254 tests), typecheck, web build, web unit tests. Not checked by hand in the browser.

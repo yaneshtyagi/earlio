@@ -6,7 +6,7 @@ import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { Alert, Button, Checkbox, DataTable, DescriptionList, SelectField, TextareaField, TextField } from '@yaneshtyagi/design-system';
-import { api, ensureOk } from '../api/client';
+import { api, ensureOk, uploadFile } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Amt, Hint, Loading, Notice, Page, Panel, StatusChip, TimelineList, dd, dt, label, noRows, type Msg } from '../ui';
 
@@ -38,11 +38,9 @@ export function InvoiceDetailPage() {
 
   async function upload(file: File) {
     setMsg(null);
-    const r = await fetch(`/api/v1/files?filename=${encodeURIComponent(file.name)}`, { method: 'POST', credentials: 'include',
-      headers: { 'content-type': 'application/octet-stream', 'x-csrf-token': me?.csrfToken ?? '' }, body: await file.arrayBuffer() });
-    const j = await r.json();
-    if (!r.ok) return setMsg({ ok: false, text: j.message ?? 'Upload failed.' });
-    await run(() => api.POST('/api/v1/invoices/{id}/documents', { ...path, body: { docType: docType as 'delivery_proof', fileId: j.id } }), 'Document added.');
+    let fileId: string;
+    try { fileId = await uploadFile(file); } catch (e) { return setMsg({ ok: false, text: (e as Error).message }); }
+    await run(() => api.POST('/api/v1/invoices/{id}/documents', { ...path, body: { docType: docType as 'delivery_proof', fileId } }), 'Document added.');
   }
 
   const canSupplier = isSupplier && me?.permissions.includes('invoice:create');

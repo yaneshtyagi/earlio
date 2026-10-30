@@ -64,6 +64,15 @@ describe('authentication', () => {
     expect(res.json().code).toBe('csrf');
   });
 
+  it('names the missing or invalid fields when a request fails schema validation', async () => {
+    const r = await env.app.inject({ method: 'POST', url: '/api/v1/auth/login', payload: { password: 42 } });
+    expect(r.statusCode).toBe(400);
+    expect(r.json().code).toBe('validation');
+    expect(r.json().message).toMatch(/^Some details are missing or not valid: /);
+    expect(r.json().message).toContain('email is required');
+    expect(r.json().message).toContain('password: expected string, received number');
+  });
+
   it('enrols MFA for a new user and issues one-time recovery codes', async () => {
     const admin = await login(env, 'shree', 'Admin');
     const created = await admin.req('POST', '/api/v1/org/users', { email: 'new.person@shree.demo', name: 'New Person', role: 'Viewer', password: 'Sup3rSecret!pw' });

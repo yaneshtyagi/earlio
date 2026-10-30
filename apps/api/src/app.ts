@@ -90,7 +90,7 @@ export async function buildApp(svc: Services): Promise<FastifyInstance> {
       return reply.code(err.status).send({ code: err.code, message: err.message, details: err.details ?? null });
     }
     if (hasZodFastifySchemaValidationErrors(err)) {
-      return reply.code(400).send({ code: 'validation', message: 'The request is not valid.', details: err.validation });
+      return reply.code(400).send({ code: 'validation', message: validationMessage(err.validation), details: err.validation });
     }
     if (isResponseSerializationError(err)) {
       req.log.error({ err }, 'response does not match schema');
@@ -135,4 +135,16 @@ export async function buildApp(svc: Services): Promise<FastifyInstance> {
   await app.register(async (a) => auditRoutes(a));
   await registerModules(app);
   return app;
+}
+
+/** Turns schema validation issues into one plain-language sentence naming the fields at fault. */
+export function validationMessage(issues: { instancePath: string; message?: string }[]): string {
+  const parts = issues.slice(0, 3).map((i) => {
+    const field = i.instancePath.split('/').filter(Boolean).join('.');
+    const msg = (i.message ?? 'is not valid').replace(/^Invalid input: /, '');
+    if (/received undefined$/.test(msg)) return field ? `${field} is required` : 'the request is empty';
+    return field ? `${field}: ${msg}` : msg;
+  });
+  const more = issues.length > 3 ? ` (and ${issues.length - 3} more)` : '';
+  return `Some details are missing or not valid: ${parts.join('; ')}${more}.`;
 }
