@@ -653,7 +653,7 @@ The engine, schemas and guardrails exist from M4. Build the management layer on 
    guardrail values, fee configuration (BR-4, free tier for small suppliers),
    dispute timers; all changes maker-checker and audited.
 5. White-label (WL-1): per-bank branding (logo, colours, display name, welcome text),
-   resolved by tenant hostname (local dev: bank1.localtest.me), CSS variable theming in
+   resolved by tenant hostname (local dev: kestrel.localhost:5173), CSS variable theming in
    the SPA, bank-only admin console, bank own fee and limit configuration. Network
    mode vs white-label mode switch in platform config.
 6. Verify that funded invoices keep their stored terms version while new invoices use

@@ -10,7 +10,7 @@ import { resolveTerms } from '../terms/service';
 import { describeTerms, templatesFor } from './diff';
 import { describeTermsHi } from './hindi';
 import { SETTINGS, SETTING_KEYS, currentSetting, decideSetting, proposeSetting, settingChanges } from './settings';
-import { approvalsInbox, brandingForHost, exportSet, financingRequirements, importIntoSet, rejectVersion, saveBranding, setHostname, versionDiff } from './service';
+import { approvalsInbox, brandingForHost, exportSet, financingRequirements, importIntoSet, rejectVersion, saveBranding, setHostname, setTenant, versionDiff } from './service';
 
 const ownerEnum = z.enum(['platform', 'bank', 'insurer']);
 const change = z.object({ path: z.string(), before: z.any().optional(), after: z.any().optional(), kind: z.enum(['added', 'removed', 'changed']) });
@@ -135,7 +135,7 @@ export function governanceRoutes(app: FastifyInstance) {
   // ------------------------------------------------------------------------------------------ white-label branding (WL-1)
   r.get('/api/v1/branding', {
     schema: { tags: ['system'], summary: 'Branding for the hostname the SPA is served from (public)', querystring: z.object({ host: z.string().max(200).optional() }),
-      response: { 200: brandingOut.extend({ mode: z.enum(['network', 'white-label']), matched: z.boolean(), orgId: z.string().nullable(), hostname: z.string().nullable(), whiteLabel: z.boolean() }) } },
+      response: { 200: brandingOut.extend({ mode: z.enum(['network', 'white-label']), matched: z.boolean(), orgId: z.string().nullable(), hostname: z.string().nullable(), tenant: z.string().nullable(), whiteLabel: z.boolean() }) } },
   }, async (req, reply) => {
     reply.header('cache-control', 'no-store').header('vary', 'host, x-forwarded-host');
     return brandingForHost(svc, req.query.host ?? (req.headers['x-forwarded-host'] as string | undefined) ?? req.headers.host);
@@ -143,36 +143,43 @@ export function governanceRoutes(app: FastifyInstance) {
 
   r.get('/api/v1/bank/branding', {
     preHandler: requirePerm('read'),
-    schema: { tags: ['governance'], summary: 'My bank\'s branding and hostname', response: { 200: brandingOut.extend({ hostname: z.string().nullable() }) } },
+    schema: { tags: ['governance'], summary: 'My bank\'s branding, tenant name and custom domain', response: { 200: brandingOut.extend({ tenant: z.string().nullable(), hostname: z.string().nullable() }) } },
   }, async (req) => {
     if (req.auth!.orgType !== 'bank') throw forbidden('Only banks have branding.');
-    const b = await brandingForHost(svc, undefined);
-    void b;
-    const o = await svc.db.tx(req.ctx, (tx) => tx.one<any>('select branding, hostname, legal_name from identity.organisations where id = $1', [req.auth!.orgId]));
+    const o = await svc.db.tx(req.ctx, (tx) => tx.one<any>('select branding, hostname, tenant, legal_name from identity.organisations where id = $1', [req.auth!.orgId]));
     const x = o.branding ?? {};
-    return { displayName: x.displayName ?? o.legal_name, primary: x.primary ?? '#0b5d3b', accent: x.accent ?? '#c9a227', logo: x.logo ?? null, welcome: x.welcome ?? null, hostname: o.hostname ?? null };
+    return { displayName: x.displayName ?? o.legal_name, primary: x.primary ?? '#0b5d3b', accent: x.accent ?? '#c9a227', logo: x.logo ?? null, welcome: x.welcome ?? null, tenant: o.tenant ?? null, hostname: o.hostname ?? null };
   });
 
   r.put('/api/v1/bank/branding', {
     preHandler: requirePerm('org:settings'),
-    schema: { tags: ['governance'], summary: 'Update my bank\'s branding (display name, colours, logo, welcome text)',
-      body: z.object({ displayName: z.string().optional(), primary: z.string().optional(), accent: z.string().optional(), logo: z.string().nullable().optional(), welcome: z.string().nullable().optional() }), response: { 200: brandingOut } },
+    schema: { tags: ['governance'], summary: 'Update my bank\'s branding (display name, colours, logo, welcome text) and tenant name',
+      body: z.object({ displayName: z.string().optional(), primary: z.string().optional(), accent: z.string().optional(), logo: z.string().nullable().optional(), welcome: z.string().nullable().optional(), tenant: z.string().max(40).optional() }), response: { 200: brandingOut } },
   }, async (req) => {
     if (req.auth!.orgType !== 'bank') throw forbidden('Only banks have branding.');
-    return svc.db.tx(req.ctx, (tx) => saveBranding(tx, svc, req.ctx, req.auth!.orgId!, req.body as any));
+    const { tenant, ...branding } = req.body;
+    return svc.db.tx(req.ctx, async (tx) => {
+      if (tenant !== undefined) await setTenant(tx, svc, req.ctx, req.auth!.orgId!, tenant);
+      return saveBranding(tx, svc, req.ctx, req.auth!.orgId!, branding);
+    });
   });
 
   r.get('/api/v1/admin/banks', {
     preHandler: requirePerm('platform:admin'),
-    schema: { tags: ['governance'], summary: 'Banks with their hostname and branding', response: { 200: z.object({ items: z.array(z.object({ id: z.string(), name: z.string(), isPartner: z.boolean(), hostname: z.string().nullable(), displayName: z.string(), primary: z.string() })) }) } },
+    schema: { tags: ['governance'], summary: 'Banks with their tenant name, custom domain and branding', response: { 200: z.object({ items: z.array(z.object({ id: z.string(), name: z.string(), isPartner: z.boolean(), tenant: z.string().nullable(), hostname: z.string().nullable(), displayName: z.string(), primary: z.string(), logo: z.string().nullable() })) }) } },
   }, async (req) => ({
-    items: (await svc.db.tx(platformCtx(req), (tx) => tx.query<any>("select id, legal_name, is_partner, hostname, branding from identity.organisations where type = 'bank' order by is_partner desc, legal_name")))
-      .map((o) => ({ id: o.id, name: o.legal_name, isPartner: !!o.is_partner, hostname: o.hostname ?? null, displayName: o.branding?.displayName ?? o.legal_name, primary: o.branding?.primary ?? '#0b5d3b' })),
+    items: (await svc.db.tx(platformCtx(req), (tx) => tx.query<any>("select id, legal_name, is_partner, tenant, hostname, branding from identity.organisations where type = 'bank' order by is_partner desc, legal_name")))
+      .map((o) => ({ id: o.id, name: o.legal_name, isPartner: !!o.is_partner, tenant: o.tenant ?? null, hostname: o.hostname ?? null, displayName: o.branding?.displayName ?? o.legal_name, primary: o.branding?.primary ?? '#0b5d3b', logo: o.branding?.logo ?? null })),
   }));
+
+  r.put('/api/v1/admin/banks/:id/tenant', {
+    preHandler: requirePerm('platform:admin'),
+    schema: { tags: ['governance'], summary: 'Set a bank\'s tenant name (the first label of its portal address)', params: z.object({ id: z.string().uuid() }), body: z.object({ tenant: z.string().max(40).nullable() }), response: { 204: z.undefined() } },
+  }, async (req, reply) => { await svc.db.tx(platformCtx(req), (tx) => setTenant(tx, svc, platformCtx(req), req.params.id, req.body.tenant)); return reply.code(204).send(); });
 
   r.put('/api/v1/admin/banks/:id/hostname', {
     preHandler: requirePerm('platform:admin'),
-    schema: { tags: ['governance'], summary: 'Point a hostname at a bank (platform only: a hostname decides whose branding a visitor sees)', params: z.object({ id: z.string().uuid() }), body: z.object({ hostname: z.string().nullable() }), response: { 204: z.undefined() } },
+    schema: { tags: ['governance'], summary: 'Point a custom domain at a bank (platform only: a hostname decides whose branding a visitor sees)', params: z.object({ id: z.string().uuid() }), body: z.object({ hostname: z.string().nullable() }), response: { 204: z.undefined() } },
   }, async (req, reply) => { await svc.db.tx(platformCtx(req), (tx) => setHostname(tx, svc, platformCtx(req), req.params.id, req.body.hostname?.toLowerCase() ?? null)); return reply.code(204).send(); });
 
   // ------------------------------------------------------------------------------------------ requirements (CT-10)

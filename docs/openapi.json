@@ -668,6 +668,10 @@
                     "hostname": {
                       "nullable": true,
                       "type": "string"
+                    },
+                    "tenant": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "required": [
@@ -685,7 +689,8 @@
                     "blocked",
                     "borrowingRate",
                     "branding",
-                    "hostname"
+                    "hostname",
+                    "tenant"
                   ],
                   "additionalProperties": false
                 }
@@ -12990,6 +12995,10 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "tenant": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "whiteLabel": {
                       "type": "boolean"
                     }
@@ -13004,6 +13013,7 @@
                     "matched",
                     "orgId",
                     "hostname",
+                    "tenant",
                     "whiteLabel"
                   ],
                   "additionalProperties": false
@@ -13016,7 +13026,7 @@
     },
     "/api/v1/bank/branding": {
       "get": {
-        "summary": "My bank's branding and hostname",
+        "summary": "My bank's branding, tenant name and custom domain",
         "tags": [
           "governance"
         ],
@@ -13045,6 +13055,10 @@
                       "nullable": true,
                       "type": "string"
                     },
+                    "tenant": {
+                      "nullable": true,
+                      "type": "string"
+                    },
                     "hostname": {
                       "nullable": true,
                       "type": "string"
@@ -13056,6 +13070,7 @@
                     "accent",
                     "logo",
                     "welcome",
+                    "tenant",
                     "hostname"
                   ],
                   "additionalProperties": false
@@ -13066,7 +13081,7 @@
         }
       },
       "put": {
-        "summary": "Update my bank's branding (display name, colours, logo, welcome text)",
+        "summary": "Update my bank's branding (display name, colours, logo, welcome text) and tenant name",
         "tags": [
           "governance"
         ],
@@ -13093,6 +13108,10 @@
                   "welcome": {
                     "nullable": true,
                     "type": "string"
+                  },
+                  "tenant": {
+                    "type": "string",
+                    "maxLength": 40
                   }
                 }
               }
@@ -13142,7 +13161,7 @@
     },
     "/api/v1/admin/banks": {
       "get": {
-        "summary": "Banks with their hostname and branding",
+        "summary": "Banks with their tenant name, custom domain and branding",
         "tags": [
           "governance"
         ],
@@ -13168,6 +13187,10 @@
                           "isPartner": {
                             "type": "boolean"
                           },
+                          "tenant": {
+                            "nullable": true,
+                            "type": "string"
+                          },
                           "hostname": {
                             "nullable": true,
                             "type": "string"
@@ -13177,15 +13200,21 @@
                           },
                           "primary": {
                             "type": "string"
+                          },
+                          "logo": {
+                            "nullable": true,
+                            "type": "string"
                           }
                         },
                         "required": [
                           "id",
                           "name",
                           "isPartner",
+                          "tenant",
                           "hostname",
                           "displayName",
-                          "primary"
+                          "primary",
+                          "logo"
                         ],
                         "additionalProperties": false
                       }
@@ -13202,9 +13231,54 @@
         }
       }
     },
+    "/api/v1/admin/banks/{id}/tenant": {
+      "put": {
+        "summary": "Set a bank's tenant name (the first label of its portal address)",
+        "tags": [
+          "governance"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tenant": {
+                    "nullable": true,
+                    "type": "string",
+                    "maxLength": 40
+                  }
+                },
+                "required": [
+                  "tenant"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/api/v1/admin/banks/{id}/hostname": {
       "put": {
-        "summary": "Point a hostname at a bank (platform only: a hostname decides whose branding a visitor sees)",
+        "summary": "Point a custom domain at a bank (platform only: a hostname decides whose branding a visitor sees)",
         "tags": [
           "governance"
         ],

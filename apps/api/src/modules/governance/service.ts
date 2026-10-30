@@ -118,17 +118,24 @@ export function cleanBranding(input: Partial<Branding>): Branding {
   return { displayName: b.displayName.trim(), primary: b.primary.toLowerCase(), accent: b.accent.toLowerCase(), logo: b.logo ?? null, welcome: b.welcome?.trim() || null };
 }
 
+/**
+ * A custom domain Earlio pointed at a bank wins; otherwise the first label of the host is a bank's tenant name
+ * (kestrel.localhost, kestrel.earlio.example → Kestrel).
+ */
 export async function brandingForHost(svc: Services, host: string | undefined) {
   return svc.db.system(async (tx) => {
     const mode = await currentMode(tx, svc);
     const h = host?.toLowerCase().replace(/:\d+$/, '') ?? '';
-    let org = h ? await tx.maybe<any>("select id, legal_name, branding, hostname, is_partner from identity.organisations where hostname = $1 and type = 'bank'", [h]) : undefined;
+    const cols = 'id, legal_name, branding, hostname, tenant, is_partner';
+    let org = h ? await tx.maybe<any>(`select ${cols} from identity.organisations where hostname = $1 and type = 'bank'`, [h]) : undefined;
+    const label = h.includes('.') ? h.split('.')[0]! : '';
+    if (!org && label) org = await tx.maybe<any>(`select ${cols} from identity.organisations where tenant = $1 and type = 'bank'`, [label]);
     let matched = !!org;
-    if (!org && mode === 'white-label') org = await tx.maybe<any>("select id, legal_name, branding, hostname, is_partner from identity.organisations where type = 'bank' and is_partner order by created_at limit 1");
-    if (!org) return { mode, matched: false, orgId: null as string | null, hostname: h || null, ...DEFAULT_BRANDING, whiteLabel: false };
+    if (!org && mode === 'white-label') org = await tx.maybe<any>(`select ${cols} from identity.organisations where type = 'bank' and is_partner order by created_at limit 1`);
+    if (!org) return { mode, matched: false, orgId: null as string | null, hostname: h || null, tenant: null as string | null, ...DEFAULT_BRANDING, whiteLabel: false };
     const b = org.branding ?? {};
     return {
-      mode, matched, orgId: org.id as string, hostname: (org.hostname ?? h) as string | null, whiteLabel: mode === 'white-label' || matched,
+      mode, matched, orgId: org.id as string, hostname: (org.hostname ?? h) as string | null, tenant: (org.tenant ?? null) as string | null, whiteLabel: mode === 'white-label' || matched,
       displayName: (b.displayName ?? org.legal_name) as string, primary: (b.primary ?? DEFAULT_BRANDING.primary) as string, accent: (b.accent ?? DEFAULT_BRANDING.accent) as string,
       logo: (b.logo ?? null) as string | null, welcome: (b.welcome ?? null) as string | null,
     };
@@ -147,12 +154,36 @@ export async function saveBranding(tx: Tx, svc: Services, ctx: Ctx, orgId: strin
 }
 
 export async function setHostname(tx: Tx, svc: Services, ctx: Ctx, orgId: string, hostname: string | null) {
-  if (hostname !== null && !/^(?=.{4,100}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(hostname)) throw invalid('That is not a valid hostname (for example bank1.localtest.me).');
+  if (hostname !== null && !/^(?=.{4,100}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(hostname)) throw invalid('That is not a valid hostname (for example finance.kestrel.com).');
   const dup = hostname ? await tx.elevated(() => tx.maybe('select 1 from identity.organisations where hostname = $1 and id <> $2', [hostname, orgId])) : undefined;
   if (dup) throw conflict('hostname_taken', 'That hostname already belongs to another organisation.');
   const r = await tx.elevated(() => tx.query("update identity.organisations set hostname = $2 where id = $1 and type = 'bank' returning id", [orgId, hostname]));
   if (!r.length) throw notFound('Bank');
   await audit(tx, ctx, svc.clock.now(), { action: 'branding.hostname_set', entityType: 'organisation', entityId: orgId, orgId, after: { hostname } });
+}
+
+/** Labels the platform keeps for itself; a bank cannot take them as its tenant name. */
+const RESERVED_TENANTS = new Set(['www', 'api', 'app', 'admin', 'earlio', 'mail', 'static', 'assets', 'cdn', 'status', 'docs', 'help', 'support', 'login', 'auth', 'localhost']);
+
+/** A bank's tenant name (the first label of its portal address). The bank itself or the platform may set it. */
+export async function setTenant(tx: Tx, svc: Services, ctx: Ctx, orgId: string, tenant: string | null) {
+  if (!ctx.platform && ctx.orgId !== orgId) throw forbidden('You can only change your own bank\'s tenant name.');
+  const t = tenant?.trim().toLowerCase() || null;
+  if (t === null && !ctx.platform) throw invalid('Your bank needs a tenant name: it is the first part of your portal address.');
+  if (t !== null && !/^[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?$/.test(t)) throw invalid('A tenant name is 2 to 32 lower-case letters, digits or hyphens, and cannot start or end with a hyphen (for example kestrel).');
+  if (t && RESERVED_TENANTS.has(t)) throw invalid(`"${t}" is reserved by Earlio. Choose another tenant name.`);
+  const org = await tx.elevated(() => tx.maybe<any>("select tenant from identity.organisations where id = $1 and type = 'bank'", [orgId]));
+  if (!org) throw notFound('Bank');
+  if (org.tenant === t) return;
+  const dup = t ? await tx.elevated(() => tx.maybe('select 1 from identity.organisations where tenant = $1 and id <> $2', [t, orgId])) : undefined;
+  if (dup) throw conflict('tenant_taken', `The tenant name "${t}" already belongs to another bank.`);
+  try {
+    await tx.elevated(() => tx.query('update identity.organisations set tenant = $2 where id = $1', [orgId, t]));
+  } catch (e) {
+    if ((e as { code?: string }).code === '23505') throw conflict('tenant_taken', `The tenant name "${t}" already belongs to another bank.`);
+    throw e;
+  }
+  await audit(tx, ctx, svc.clock.now(), { action: 'branding.tenant_set', entityType: 'organisation', entityId: orgId, orgId, before: { tenant: org.tenant }, after: { tenant: t } });
 }
 
 // ---------------------------------------------------------------------------------------------- requirements (CT-10)

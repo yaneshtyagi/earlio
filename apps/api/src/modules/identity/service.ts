@@ -17,6 +17,7 @@ export interface OrgInput {
   borrowingRate?: string | null;
   isPartner?: boolean;
   hostname?: string | null;
+  tenant?: string | null;
   branding?: Record<string, unknown>;
   kycStatus?: string;
   sanctionsStatus?: string;
@@ -34,11 +35,11 @@ export async function createOrganisation(tx: Tx, svc: Services, ctx: Ctx, input:
       : false;
   const row = await tx.one<{ id: string }>(
     `insert into identity.organisations
-      (type, legal_name, country, small, msme, turnover_inr, rating_tier, data_region, borrowing_rate, is_partner, hostname, branding, kyc_status, sanctions_status, blocked, created_at)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) returning id`,
+      (type, legal_name, country, small, msme, turnover_inr, rating_tier, data_region, borrowing_rate, is_partner, hostname, tenant, branding, kyc_status, sanctions_status, blocked, created_at)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) returning id`,
     [input.type, input.legalName, input.country, small, input.msme ?? false, input.turnoverInr ?? null, input.ratingTier ?? null,
      input.dataRegion ?? (input.country === 'IN' ? 'IN' : input.country), input.borrowingRate ?? null, input.isPartner ?? false,
-     input.hostname ?? null, JSON.stringify(input.branding ?? {}), input.kycStatus ?? 'not_started', input.sanctionsStatus ?? 'not_screened', input.blocked ?? false, now],
+     input.hostname ?? null, input.tenant ?? null, JSON.stringify(input.branding ?? {}), input.kycStatus ?? 'not_started', input.sanctionsStatus ?? 'not_screened', input.blocked ?? false, now],
   );
   await audit(tx, ctx, now, { action: 'organisation.created', entityType: 'organisation', entityId: row.id, orgId: row.id, after: { type: input.type, legalName: input.legalName } });
   return row.id;
@@ -108,6 +109,7 @@ export const orgPrivate = (o: any) => ({
   borrowingRate: o.borrowing_rate as string | null,
   branding: o.branding as Record<string, unknown>,
   hostname: (o.hostname ?? null) as string | null,
+  tenant: (o.tenant ?? null) as string | null,
 });
 
 export { DomainError };

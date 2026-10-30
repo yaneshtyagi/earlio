@@ -17,7 +17,7 @@ import { BankLimitsPage } from './pages/BankLimitsPage';
 import { AdminLiensPage, BankInvitationsPage } from './pages/FundingPanels';
 import { BuyerPaymentsPage, ControlRoomPage, IntegrationInspectorPage, NotificationsPage, SettlementConsolePage } from './pages/SettlementPages';
 import { ClaimsPage, DisputeDetailPage, DisputesPage, ExportProceedsPage, RecoveryPage, RecoursePage } from './pages/ExceptionPages';
-import { ApprovalsPage, BankConsolePage, GuardrailConsolePage } from './pages/GovernancePages';
+import { ApprovalsPage, BankConsolePage, GuardrailConsolePage, TenantDomainsPage } from './pages/GovernancePages';
 import { BankIntegrationPage } from './pages/IntegrationPages';
 import { ScorecardPage } from './pages/DashboardPages';
 import { NetworkPage } from './pages/NetworkPage';
@@ -60,6 +60,7 @@ export function App() {
         <Route path="admin/scorecard" element={<ScorecardPage />} />
         <Route path="admin/network" element={<NetworkPage />} />
         <Route path="admin/guardrails" element={<GuardrailConsolePage />} />
+        <Route path="admin/tenants" element={<TenantDomainsPage />} />
         <Route path="payments" element={<BuyerPaymentsPage />} />
         <Route path="settlement" element={<SettlementConsolePage />} />
         <Route path="notifications" element={<NotificationsPage />} />
