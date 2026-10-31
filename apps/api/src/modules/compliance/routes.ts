@@ -3,7 +3,7 @@ import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
 import { requireOrgType, requirePerm, requireUser, platformCtx } from '../../http/context';
 import { DomainError, forbidden } from '../../kernel/errors';
-import { storeFile, readFile } from '../../platform/files';
+import { storeFile, readFile, previewType } from '../../platform/files';
 import { createOrganisation, addMember } from '../identity/service';
 import { attachDocument, caseView, decideCase, getOrCreateOpenCase, submitCase } from './kyc';
 import { decideScreening } from './sanctions';
@@ -52,9 +52,20 @@ export function complianceRoutes(app: FastifyInstance) {
 
   r.get('/api/v1/files/:id', {
     preHandler: requireUser,
-    schema: { tags: ['files'], summary: 'Download a file you own or that was shared with you', params: z.object({ id: z.string().uuid() }) },
+    schema: {
+      tags: ['files'], summary: 'Download or preview a file you own or that was shared with you',
+      description: 'disposition=inline returns the file with its real type for in-app preview (PDF, PNG, JPEG, GIF, WebP, plain text only); other types are refused with 415.',
+      params: z.object({ id: z.string().uuid() }),
+      querystring: z.object({ disposition: z.enum(['attachment', 'inline']).default('attachment') }),
+    },
   }, async (req, reply) => {
     const { meta, data } = await svc.db.tx(req.ctx, (tx) => readFile(tx, svc, req.params.id));
+    if (req.query.disposition === 'inline') {
+      const type = previewType(meta.filename, data);
+      if (!type) throw new DomainError('not_previewable', 'This file type cannot be previewed. Download it to open it on your device.', 415);
+      return reply.header('content-type', type)
+        .header('content-disposition', `inline; filename="${meta.filename}"`).header('x-content-type-options', 'nosniff').send(data);
+    }
     return reply.header('content-type', 'application/octet-stream')
       .header('content-disposition', `attachment; filename="${meta.filename}"`).header('x-content-type-options', 'nosniff').send(data);
   });

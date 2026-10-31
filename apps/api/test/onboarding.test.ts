@@ -99,6 +99,34 @@ describe('onboarding, KYC and sanctions', () => {
     const other = await login(env, 'northwind', 'Admin');
     expect((await other.req('GET', `/api/v1/files/${f.json.id}`)).status).toBe(404);
     expect((await s.req('GET', `/api/v1/files/${f.json.id}`)).status).toBe(200);
+    expect((await other.req('GET', `/api/v1/files/${f.json.id}?disposition=inline`)).status).toBe(404);
+  });
+
+  it('files preview inline only when their bytes are an inert type; download stays the default', async () => {
+    const { s } = await register('Previewer Ltd', 'supplier', 'a@pv.test');
+    const get = async (id: string, q = '') => env.app.inject({ method: 'GET', url: `/api/v1/files/${id}${q}`, headers: { cookie: s.cookie } });
+
+    const pdf = (await upload(s, 'invoice.pdf', '%PDF-1.7\n%test\n')).json.id;
+    const dl = await get(pdf);
+    expect(dl.headers['content-type']).toBe('application/octet-stream');
+    expect(dl.headers['content-disposition']).toBe('attachment; filename="invoice.pdf"');
+    const view = await get(pdf, '?disposition=inline');
+    expect(view.statusCode).toBe(200);
+    expect(view.headers['content-type']).toBe('application/pdf');
+    expect(view.headers['content-disposition']).toBe('inline; filename="invoice.pdf"');
+    expect(view.headers['x-content-type-options']).toBe('nosniff');
+
+    const csv = (await upload(s, 'lines.csv', 'sku,qty\nA-1,4\n')).json.id;
+    expect((await get(csv, '?disposition=inline')).headers['content-type']).toBe('text/plain; charset=utf-8');
+
+    // A PDF name does not make bytes a PDF, and markup is never rendered.
+    for (const [name, body] of [['fake.pdf', 'hello'], ['page.html', '<script>alert(1)</script>'], ['logo.svg', '<svg onload="alert(1)"/>']]) {
+      const id = (await upload(s, name, body)).json.id;
+      const r = await get(id, '?disposition=inline');
+      expect(r.statusCode).toBe(415);
+      expect(r.json().message).toMatch(/cannot be previewed/);
+      expect((await get(id)).statusCode).toBe(200);
+    }
   });
 
   it('only platform staff can see the KYC queue', async () => {

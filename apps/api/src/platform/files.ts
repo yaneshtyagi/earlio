@@ -33,6 +33,27 @@ export async function readFile(tx: Tx, svc: Services, id: string) {
   return { meta: f, data };
 }
 
+const TEXT_EXTENSIONS = new Set(['txt', 'csv', 'json', 'md', 'log']);
+const startsWith = (data: Buffer, ...bytes: number[]) => data.length >= bytes.length && bytes.every((b, i) => data[i] === b);
+
+/**
+ * The content type to show a file in the browser as, judged from its bytes (the declared type is untrusted), or null
+ * when it cannot be previewed safely. Only inert formats qualify: PDF, raster images and plain UTF-8 text. HTML, SVG
+ * and anything else that can run script is never served inline.
+ */
+export function previewType(filename: string, data: Buffer): string | null {
+  if (startsWith(data, 0x25, 0x50, 0x44, 0x46, 0x2d)) return 'application/pdf'; // %PDF-
+  if (startsWith(data, 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a)) return 'image/png';
+  if (startsWith(data, 0xff, 0xd8, 0xff)) return 'image/jpeg';
+  if (startsWith(data, 0x47, 0x49, 0x46, 0x38)) return 'image/gif'; // GIF8
+  if (startsWith(data, 0x52, 0x49, 0x46, 0x46) && data.subarray(8, 12).toString('latin1') === 'WEBP') return 'image/webp';
+  const ext = filename.toLowerCase().split('.').pop() ?? '';
+  if (TEXT_EXTENSIONS.has(ext) && !data.includes(0)) {
+    try { new TextDecoder('utf-8', { fatal: true }).decode(data); return 'text/plain; charset=utf-8'; } catch { return null; }
+  }
+  return null;
+}
+
 /** Make a file visible to other organisations (e.g. an invoice document shared with the buyer and invited banks). */
 export async function shareFile(tx: Tx, fileId: string, orgIds: string[]) {
   await tx.query(
