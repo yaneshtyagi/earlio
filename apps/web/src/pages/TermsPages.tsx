@@ -273,6 +273,7 @@ export function TermsSetPage() {
   const [preview, setPreview] = useState<{ supplier: string[]; buyer: string[]; notes: string[] } | null>(null);
   const [sim, setSim] = useState<any[] | null>(null);
   const [vdiff, setVdiff] = useState<{ version: number; against: number | null; changes: any[] } | null>(null);
+  const [previewLang, setPreviewLang] = useState<'en' | 'hi'>('en');
   const fileRef = useRef<HTMLInputElement>(null);
   const s = set.data;
   const active = useMemo(() => s?.versions.filter((v) => v.status === 'active').sort((a, b) => b.version - a.version)[0], [s]);
@@ -300,7 +301,6 @@ export function TermsSetPage() {
   async function withdraw(versionId: string) {
     try { await ensureOk(await api.POST('/api/v1/terms/versions/{id}/reject', { params: { path: { id: versionId } }, body: { reason: 'Withdrawn by the maker' } })); flash('ok', 'Withdrawn back to draft.'); await reload(); } catch (e) { flash('err', (e as Error).message); }
   }
-  const [previewLang, setPreviewLang] = useState<'en' | 'hi'>('en');
   async function runPreview(lang: 'en' | 'hi' = previewLang) {
     const r = await api.POST('/api/v1/terms/preview', { body: { ownerType: s!.ownerType, body: cur, lang } });
     if (r.data) setPreview(r.data); else flash('err', problemOf(r.error).message);

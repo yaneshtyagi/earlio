@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import pg from 'pg';
 import { createTestEnv, login, type TestEnv } from './helpers';
 import { audit, verifyAuditChain } from '../src/platform/audit';
+import { D } from '../src/kernel/money';
 
 let env: TestEnv;
 beforeAll(async () => { env = await createTestEnv(); });
@@ -22,6 +23,32 @@ describe('audit hash chain', () => {
     expect(list.status).toBe(200);
     const again = await aud.req('GET', `/api/v1/audit/events?entityType=audit_log`);
     expect(again.json.some((e: any) => e.action === 'platform.cross_tenant_read')).toBe(true);
+  });
+
+  it('keeps the chain intact when an event carries a Date, a Decimal or an undefined field', async () => {
+    const e2 = await createTestEnv();
+    try {
+      await e2.svc.db.system((tx) => audit(tx, { correlationId: 'dates' }, e2.clock.now(), {
+        action: 'test.typed_payload', entityType: 'test', orgId: null,
+        before: { at: new Date('2026-01-01T00:00:00Z') }, after: { effectiveFrom: e2.clock.now(), amount: D('12.50'), gone: undefined },
+      }));
+      const res = await e2.svc.db.system((tx) => verifyAuditChain(tx));
+      expect(res.ok).toBe(true);
+    } finally { await e2.close(); }
+  });
+
+  it('stays intact after a terms version is submitted through the API', async () => {
+    const e2 = await createTestEnv();
+    try {
+      const rm = await login(e2, 'aurelia', 'RelationshipManager');
+      const set = (await rm.req('GET', '/api/v1/terms/sets')).json.items[0];
+      const full = (await rm.req('GET', `/api/v1/terms/sets/${set.id}`)).json;
+      const draft = await rm.req('POST', `/api/v1/terms/sets/${set.id}/versions`, { body: full.versions[0].body });
+      expect(draft.status).toBeLessThan(300);
+      expect((await rm.req('POST', `/api/v1/terms/versions/${draft.json.id}/submit`, {})).status).toBeLessThan(300);
+      const aud = await login(e2, 'earlio', 'Auditor');
+      expect((await aud.req('GET', '/api/v1/audit/verify')).json.ok).toBe(true);
+    } finally { await e2.close(); }
   });
 
   it('detects a tampered row (superuser edits one event)', async () => {
