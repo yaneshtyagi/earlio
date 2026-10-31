@@ -4,6 +4,7 @@ Tri-party receivables financing platform: suppliers get cash within days of buye
 
 - `apps/api` — Node/TypeScript API (Fastify, PostgreSQL). `apps/web` — React SPA. They are decoupled; the contract is `docs/openapi.json`.
 - Docs: `docs/PRD.pdf`, `docs/earlio-mvp-implementation-plan.md`, `docs/progress.md`, `docs/adr/`. Agent rules: `AGENTS.md`.
+- Manuals: [user manuals](docs/user-manual/README.md) · [technical manual](docs/technical-manual/README.md) (developers, DevOps) · [production support guide](docs/support/README.md).
 
 ```
 npm install
