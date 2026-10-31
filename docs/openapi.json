@@ -1115,11 +1115,25 @@
     },
     "/api/v1/files/{id}": {
       "get": {
-        "summary": "Download a file you own or that was shared with you",
+        "summary": "Download or preview a file you own or that was shared with you",
         "tags": [
           "files"
         ],
+        "description": "disposition=inline returns the file with its real type for in-app preview (PDF, PNG, JPEG, GIF, WebP, plain text only); other types are refused with 415.",
         "parameters": [
+          {
+            "schema": {
+              "default": "attachment",
+              "type": "string",
+              "enum": [
+                "attachment",
+                "inline"
+              ]
+            },
+            "in": "query",
+            "name": "disposition",
+            "required": false
+          },
           {
             "schema": {
               "type": "string",

@@ -4,6 +4,7 @@ import { Button, DataTable, DescriptionList } from '@yaneshtyagi/design-system';
 import { api, ensureOk, problemOf, uploadFile } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Loading, Notice, Page, Panel, StatusChip, type Msg } from '../ui';
+import { FileLink } from '../ui/FilePreview';
 
 const LABELS: Record<string, string> = {
   incorporation: 'Certificate of incorporation', tax_id: 'Tax registration (PAN / EIN / UEN)', address_proof: 'Proof of address', director_id: 'Director ID',
@@ -54,7 +55,7 @@ export function OnboardingPage() {
           { id: 'doc', header: 'Document', rowHeader: true, cell: (t) => LABELS[t] ?? t },
           { id: 'file', header: 'File', cell: (t) => {
             const d = c.documents.find((x) => x.docType === t);
-            return d ? <>{d.filename} <span className="hint">sha256 {d.sha256.slice(0, 10)}…</span></> : <StatusChip status="missing">missing</StatusChip>;
+            return d ? <><FileLink fileId={d.fileId} filename={d.filename} /> <span className="hint">sha256 {d.sha256.slice(0, 10)}…</span></> : <StatusChip status="missing">missing</StatusChip>;
           } },
           { id: 'act', header: <span className="bv-sr-only">Action</span>, cell: (t) => {
             const d = c.documents.find((x) => x.docType === t);
