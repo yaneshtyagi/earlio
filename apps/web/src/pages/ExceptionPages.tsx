@@ -5,6 +5,7 @@ import { Alert, Badge, Button, DataTable, DescriptionList, FilterChip, SelectFie
 import { api, ensureOk, uploadFile } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Amt, Hint, Loading, Notice, Page, Panel, Section, StatusChip, TimelineList, dd, dt, label, noRows, type Msg } from '../ui';
+import { FileLink } from '../ui/FilePreview';
 
 function useAct() {
   const qc = useQueryClient();
@@ -78,7 +79,7 @@ export function DisputeDetailPage() {
         <Panel title="Case thread">
           <TimelineList aria-label="Case thread"
             events={[...messages].reverse().map((m) => ({ id: m.id, title: <>{m.authorName}{m.kind === 'evidence' && ' · evidence'}</>, at: m.createdAt,
-              meta: <>{m.body}{m.fileId && <> <a href={`/api/v1/files/${m.fileId}`}>Download attachment</a></>}</> }))} />
+              meta: <>{m.body}{m.fileId && <> <FileLink fileId={m.fileId} filename={m.body || 'Attachment'}>View attachment</FileLink></>}</> }))} />
           {open && (
             <>
               <TextareaField label="Message" value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write to the other parties and Earlio…" />
@@ -224,7 +225,7 @@ export function ClaimsPage() {
         return (
           <Panel key={c.id} level={3} title={<><Link to={`/invoices/${c.invoiceId}`}>{c.invoiceNumber}</Link> <StatusChip status={c.status}>{label(c.status)}</StatusChip></>}>
             <p>{c.bankName} claims <Amt v={c.claimedAmount} c={c.currency} strong /> on <Amt v={c.faceAmount} c={c.currency} /> (cover {c.coverPct}%) · filed {dt(c.filedAt)}</p>
-            <Hint>Documents: {c.documents.map((d) => d.docType).join(', ') || 'none'}</Hint>
+            <Hint>Documents: {c.documents.length ? c.documents.map((d, i) => <span key={d.fileId}>{i > 0 && ', '}<FileLink fileId={d.fileId} filename={label(d.docType)} /></span>) : 'none'}</Hint>
             {c.exclusions.length > 0 && <Alert tone="warning" title="Policy exclusions"><ul>{c.exclusions.map((e) => <li key={e.code}>{label(e.code)} — {e.detail}</li>)}</ul></Alert>}
             {c.waterfall && (
               <DescriptionList columns={1} layout="inline" items={[

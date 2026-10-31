@@ -87,3 +87,20 @@
 .earlio-mark__coin { fill: #D97706; }
 [data-theme="dark"] .earlio-mark { fill: #2DD4BF; }
 [data-theme="dark"] .earlio-mark__coin { fill: #F5A524; }
+
+/* In-app file viewer: open a document on the page, download only on request */
+.file-link { display: inline-flex; align-items: center; gap: var(--space-1); padding: 0; border: 0; background: none; font: inherit; color: var(--brand-600); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.file-link:hover { text-decoration-thickness: 2px; }
+.file-link:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring); outline-offset: 2px; border-radius: var(--radius-sm); }
+.file-preview { width: min(960px, calc(100vw - 32px)); height: min(88vh, 1100px); max-width: none; max-height: none; padding: 0; border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--surface-raised); color: inherit; box-shadow: var(--shadow-lg); overflow: hidden; }
+.file-preview[open] { display: flex; flex-direction: column; }
+.file-preview::backdrop { background: var(--surface-scrim); }
+.file-preview__bar { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle); }
+.file-preview__title { flex: 1; min-width: 0; margin: 0; font-size: var(--body-size); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-preview__body { flex: 1; min-height: 0; display: flex; overflow: auto; background: var(--surface-subtle); }
+.file-preview__pad { flex: 1; padding: var(--space-5); }
+.file-preview__empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3); text-align: center; color: var(--ink-muted); }
+.file-preview__empty p { margin: 0; max-width: 40ch; }
+.file-preview__frame { flex: 1; width: 100%; border: 0; background: #fff; }
+.file-preview__image { display: block; margin: auto; max-width: 100%; max-height: 100%; object-fit: contain; padding: var(--space-4); }
+.file-preview__text { flex: 1; margin: 0; padding: var(--space-4); font-family: var(--font-mono); font-size: var(--body-s-size); white-space: pre-wrap; word-break: break-word; }

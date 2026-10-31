@@ -6,6 +6,25 @@ import { VirtualClock } from '../kernel/clock';
 import { runWorkOnce } from '../worker';
 import type { Role } from '../modules/identity/permissions';
 
+/** A minimal one-page PDF naming the document, so seeded files open in the in-app viewer. */
+export function samplePdf(title: string, note: string): Buffer {
+  const esc = (t: string) => t.replace(/[\\()]/g, (c) => `\\${c}`);
+  const text = `BT /F1 20 Tf 72 760 Td (${esc(title)}) Tj /F1 10 Tf 0 -24 Td (${esc(note)}) Tj 0 -14 Td (Simulated document for the Earlio demo.) Tj ET`;
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${text.length} >>\nstream\n${text}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ];
+  let out = '%PDF-1.4\n';
+  const offsets = objs.map((o, i) => { const at = out.length; out += `${i + 1} 0 obj\n${o}\nendobj\n`; return at; });
+  const xref = out.length;
+  out += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, '0')} 00000 n \n`).join('')}`;
+  out += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return Buffer.from(out, 'latin1');
+}
+
 export interface Sess { cookie: string; csrf: string; req: (method: 'GET' | 'POST' | 'PUT' | 'DELETE', url: string, body?: unknown) => Promise<{ status: number; json: any }> }
 
 /** Drives the real HTTP API in-process, exactly as the web app would; used by the scenario seeder. Sessions are re-created whenever the clock moves. */
@@ -43,7 +62,7 @@ export class Driver {
     return x.json;
   }
   async upload(s: Sess, name: string) {
-    const res = await this.app.inject({ method: 'POST', url: `/api/v1/files?filename=${name}`, headers: { cookie: s.cookie, 'x-csrf-token': s.csrf, 'content-type': 'application/octet-stream' }, payload: Buffer.from(`${name}:${Math.random()}`) });
+    const res = await this.app.inject({ method: 'POST', url: `/api/v1/files?filename=${name}`, headers: { cookie: s.cookie, 'x-csrf-token': s.csrf, 'content-type': 'application/octet-stream' }, payload: name.endsWith('.pdf') ? samplePdf(name.replace(/\.pdf$/, '').replace(/_/g, ' '), `Reference ${Math.random().toString(36).slice(2, 10)}`) : Buffer.from(`${name}:${Math.random()}`) });
     if (res.statusCode >= 300) throw new Error(`upload ${name}: ${res.statusCode} ${res.body}`);
     return res.json().id as string;
   }

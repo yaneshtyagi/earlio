@@ -19,6 +19,7 @@ Browser ⇄ API (cookie session + CSRF) · bank/ERP ⇄ machine API (API key + H
 | **Repudiation** | "I never consented" | Consent, acceptance and assignment events audited with user, time, IP hash and terms version | – |
 | **Information disclosure** | Tenant A reads tenant B | Row-level security on every tenant table; non-owner role; cross-tenant tests; `elevated` only in services | Penetration test before pilot |
 | Disclosure | Secrets in logs | Cookie and Authorization redacted; no secrets in responses after creation | Log scrubbing review for new fields |
+| Tampering | Script in an uploaded file opened in the in-app viewer | Inline only when the bytes are PDF, PNG, JPEG, GIF, WebP or UTF-8 text (never HTML/SVG, whatever the name); sent as that type with `nosniff` and the API's `default-src 'none'` CSP; the viewer loads the bytes as a blob, plain text is shown as text | Render PDFs server-side to images if the browser PDF viewer becomes a concern |
 | Disclosure | Spreadsheet formula injection | CSV export neutralises formula prefixes | – |
 | **Denial of service** | Request floods | Global rate limit per client address, tighter limits on auth, 3 MB body cap, file row caps | Edge WAF/CDN in production |
 | DoS | Webhook sink slowness | 5 s timeout, bounded retries | Per-bank delivery concurrency cap |

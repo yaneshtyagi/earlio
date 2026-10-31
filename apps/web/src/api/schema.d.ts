@@ -784,10 +784,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Download a file you own or that was shared with you */
+        /**
+         * Download or preview a file you own or that was shared with you
+         * @description disposition=inline returns the file with its real type for in-app preview (PDF, PNG, JPEG, GIF, WebP, plain text only); other types are refused with 415.
+         */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    disposition?: "attachment" | "inline";
+                };
                 header?: never;
                 path: {
                     id: string;

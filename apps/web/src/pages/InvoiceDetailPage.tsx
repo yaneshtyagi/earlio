@@ -9,6 +9,7 @@ import { Alert, Button, Checkbox, DataTable, DescriptionList, SelectField, Texta
 import { api, ensureOk, uploadFile } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Amt, Hint, Loading, Notice, Page, Panel, StatusChip, TimelineList, dd, dt, label, noRows, type Msg } from '../ui';
+import { FileLink } from '../ui/FilePreview';
 
 const DOCS = [['commercial_invoice', 'Commercial invoice'], ['delivery_proof', 'Delivery proof'], ['packing_list', 'Packing list'], ['shipping_bill', 'Shipping bill'], ['transport_document', 'Transport document']] as const;
 const WARN: Record<string, string> = { no_purchase_order: 'No purchase order linked.', currency_differs_from_po: 'Currency differs from the purchase order.' };
@@ -92,7 +93,7 @@ export function InvoiceDetailPage() {
           columns={[
             { id: 'type', header: 'Type', rowHeader: true, cell: (d) => label(d.docType) },
             { id: 'version', header: 'Version', numeric: true, cell: (d) => `v${d.version}` },
-            { id: 'file', header: 'File', cell: (d) => <a href={`/api/v1/files/${d.fileId}`}>{d.filename}</a> },
+            { id: 'file', header: 'File', cell: (d) => <FileLink fileId={d.fileId} filename={d.filename} /> },
             { id: 'sha', header: 'SHA-256', cell: (d) => <code>{d.sha256.slice(0, 12)}…</code> },
           ]} />
         {canSupplier && ['Draft', 'Submitted'].includes(inv.status) && (
